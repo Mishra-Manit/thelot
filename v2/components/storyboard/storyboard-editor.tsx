@@ -328,6 +328,11 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
     }
   }, [isVideoPlaying])
 
+  const handleTimelineSeek = useCallback((seconds: number) => {
+    framePreviewRef.current?.seek(seconds)
+    setVideoCurrentTime(seconds)
+  }, [])
+
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden" style={{ background: "#000000" }}>
       <HeaderBar
@@ -575,6 +580,7 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
               totalDuration={videoTotalDuration}
               isPlaying={isVideoPlaying}
               onPlayPause={handleTimelinePlayPause}
+              onSeek={handleTimelineSeek}
             />
           </div>
         )}

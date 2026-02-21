@@ -36,7 +36,7 @@ export function HeaderBar({ onRewindSimulation, canRewindSimulation }: HeaderBar
       </div>
 
       {/* Right group */}
-      <div className="flex items-center gap-1 pr-4">
+      <div className="ml-auto flex items-center gap-1 pr-4">
         {/* Credits */}
         <button
           className="flex items-center gap-1 px-2 py-1 rounded-md transition-colors duration-150"

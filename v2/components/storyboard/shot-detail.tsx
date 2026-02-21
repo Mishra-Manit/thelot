@@ -7,8 +7,6 @@ import {
   Brain,
   Camera,
   Play,
-  GripVertical,
-  Sparkles,
   Image as ImageIcon,
   Minus,
   Plus,
@@ -87,7 +85,7 @@ function AutoTextarea({
   )
 }
 
-/* ─── Editor block with drag handle ─── */
+/* ─── Editor block ─── */
 function EditorBlock({
   accentColor,
   icon: Icon,
@@ -106,14 +104,7 @@ function EditorBlock({
   showLabelRow?: boolean
 }) {
   return (
-    <div className="group relative" style={{ marginBottom: `${marginBottom}px`, marginTop: `${marginTop}px` }}>
-      {/* Drag handle */}
-      <div
-        className="absolute opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex items-start pt-7"
-        style={{ left: "-28px", color: "#696969" }}
-      >
-        <GripVertical size={14} style={{ opacity: 0.45 }} />
-      </div>
+    <div className="group" style={{ marginBottom: `${marginBottom}px`, marginTop: `${marginTop}px` }}>
       <div className="transition-colors duration-150 rounded-md">
         {/* Label row */}
         <div 
@@ -427,11 +418,6 @@ export function ShotDetail({
         >
           <span className="flex items-center gap-2">
             <span style={{ color: "#696969" }}>[</span>
-            <Sparkles
-              size={14}
-              className={isFramesLoading || isVideoLoading ? "animate-spin" : "transition-transform duration-300 group-hover:scale-110"}
-              style={{ animationDuration: "1.6s", color: "currentColor" }}
-            />
             <span>
               {!areFramesReady
                 ? isFramesLoading

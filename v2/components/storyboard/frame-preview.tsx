@@ -1,27 +1,21 @@
 "use client"
 
-import { useState, useCallback, useRef, useEffect } from "react"
-import {
-  Play,
-  Pause,
-  SkipBack,
-  SkipForward,
-  ImageIcon,
-  Sparkles,
-} from "lucide-react"
+import { useState, useCallback, useRef, useEffect, forwardRef, useImperativeHandle } from "react"
+import { ImageIcon, Sparkles } from "lucide-react"
 import { VideoPlayer, type VideoPlayerHandle } from "./video-player"
 import { SpongebobLoading } from "./loading/spongebob-loading"
 import { SimpsonLoading } from "./loading/simpson-loading"
 import { PrincessLoading } from "./loading/princess-loading"
 
-function formatTime(seconds: number): string {
-  const m = Math.floor(seconds / 60)
-  const s = Math.floor(seconds % 60)
-  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`
-}
-
 const MIN_TOP_PCT = 20
 const MAX_TOP_PCT = 70
+
+// Handle exposed to parent components for video control
+export interface FramePreviewHandle {
+  play: () => void
+  pause: () => void
+  seek: (seconds: number) => void
+}
 
 interface FramePreviewProps {
   sceneNumber: number | null
@@ -39,44 +33,51 @@ interface FramePreviewProps {
   areFramesReady: boolean
   isVideoLoading: boolean
   onGenerateFrames: () => void
+  onVideoTimeUpdate?: (time: number, duration: number) => void
+  onVideoPlayStateChange?: (playing: boolean) => void
 }
 
-export function FramePreview({
-  sceneNumber,
-  shotNumber,
-  totalShots,
-  duration,
-  startFramePrompt,
-  shotTitle,
-  videoUrl,
-  isSaving = false,
-  startFrameImageUrl,
-  endFrameImageUrl,
-  endFrameFallbackImageUrl,
-  isFramesLoading,
-  areFramesReady,
-  isVideoLoading,
-  onGenerateFrames,
-}: FramePreviewProps) {
-  const hasShot = sceneNumber !== null && shotNumber !== null
-  const [startHover, setStartHover] = useState(false)
-  const [endHover, setEndHover] = useState(false)
+export const FramePreview = forwardRef<FramePreviewHandle, FramePreviewProps>(
+  function FramePreview(
+    {
+      sceneNumber,
+      shotNumber,
+      totalShots,
+      duration,
+      startFramePrompt,
+      shotTitle,
+      videoUrl,
+      isSaving = false,
+      startFrameImageUrl,
+      endFrameImageUrl,
+      endFrameFallbackImageUrl,
+      isFramesLoading,
+      areFramesReady,
+      isVideoLoading,
+      onGenerateFrames,
+      onVideoTimeUpdate,
+      onVideoPlayStateChange,
+    },
+    ref
+  ) {
+    const hasShot = sceneNumber !== null && shotNumber !== null
+    const [startHover, setStartHover] = useState(false)
+    const [endHover, setEndHover] = useState(false)
 
-  // Playback state driven by the VideoPlayer composition
-  const [currentTime, setCurrentTime] = useState(0)
-  const [totalDuration, setTotalDuration] = useState(0)
-  const [isPlaying, setIsPlaying] = useState(false)
-  const playerRef = useRef<VideoPlayerHandle | null>(null)
-  const canControlPlayback = Boolean(videoUrl) && !isVideoLoading
+    // Playback state driven by the VideoPlayer composition
+    const playerRef = useRef<VideoPlayerHandle | null>(null)
 
-  useEffect(() => {
-    if (!videoUrl) setIsPlaying(false)
-  }, [videoUrl])
+    // Expose play/pause/seek to parent via forwardRef
+    useImperativeHandle(ref, () => ({
+      play: () => playerRef.current?.play(),
+      pause: () => playerRef.current?.pause(),
+      seek: (seconds: number) => playerRef.current?.seek(seconds),
+    }))
 
-  /* ── Vertical resize state ─── */
-  const [topPct, setTopPct] = useState(30)
-  const [isVDragging, setIsVDragging] = useState(false)
-  const panelRef = useRef<HTMLDivElement>(null)
+    /* ── Vertical resize state ─── */
+    const [topPct, setTopPct] = useState(30)
+    const [isVDragging, setIsVDragging] = useState(false)
+    const panelRef = useRef<HTMLDivElement>(null)
 
   const handleVResizeStart = useCallback(
     (e: React.MouseEvent) => {
@@ -215,165 +216,39 @@ export function FramePreview({
           {/* Bottom: Video Player */}
           <div className="flex-1 min-h-0 flex flex-col">
             <div
-              className="relative w-full h-full rounded-lg overflow-hidden flex flex-col"
+              className="relative w-full h-full rounded-lg overflow-hidden"
               style={{ background: "#111111", border: "1px solid #232323" }}
             >
-              {/* Video content area */}
-              <div className="flex-1 relative">
-                <div
-                  className="absolute top-3 left-3 z-20 flex items-center rounded-full cursor-default"
-                  style={{
-                    background: "rgba(0, 0, 0, 0.6)",
-                    backdropFilter: "blur(4px)",
-                    border: "1px solid rgba(255, 255, 255, 0.1)",
-                    padding: "4px 10px",
-                  }}
-                >
-                  <span style={{ fontSize: "10px", color: "#ffffff", fontWeight: 600, letterSpacing: "0.02em", textTransform: "uppercase" }}>
-                    Video Preview
-                  </span>
-                </div>
-
-                <VideoPlayer
-                  videoUrl={videoUrl}
-                  onTimeUpdate={(cur, dur) => {
-                    setCurrentTime(cur)
-                    setTotalDuration(dur)
-                  }}
-                  onPlayStateChange={setIsPlaying}
-                  playerRef={playerRef}
-                />
-                {isVideoLoading && (
-                  <div className="absolute inset-0 z-10">
-                    <SpongebobLoading compact />
-                  </div>
-                )}
-              </div>
-
-              {/* Playback controls */}
+              {/* Video Preview label */}
               <div
-                className="flex items-center justify-center gap-4"
+                className="absolute top-3 left-3 z-20 flex items-center rounded-full cursor-default"
                 style={{
-                  padding: "10px 12px",
-                  borderTop: "1px solid #232323",
+                  background: "rgba(0, 0, 0, 0.6)",
+                  backdropFilter: "blur(4px)",
+                  border: "1px solid rgba(255, 255, 255, 0.1)",
+                  padding: "4px 10px",
                 }}
               >
-                <span
-                  style={{
-                    fontSize: "10px",
-                    color: "#696969",
-                    fontVariantNumeric: "tabular-nums",
-                  }}
-                >
-                  {formatTime(currentTime)}
-                </span>
-
-                {/* Progress bar */}
-                <div className="flex-1 relative" style={{ height: "3px" }}>
-                  <div
-                    className="absolute inset-0 rounded-full"
-                    style={{ background: "#232323" }}
-                  />
-                  <div
-                    className="absolute left-0 top-0 h-full rounded-full"
-                    style={{
-                      background: "#696969",
-                      width: `${totalDuration > 0 ? (currentTime / totalDuration) * 100 : 0}%`,
-                    }}
-                  />
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <button
-                    className="transition-colors duration-150"
-                    style={{
-                      color: canControlPlayback ? "#696969" : "#232323",
-                      cursor: canControlPlayback ? "pointer" : "not-allowed",
-                    }}
-                    onMouseEnter={(e) =>
-                      canControlPlayback && (e.currentTarget.style.color = "#ffffff")
-                    }
-                    onMouseLeave={(e) =>
-                      canControlPlayback && (e.currentTarget.style.color = "#696969")
-                    }
-                    onClick={() => {
-                      if (!canControlPlayback) return
-                      playerRef.current?.seek(0)
-                    }}
-                    disabled={!canControlPlayback}
-                    aria-label="Skip back"
-                  >
-                    <SkipBack size={13} />
-                  </button>
-                  <button
-                    className="flex items-center justify-center rounded-full transition-colors duration-150"
-                    style={{
-                      width: "28px",
-                      height: "28px",
-                      background: canControlPlayback ? "#696969" : "#232323",
-                      cursor: canControlPlayback ? "pointer" : "not-allowed",
-                    }}
-                    onMouseEnter={(e) =>
-                      canControlPlayback && (e.currentTarget.style.background = "#7A7A7A")
-                    }
-                    onMouseLeave={(e) =>
-                      canControlPlayback && (e.currentTarget.style.background = "#696969")
-                    }
-                    onClick={() => {
-                      if (!canControlPlayback || !playerRef.current) return
-                      if (isPlaying) {
-                        playerRef.current.pause()
-                        setIsPlaying(false)
-                      } else {
-                        playerRef.current.play()
-                        setIsPlaying(true)
-                      }
-                    }}
-                    disabled={!canControlPlayback}
-                    aria-label={isPlaying ? "Pause" : "Play"}
-                  >
-                    {isPlaying ? (
-                      <Pause size={12} style={{ color: "#000000" }} />
-                    ) : (
-                      <Play
-                        size={12}
-                        style={{ color: "#000000", marginLeft: "1px" }}
-                      />
-                    )}
-                  </button>
-                  <button
-                    className="transition-colors duration-150"
-                    style={{
-                      color: canControlPlayback ? "#696969" : "#232323",
-                      cursor: canControlPlayback ? "pointer" : "not-allowed",
-                    }}
-                    onMouseEnter={(e) =>
-                      canControlPlayback && (e.currentTarget.style.color = "#ffffff")
-                    }
-                    onMouseLeave={(e) =>
-                      canControlPlayback && (e.currentTarget.style.color = "#696969")
-                    }
-                    onClick={() => {
-                      if (!canControlPlayback) return
-                      playerRef.current?.seek(totalDuration)
-                    }}
-                    disabled={!canControlPlayback}
-                    aria-label="Skip forward"
-                  >
-                    <SkipForward size={13} />
-                  </button>
-                </div>
-
-                <span
-                  style={{
-                    fontSize: "10px",
-                    color: "#696969",
-                    fontVariantNumeric: "tabular-nums",
-                  }}
-                >
-                  {isSaving ? "Saving..." : formatTime(totalDuration)}
+                <span style={{ fontSize: "10px", color: "#ffffff", fontWeight: 600, letterSpacing: "0.02em", textTransform: "uppercase" }}>
+                  Video Preview
                 </span>
               </div>
+
+              <VideoPlayer
+                videoUrl={videoUrl}
+                onTimeUpdate={(cur, dur) => {
+                  onVideoTimeUpdate?.(cur, dur)
+                }}
+                onPlayStateChange={(playing) => {
+                  onVideoPlayStateChange?.(playing)
+                }}
+                playerRef={playerRef}
+              />
+              {isVideoLoading && (
+                <div className="absolute inset-0 z-10">
+                  <SpongebobLoading compact />
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -387,6 +262,7 @@ export function FramePreview({
     </div>
   )
 }
+)
 
 /* ── Frame Card ─────────────────────────── */
 
