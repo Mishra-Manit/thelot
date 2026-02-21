@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useCallback, useRef, useTransition, useEffect } from "react"
+import { AnimatePresence, motion } from "framer-motion"
 import { HeaderBar } from "./header-bar"
 import { SceneList } from "./scene-list"
 import { ShotDetail } from "./shot-detail"
@@ -11,6 +12,8 @@ import type { StoryboardScene, StoryboardShotUpdateInput } from "@/lib/storyboar
 
 const MIN_LEFT_PCT = 30
 const MAX_LEFT_PCT = 70
+const MIN_TIMELINE_PCT = 16
+const MAX_TIMELINE_PCT = 42
 const SIMULATION_DELAY_MS = 5000
 
 type SimulationPhase = "idle" | "loading" | "ready"
@@ -56,6 +59,11 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
   /* ── Resizable split ─── */
   const [leftPct, setLeftPct] = useState(50)
   const [isDragging, setIsDragging] = useState(false)
+  const [isResizeHandleHovered, setIsResizeHandleHovered] = useState(false)
+  const [timelinePct, setTimelinePct] = useState(24)
+  const [isTimelineDragging, setIsTimelineDragging] = useState(false)
+  const [isTimelineHandleHovered, setIsTimelineHandleHovered] = useState(false)
+  const bodyRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
   const simulationTimersRef = useRef<Record<string, Partial<Record<SimulationTimerKey, number>>>>(
     {}
@@ -248,6 +256,37 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
     [leftPct]
   )
 
+  const handleTimelineResizeStart = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault()
+      setIsTimelineDragging(true)
+      const startY = e.clientY
+      const startPct = timelinePct
+      const container = bodyRef.current
+      if (!container) return
+
+      const containerRect = container.getBoundingClientRect()
+      const containerHeight = containerRect.height
+
+      const onMove = (ev: MouseEvent) => {
+        const delta = ev.clientY - startY
+        const deltaPct = (delta / containerHeight) * 100
+        const next = Math.min(MAX_TIMELINE_PCT, Math.max(MIN_TIMELINE_PCT, startPct - deltaPct))
+        setTimelinePct(next)
+      }
+
+      const onUp = () => {
+        setIsTimelineDragging(false)
+        window.removeEventListener("mousemove", onMove)
+        window.removeEventListener("mouseup", onUp)
+      }
+
+      window.addEventListener("mousemove", onMove)
+      window.addEventListener("mouseup", onUp)
+    },
+    [timelinePct]
+  )
+
   const handleUpdateShot = useCallback(
     (field: keyof StoryboardShotUpdateInput, value: string | number) => {
       const currentShotId = selectedShot
@@ -281,8 +320,24 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
       <HeaderBar />
 
       {/* Body: panels row above, full-width timeline below */}
-      <div className="flex flex-col flex-1 min-h-0">
-        <div className="flex flex-1 min-h-0">
+      <div ref={bodyRef} className="flex flex-col flex-1 min-h-0">
+        <AnimatePresence>
+          {isTimelineDragging && (
+            <motion.div
+              className="fixed inset-0 z-50"
+              style={{ cursor: "row-resize" }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.12, ease: "easeOut" }}
+            />
+          )}
+        </AnimatePresence>
+
+        <div
+          className="flex min-h-0"
+          style={{ flex: `0 0 ${activeScene ? 100 - timelinePct : 100}%` }}
+        >
           {/* Scene list sidebar */}
           <SceneList
             scenes={scenes}
@@ -299,9 +354,18 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
           {/* Shot Detail + Resize Handle + Frame Preview */}
           <div ref={contentRef} className="flex flex-1 min-w-0 relative">
             {/* Prevent text selection while dragging */}
-            {isDragging && (
-              <div className="fixed inset-0 z-50" style={{ cursor: "col-resize" }} />
-            )}
+            <AnimatePresence>
+              {isDragging && (
+                <motion.div
+                  className="fixed inset-0 z-50"
+                  style={{ cursor: "col-resize" }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.12, ease: "easeOut" }}
+                />
+              )}
+            </AnimatePresence>
 
             {activeShot && activeScene ? (
               <>
@@ -318,7 +382,7 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
                 />
 
                 {/* ── Drag Handle ───────────────────── */}
-                <div
+                <motion.div
                   onMouseDown={handleResizeStart}
                   role="separator"
                   aria-orientation="vertical"
@@ -333,6 +397,12 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
                     cursor: "col-resize",
                     zIndex: 10,
                   }}
+                  onHoverStart={() => setIsResizeHandleHovered(true)}
+                  onHoverEnd={() => setIsResizeHandleHovered(false)}
+                  animate={{
+                    scale: isDragging ? 1.03 : 1,
+                  }}
+                  transition={{ duration: 0.12, ease: "easeOut" }}
                   onKeyDown={(e) => {
                     if (e.key === "ArrowLeft") {
                       setLeftPct((p) => Math.max(MIN_LEFT_PCT, p - 1))
@@ -342,19 +412,26 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
                   }}
                 >
                   {/* Visible rail */}
-                  <div
-                    className="resize-rail absolute inset-y-0 left-1/2 -translate-x-1/2 transition-all duration-150"
-                    style={{
-                      width: isDragging ? "3px" : "1px",
-                      background: isDragging ? "#7A7A7A" : "#232323",
+                  <motion.div
+                    className="absolute inset-y-0 left-1/2 -translate-x-1/2"
+                    animate={{
+                      width: isDragging ? 3 : isResizeHandleHovered ? 2 : 1,
+                      backgroundColor: isDragging
+                        ? "#7A7A7A"
+                        : isResizeHandleHovered
+                          ? "#696969"
+                          : "#232323",
                     }}
+                    transition={{ duration: 0.12, ease: "easeOut" }}
                   />
                   {/* Hover / active indicator pill */}
-                  <div
-                    className="resize-pill absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 transition-opacity duration-150"
-                    style={{
-                      opacity: isDragging ? 1 : 0,
+                  <motion.div
+                    className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+                    animate={{
+                      opacity: isDragging ? 1 : isResizeHandleHovered ? 0.6 : 0,
+                      scaleY: isDragging ? 1 : 0.92,
                     }}
+                    transition={{ duration: 0.12, ease: "easeOut" }}
                   >
                     <div
                       className="rounded-full"
@@ -364,19 +441,10 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
                         background: "#7A7A7A",
                       }}
                     />
-                  </div>
+                  </motion.div>
                   {/* Wider invisible hit area */}
                   <div className="absolute inset-y-0 -left-2 -right-2" />
-                  <style>{`
-                    .resize-handle:hover .resize-rail {
-                      width: 2px !important;
-                      background: #696969 !important;
-                    }
-                    .resize-handle:hover .resize-pill {
-                      opacity: 0.6 !important;
-                    }
-                  `}</style>
-                </div>
+                </motion.div>
 
                 <FramePreview
                   sceneNumber={activeScene.number}
@@ -407,14 +475,79 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
           </div>
         </div>
 
+        {activeScene && (
+          <motion.div
+            onMouseDown={handleTimelineResizeStart}
+            role="separator"
+            aria-orientation="horizontal"
+            aria-label="Resize timeline"
+            aria-valuenow={Math.round(timelinePct)}
+            aria-valuemin={MIN_TIMELINE_PCT}
+            aria-valuemax={MAX_TIMELINE_PCT}
+            tabIndex={0}
+            className="relative shrink-0"
+            style={{ height: "24px", cursor: "row-resize", zIndex: 10 }}
+            onHoverStart={() => setIsTimelineHandleHovered(true)}
+            onHoverEnd={() => setIsTimelineHandleHovered(false)}
+            animate={{ scale: isTimelineDragging ? 1.02 : 1 }}
+            transition={{ duration: 0.12, ease: "easeOut" }}
+            onKeyDown={(e) => {
+              if (e.key === "ArrowUp") {
+                setTimelinePct((p) => Math.min(MAX_TIMELINE_PCT, p + 1))
+              } else if (e.key === "ArrowDown") {
+                setTimelinePct((p) => Math.max(MIN_TIMELINE_PCT, p - 1))
+              }
+            }}
+          >
+            <motion.div
+              className="absolute inset-x-3 top-1/2 -translate-y-1/2"
+              animate={{
+                height: isTimelineDragging ? 3 : isTimelineHandleHovered ? 2 : 1,
+                backgroundColor: isTimelineDragging
+                  ? "#7A7A7A"
+                  : isTimelineHandleHovered
+                    ? "#696969"
+                    : "#232323",
+              }}
+              transition={{ duration: 0.12, ease: "easeOut" }}
+            />
+            <motion.div
+              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+              animate={{
+                opacity: isTimelineDragging ? 1 : isTimelineHandleHovered ? 0.6 : 0,
+                scaleX: isTimelineDragging ? 1 : 0.92,
+              }}
+              transition={{ duration: 0.12, ease: "easeOut" }}
+            >
+              <div
+                className="rounded-full"
+                style={{
+                  width: "32px",
+                  height: "5px",
+                  background: "#7A7A7A",
+                }}
+              />
+            </motion.div>
+            <div className="absolute inset-x-0 -top-2 -bottom-2" />
+          </motion.div>
+        )}
+
         {/* Full-width timeline spanning entire bottom */}
         {activeScene && (
-          <ShotTimeline
-            shots={activeScene.shots}
-            selectedShot={selectedShot}
-            sceneNumber={activeScene.number}
-            onSelectShot={handleSelectShot}
-          />
+          <div
+            className="min-h-0"
+            style={{
+              flex: `0 0 ${timelinePct}%`,
+              padding: "0 12px 12px",
+            }}
+          >
+            <ShotTimeline
+              shots={activeScene.shots}
+              selectedShot={selectedShot}
+              sceneNumber={activeScene.number}
+              onSelectShot={handleSelectShot}
+            />
+          </div>
         )}
       </div>
     </div>

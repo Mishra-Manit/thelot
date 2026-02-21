@@ -11,6 +11,7 @@ import {
   Sparkles,
 } from "lucide-react"
 import { VideoPlayer, type VideoPlayerHandle } from "./video-player"
+import { OceanWaveLoading } from "./ocean-wave-loading"
 
 function formatTime(seconds: number): string {
   const m = Math.floor(seconds / 60)
@@ -72,7 +73,7 @@ export function FramePreview({
   }, [videoUrl])
 
   /* ── Vertical resize state ─── */
-  const [topPct, setTopPct] = useState(45)
+  const [topPct, setTopPct] = useState(30)
   const [isVDragging, setIsVDragging] = useState(false)
   const panelRef = useRef<HTMLDivElement>(null)
 
@@ -263,8 +264,8 @@ export function FramePreview({
                   playerRef={playerRef}
                 />
                 {isVideoLoading && (
-                  <div className="absolute inset-0 z-10 flex items-center justify-center">
-                    <DitherLoading label="Generating shot preview..." compact />
+                  <div className="absolute inset-0 z-10">
+                    <OceanWaveLoading compact />
                   </div>
                 )}
               </div>
@@ -538,7 +539,7 @@ function FrameCard({
         />
 
         {isLoading ? (
-          <DitherLoading label="Generating frame..." />
+          <OceanWaveLoading />
         ) : isReady && currentImageUrl && !imageError ? (
           <img
             src={currentImageUrl}
@@ -591,49 +592,3 @@ function FrameCard({
   )
 }
 
-function DitherLoading({ label, compact = false }: { label: string; compact?: boolean }) {
-  return (
-    <div className="relative flex h-full w-full items-center justify-center overflow-hidden">
-      <div
-        className="absolute inset-0 animate-pulse"
-        style={{
-          background:
-            "linear-gradient(120deg, rgba(0,0,0,0.92) 20%, rgba(105,105,105,0.28) 50%, rgba(0,0,0,0.92) 80%)",
-          backgroundSize: "220% 100%",
-          animation: "dither-shimmer 1.2s linear infinite",
-        }}
-      />
-      <div
-        className="absolute inset-0 opacity-35"
-        style={{
-          backgroundImage:
-            "radial-gradient(rgba(217,217,217,0.28) 0.7px, transparent 0.7px)",
-          backgroundSize: "3px 3px",
-        }}
-      />
-      <div
-        className="relative z-10 rounded-md"
-        style={{
-          padding: compact ? "6px 10px" : "8px 12px",
-          background: "rgba(0,0,0,0.7)",
-          border: "1px solid rgba(105,105,105,0.5)",
-          color: "#D9D9D9",
-          fontSize: compact ? "10px" : "11px",
-          letterSpacing: "0.02em",
-        }}
-      >
-        {label}
-      </div>
-      <style>{`
-        @keyframes dither-shimmer {
-          0% {
-            background-position: 200% 0;
-          }
-          100% {
-            background-position: -20% 0;
-          }
-        }
-      `}</style>
-    </div>
-  )
-}

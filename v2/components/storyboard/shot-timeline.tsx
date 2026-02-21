@@ -20,7 +20,7 @@ export function ShotTimeline({
 
   return (
     <div
-      className="shrink-0"
+      className="h-full min-h-0 shrink-0 rounded-xl"
       style={{
         background: "#000000",
         borderTop: "1px solid #232323",
