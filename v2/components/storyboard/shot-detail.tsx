@@ -264,19 +264,30 @@ export function ShotDetail({
         <EditorBlock accentColor="#575757" icon={Brain} label="Internal Monologue">
           <div
             style={{
-              background: "#57575708",
-              borderLeft: "3px solid #57575744",
-              padding: "10px 16px",
-              borderRadius: "0 4px 4px 0",
+              width: "60%",
+              margin: "0 auto",
             }}
           >
+            <div
+              style={{
+                textAlign: "center",
+                fontSize: "14px",
+                fontWeight: 600,
+                marginBottom: "4px",
+                textTransform: "uppercase",
+                color: "#cccccc",
+              }}
+            >
+              CHARACTER (V.O.)
+            </div>
             <AutoTextarea
               value={shot.internalMonologue}
               onChange={(v) => onUpdate("internalMonologue", v)}
               style={{
                 fontSize: "15px",
                 color: "#cccccc",
-                fontStyle: "italic",
+                textAlign: "center",
+                fontStyle: "normal",
               }}
             />
           </div>
