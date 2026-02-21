@@ -25,6 +25,7 @@ const SCREENPLAY_FONT_FAMILY = "var(--font-mono)"
 interface ShotDetailProps {
   shot: StoryboardShot
   sceneNumber: number
+  shotIndex: number
   onUpdate: (field: keyof StoryboardShotUpdateInput, value: string | number) => void
   widthPct?: number
   onGenerateVideo: () => void
@@ -115,22 +116,25 @@ function EditorBlock({
       </div>
       <div className="transition-colors duration-150 rounded-md">
         {/* Label row */}
-        {showLabelRow && (
-          <div className="flex items-center gap-1.5 mb-1.5 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-150">
-            <Icon size={12} style={{ color: accentColor }} />
-            <span
-              style={{
-                fontSize: "10px",
-                letterSpacing: "0.08em",
-                fontWeight: 600,
-                color: accentColor,
-                textTransform: "uppercase",
-              }}
-            >
-              {label}
-            </span>
-          </div>
-        )}
+        <div 
+          className={`flex items-center gap-1.5 mb-1.5 opacity-0 transition-opacity duration-150 ${
+            showLabelRow ? "group-hover:opacity-100 group-focus-within:opacity-100" : ""
+          }`}
+          aria-hidden={!showLabelRow}
+        >
+          <Icon size={12} style={{ color: accentColor }} />
+          <span
+            style={{
+              fontSize: "10px",
+              letterSpacing: "0.08em",
+              fontWeight: 600,
+              color: accentColor,
+              textTransform: "uppercase",
+            }}
+          >
+            {label}
+          </span>
+        </div>
         {children}
       </div>
     </div>
@@ -140,6 +144,7 @@ function EditorBlock({
 export function ShotDetail({
   shot,
   sceneNumber,
+  shotIndex,
   onUpdate,
   widthPct = 50,
   onGenerateVideo,
@@ -197,7 +202,7 @@ export function ShotDetail({
                 padding: "2px 8px",
               }}
             >
-              Scene {sceneNumber}
+              Scene {sceneNumber}, Shot {shotIndex}
             </span>
             <span style={{ color: "#696969", fontSize: "12px" }}>&middot;</span>
             <div

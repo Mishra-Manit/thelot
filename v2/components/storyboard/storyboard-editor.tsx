@@ -388,6 +388,7 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
                 <ShotDetail
                   shot={activeShot}
                   sceneNumber={activeScene.number}
+                  shotIndex={activeShot.number}
                   onUpdate={handleUpdateShot}
                   widthPct={leftPct}
                   onGenerateVideo={() => handleGenerateVideo(activeShot.id)}

@@ -7,7 +7,6 @@ import {
   SkipBack,
   SkipForward,
   ImageIcon,
-  RefreshCw,
   Sparkles,
 } from "lucide-react"
 import { VideoPlayer, type VideoPlayerHandle } from "./video-player"
@@ -219,43 +218,22 @@ export function FramePreview({
               className="relative w-full h-full rounded-lg overflow-hidden flex flex-col"
               style={{ background: "#111111", border: "1px solid #232323" }}
             >
-              {/* Video label bar */}
-              <div
-                className="flex items-center justify-between"
-                style={{
-                  padding: "8px 12px",
-                  borderBottom: "1px solid #232323",
-                }}
-              >
-                <div className="flex items-center gap-2">
-                  <div
-                    className="rounded"
-                    style={{
-                      width: "6px",
-                      height: "6px",
-                      background: "#696969",
-                    }}
-                  />
-                  <span style={{ fontSize: "11px", color: "#ffffff", fontWeight: 500 }}>
-                    Video Preview
-                  </span>
-                  <span style={{ fontSize: "10px", color: "#696969" }}>
-                    {shotTitle}
-                  </span>
-                </div>
-                <span
-                  style={{
-                    fontSize: "10px",
-                    color: "#D9D9D9",
-                    fontVariantNumeric: "tabular-nums",
-                  }}
-                >
-                  Scene {sceneNumber} / Shot {shotNumber} of {totalShots}
-                </span>
-              </div>
-
               {/* Video content area */}
               <div className="flex-1 relative">
+                <div
+                  className="absolute top-3 left-3 z-20 flex items-center rounded-full cursor-default"
+                  style={{
+                    background: "rgba(0, 0, 0, 0.6)",
+                    backdropFilter: "blur(4px)",
+                    border: "1px solid rgba(255, 255, 255, 0.1)",
+                    padding: "4px 10px",
+                  }}
+                >
+                  <span style={{ fontSize: "10px", color: "#ffffff", fontWeight: 600, letterSpacing: "0.02em", textTransform: "uppercase" }}>
+                    Video Preview
+                  </span>
+                </div>
+
                 <VideoPlayer
                   videoUrl={videoUrl}
                   onTimeUpdate={(cur, dur) => {
@@ -455,81 +433,30 @@ function FrameCard({
       onMouseEnter={() => onHover(true)}
       onMouseLeave={() => onHover(false)}
     >
-      {/* Card header */}
-      <div
-        className="flex items-center justify-between"
-        style={{
-          padding: "7px 10px",
-          borderBottom: "1px solid #232323",
-        }}
-      >
-        <div className="flex items-center gap-1.5">
-          <ImageIcon size={11} style={{ color: isEnd ? "#575757" : "#696969" }} />
+      {/* Image area */}
+      <div className="flex-1 relative flex items-center justify-center" style={{ minHeight: "80px" }}>
+        <div
+          className="absolute top-2 left-2 z-20 flex items-center rounded-full cursor-default"
+          style={{
+            background: "rgba(0, 0, 0, 0.6)",
+            backdropFilter: "blur(4px)",
+            border: "1px solid rgba(255, 255, 255, 0.1)",
+            padding: "4px 10px",
+          }}
+        >
           <span
             style={{
               fontSize: "10px",
               fontWeight: 600,
               color: "#ffffff",
               letterSpacing: "0.02em",
+              textTransform: "uppercase",
             }}
           >
             {label}
           </span>
-          <span
-            style={{
-              fontSize: "9px",
-              color: "#696969",
-              marginLeft: "2px",
-            }}
-          >
-            {sublabel}
-          </span>
         </div>
-        <button
-          className="flex items-center gap-1 rounded-full transition-colors duration-150"
-          style={{
-            padding: "4px 10px",
-            background: "rgba(105,105,105,0.18)",
-            border: "1px solid rgba(105,105,105,0.45)",
-            color: "#D9D9D9",
-            opacity: isLoading ? 0.75 : 1,
-            cursor: isLoading ? "not-allowed" : "pointer",
-          }}
-          onMouseEnter={(e) => {
-            if (isLoading) return
-            e.currentTarget.style.background = "rgba(105,105,105,0.28)"
-            e.currentTarget.style.borderColor = "rgba(105,105,105,0.65)"
-            e.currentTarget.style.color = "#FFFFFF"
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = "rgba(105,105,105,0.18)"
-            e.currentTarget.style.borderColor = "rgba(105,105,105,0.45)"
-            e.currentTarget.style.color = "#D9D9D9"
-          }}
-          onClick={onGenerate}
-          disabled={isLoading}
-          aria-label={`${isReady ? "Regenerate" : "Generate"} ${label.toLowerCase()}`}
-          title={prompt}
-        >
-          <RefreshCw
-            size={10}
-            className={isLoading ? "animate-spin" : undefined}
-            style={isLoading ? { animationDuration: "1.3s" } : undefined}
-          />
-          <span
-            style={{
-              fontSize: "9px",
-              fontWeight: 600,
-              letterSpacing: "0.02em",
-            }}
-          >
-            {isLoading ? "Generating..." : isReady ? "Regenerate" : "Generate"}
-          </span>
-        </button>
-      </div>
 
-      {/* Image area */}
-      <div className="flex-1 relative flex items-center justify-center" style={{ minHeight: "80px" }}>
         {/* Subtle gradient bg */}
         <div
           className="absolute inset-0"
