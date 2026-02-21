@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, useRef, useTransition } from "react"
+import { useState, useCallback, useRef, useTransition, useEffect } from "react"
 import { HeaderBar } from "./header-bar"
 import { SceneList } from "./scene-list"
 import { ShotDetail } from "./shot-detail"
@@ -11,6 +11,27 @@ import type { StoryboardScene, StoryboardShotUpdateInput } from "@/lib/storyboar
 
 const MIN_LEFT_PCT = 30
 const MAX_LEFT_PCT = 70
+const SIMULATION_DELAY_MS = 5000
+
+type SimulationPhase = "idle" | "loading" | "ready"
+
+interface ShotSimulationState {
+  frames: SimulationPhase
+  video: SimulationPhase
+}
+
+type SimulationTimerKey = "frames" | "video"
+
+const DEFAULT_SIMULATION_STATE: ShotSimulationState = {
+  frames: "idle",
+  video: "idle",
+}
+
+function createShotImagePath(sceneNumber: number, shotNumber: number, kind: "start" | "end") {
+  return `/storyboard/shots/scene-${String(sceneNumber).padStart(2, "0")}-shot-${String(
+    shotNumber
+  ).padStart(2, "0")}-${kind}.png`
+}
 
 interface StoryboardEditorProps {
   initialScenes: StoryboardScene[]
@@ -19,6 +40,7 @@ interface StoryboardEditorProps {
 export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
   const [scenes, setScenes] = useState(initialScenes)
   const [isPending, startTransition] = useTransition()
+  const [simulationByShot, setSimulationByShot] = useState<Record<string, ShotSimulationState>>({})
   const [selectedScene, setSelectedScene] = useState<string | null>(() => {
     if (initialScenes.length === 0) return null
     return initialScenes[2]?.id ?? initialScenes[0].id
@@ -34,9 +56,19 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
   const [leftPct, setLeftPct] = useState(50)
   const [isDragging, setIsDragging] = useState(false)
   const contentRef = useRef<HTMLDivElement>(null)
+  const simulationTimersRef = useRef<Record<string, Partial<Record<SimulationTimerKey, number>>>>(
+    {}
+  )
 
   const activeScene = scenes.find((s) => s.id === selectedScene)
   const activeShot = activeScene?.shots.find((s) => s.id === selectedShot)
+  const activeSimulation = selectedShot
+    ? simulationByShot[selectedShot] ?? DEFAULT_SIMULATION_STATE
+    : DEFAULT_SIMULATION_STATE
+  const startFrameImageUrl =
+    activeScene && activeShot ? createShotImagePath(activeScene.number, activeShot.number, "start") : ""
+  const endFrameImageUrl =
+    activeScene && activeShot ? createShotImagePath(activeScene.number, activeShot.number, "end") : ""
 
   const handleSelectScene = useCallback(
     (sceneId: string) => {
@@ -63,6 +95,118 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
   const handleToggleCollapse = useCallback(() => {
     setPanelCollapsed((prev) => !prev)
   }, [])
+
+  const clearSimulationTimer = useCallback((shotId: string, key: SimulationTimerKey) => {
+    const shotTimers = simulationTimersRef.current[shotId]
+    const timerId = shotTimers?.[key]
+    if (timerId === undefined) return
+    window.clearTimeout(timerId)
+    delete shotTimers[key]
+    if (shotTimers.frames === undefined && shotTimers.video === undefined) {
+      delete simulationTimersRef.current[shotId]
+    }
+  }, [])
+
+  const clearAllSimulationTimers = useCallback(() => {
+    Object.entries(simulationTimersRef.current).forEach(([shotId, timers]) => {
+      if (timers.frames !== undefined) {
+        window.clearTimeout(timers.frames)
+      }
+      if (timers.video !== undefined) {
+        window.clearTimeout(timers.video)
+      }
+      delete simulationTimersRef.current[shotId]
+    })
+  }, [])
+
+  useEffect(() => {
+    return () => clearAllSimulationTimers()
+  }, [clearAllSimulationTimers])
+
+  const updateSimulationState = useCallback(
+    (shotId: string, patch: Partial<ShotSimulationState>) => {
+      setSimulationByShot((prev) => ({
+        ...prev,
+        [shotId]: {
+          ...(prev[shotId] ?? DEFAULT_SIMULATION_STATE),
+          ...patch,
+        },
+      }))
+    },
+    []
+  )
+
+  const handleGenerateFrames = useCallback(
+    (shotId?: string) => {
+      const targetShotId = shotId ?? selectedShot
+      if (!targetShotId) return
+
+      clearSimulationTimer(targetShotId, "frames")
+      clearSimulationTimer(targetShotId, "video")
+      updateSimulationState(targetShotId, { frames: "loading", video: "idle" })
+
+      const timerId = window.setTimeout(() => {
+        setSimulationByShot((prev) => ({
+          ...prev,
+          [targetShotId]: {
+            ...(prev[targetShotId] ?? DEFAULT_SIMULATION_STATE),
+            frames: "ready",
+            video: "idle",
+          },
+        }))
+        delete simulationTimersRef.current[targetShotId]?.frames
+      }, SIMULATION_DELAY_MS)
+
+      simulationTimersRef.current[targetShotId] = {
+        ...(simulationTimersRef.current[targetShotId] ?? {}),
+        frames: timerId,
+      }
+    },
+    [clearSimulationTimer, selectedShot, updateSimulationState]
+  )
+
+  const handleGenerateVideo = useCallback(
+    (shotId?: string) => {
+      const targetShotId = shotId ?? selectedShot
+      if (!targetShotId) return
+      const shotSimulation = simulationByShot[targetShotId] ?? DEFAULT_SIMULATION_STATE
+      if (shotSimulation.frames !== "ready") return
+
+      clearSimulationTimer(targetShotId, "video")
+      updateSimulationState(targetShotId, { video: "loading" })
+
+      const timerId = window.setTimeout(() => {
+        setSimulationByShot((prev) => ({
+          ...prev,
+          [targetShotId]: {
+            ...(prev[targetShotId] ?? DEFAULT_SIMULATION_STATE),
+            video: "ready",
+          },
+        }))
+        delete simulationTimersRef.current[targetShotId]?.video
+      }, SIMULATION_DELAY_MS)
+
+      simulationTimersRef.current[targetShotId] = {
+        ...(simulationTimersRef.current[targetShotId] ?? {}),
+        video: timerId,
+      }
+    },
+    [clearSimulationTimer, selectedShot, simulationByShot, updateSimulationState]
+  )
+
+  const handleResetSimulation = useCallback(
+    (shotId?: string) => {
+      const targetShotId = shotId ?? selectedShot
+      if (!targetShotId) return
+      clearSimulationTimer(targetShotId, "frames")
+      clearSimulationTimer(targetShotId, "video")
+      setSimulationByShot((prev) => ({
+        ...prev,
+        [targetShotId]: DEFAULT_SIMULATION_STATE,
+      }))
+    },
+    [clearSimulationTimer, selectedShot]
+  )
 
   /* ── Drag to resize ─── */
   const handleResizeStart = useCallback(
@@ -157,6 +301,11 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
                   sceneNumber={activeScene.number}
                   onUpdate={handleUpdateShot}
                   widthPct={leftPct}
+                  onGenerateVideo={() => handleGenerateVideo(activeShot.id)}
+                  onResetSimulation={() => handleResetSimulation(activeShot.id)}
+                  canGenerateVideo={activeSimulation.frames === "ready"}
+                  isVideoLoading={activeSimulation.video === "loading"}
+                  isVideoReady={activeSimulation.video === "ready"}
                 />
 
                 {/* ── Drag Handle ───────────────────── */}
@@ -227,8 +376,15 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
                   duration={activeShot.duration}
                   startFramePrompt={activeShot.startFramePrompt}
                   shotTitle={activeShot.title}
-                  videoUrl={activeShot.videoUrl}
+                  videoUrl={activeSimulation.video === "ready" ? activeShot.videoUrl : ""}
                   isSaving={isPending}
+                  startFrameImageUrl={startFrameImageUrl}
+                  endFrameImageUrl={endFrameImageUrl}
+                  endFrameFallbackImageUrl={startFrameImageUrl}
+                  isFramesLoading={activeSimulation.frames === "loading"}
+                  areFramesReady={activeSimulation.frames === "ready"}
+                  isVideoLoading={activeSimulation.video === "loading"}
+                  onGenerateFrames={() => handleGenerateFrames(activeShot.id)}
                 />
               </>
             ) : (

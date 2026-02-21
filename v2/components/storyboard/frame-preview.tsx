@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, useRef } from "react"
+import { useState, useCallback, useRef, useEffect } from "react"
 import {
   Play,
   Pause,
@@ -30,6 +30,13 @@ interface FramePreviewProps {
   shotTitle: string
   videoUrl: string
   isSaving?: boolean
+  startFrameImageUrl: string
+  endFrameImageUrl: string
+  endFrameFallbackImageUrl: string
+  isFramesLoading: boolean
+  areFramesReady: boolean
+  isVideoLoading: boolean
+  onGenerateFrames: () => void
 }
 
 export function FramePreview({
@@ -41,6 +48,13 @@ export function FramePreview({
   shotTitle,
   videoUrl,
   isSaving = false,
+  startFrameImageUrl,
+  endFrameImageUrl,
+  endFrameFallbackImageUrl,
+  isFramesLoading,
+  areFramesReady,
+  isVideoLoading,
+  onGenerateFrames,
 }: FramePreviewProps) {
   const hasShot = sceneNumber !== null && shotNumber !== null
   const [startHover, setStartHover] = useState(false)
@@ -51,6 +65,11 @@ export function FramePreview({
   const [totalDuration, setTotalDuration] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
   const playerRef = useRef<VideoPlayerHandle | null>(null)
+  const canControlPlayback = Boolean(videoUrl) && !isVideoLoading
+
+  useEffect(() => {
+    if (!videoUrl) setIsPlaying(false)
+  }, [videoUrl])
 
   /* ── Vertical resize state ─── */
   const [topPct, setTopPct] = useState(45)
@@ -109,7 +128,10 @@ export function FramePreview({
               hover={startHover}
               onHover={setStartHover}
               prompt={startFramePrompt}
-              showRegenerate
+              imageUrl={startFrameImageUrl}
+              isLoading={isFramesLoading}
+              isReady={areFramesReady}
+              onGenerate={onGenerateFrames}
             />
             {/* End Frame */}
             <FrameCard
@@ -118,8 +140,12 @@ export function FramePreview({
               hover={endHover}
               onHover={setEndHover}
               prompt={startFramePrompt}
+              imageUrl={endFrameImageUrl}
+              fallbackImageUrl={endFrameFallbackImageUrl}
+              isLoading={isFramesLoading}
+              isReady={areFramesReady}
+              onGenerate={onGenerateFrames}
               isEnd
-              showRegenerate
             />
           </div>
 
@@ -236,6 +262,11 @@ export function FramePreview({
                   onPlayStateChange={setIsPlaying}
                   playerRef={playerRef}
                 />
+                {isVideoLoading && (
+                  <div className="absolute inset-0 z-10 flex items-center justify-center">
+                    <DitherLoading label="Generating shot preview..." compact />
+                  </div>
+                )}
               </div>
 
               {/* Playback controls */}
@@ -274,14 +305,21 @@ export function FramePreview({
                 <div className="flex items-center gap-3">
                   <button
                     className="transition-colors duration-150"
-                    style={{ color: "#404556" }}
+                    style={{
+                      color: canControlPlayback ? "#404556" : "#252933",
+                      cursor: canControlPlayback ? "pointer" : "not-allowed",
+                    }}
                     onMouseEnter={(e) =>
-                      (e.currentTarget.style.color = "#ffffff")
+                      canControlPlayback && (e.currentTarget.style.color = "#ffffff")
                     }
                     onMouseLeave={(e) =>
-                      (e.currentTarget.style.color = "#404556")
+                      canControlPlayback && (e.currentTarget.style.color = "#404556")
                     }
-                    onClick={() => playerRef.current?.seek(0)}
+                    onClick={() => {
+                      if (!canControlPlayback) return
+                      playerRef.current?.seek(0)
+                    }}
+                    disabled={!canControlPlayback}
                     aria-label="Skip back"
                   >
                     <SkipBack size={13} />
@@ -291,23 +329,26 @@ export function FramePreview({
                     style={{
                       width: "28px",
                       height: "28px",
-                      background: "#404556",
+                      background: canControlPlayback ? "#404556" : "#252933",
+                      cursor: canControlPlayback ? "pointer" : "not-allowed",
                     }}
                     onMouseEnter={(e) =>
-                      (e.currentTarget.style.background = "#555B6E")
+                      canControlPlayback && (e.currentTarget.style.background = "#555B6E")
                     }
                     onMouseLeave={(e) =>
-                      (e.currentTarget.style.background = "#404556")
+                      canControlPlayback && (e.currentTarget.style.background = "#404556")
                     }
                     onClick={() => {
+                      if (!canControlPlayback || !playerRef.current) return
                       if (isPlaying) {
-                        playerRef.current?.pause()
+                        playerRef.current.pause()
                         setIsPlaying(false)
                       } else {
-                        playerRef.current?.play()
+                        playerRef.current.play()
                         setIsPlaying(true)
                       }
                     }}
+                    disabled={!canControlPlayback}
                     aria-label={isPlaying ? "Pause" : "Play"}
                   >
                     {isPlaying ? (
@@ -321,14 +362,21 @@ export function FramePreview({
                   </button>
                   <button
                     className="transition-colors duration-150"
-                    style={{ color: "#404556" }}
+                    style={{
+                      color: canControlPlayback ? "#404556" : "#252933",
+                      cursor: canControlPlayback ? "pointer" : "not-allowed",
+                    }}
                     onMouseEnter={(e) =>
-                      (e.currentTarget.style.color = "#ffffff")
+                      canControlPlayback && (e.currentTarget.style.color = "#ffffff")
                     }
                     onMouseLeave={(e) =>
-                      (e.currentTarget.style.color = "#404556")
+                      canControlPlayback && (e.currentTarget.style.color = "#404556")
                     }
-                    onClick={() => playerRef.current?.seek(totalDuration)}
+                    onClick={() => {
+                      if (!canControlPlayback) return
+                      playerRef.current?.seek(totalDuration)
+                    }}
+                    disabled={!canControlPlayback}
                     aria-label="Skip forward"
                   >
                     <SkipForward size={13} />
@@ -367,17 +415,33 @@ function FrameCard({
   hover,
   onHover,
   prompt,
+  imageUrl,
+  fallbackImageUrl,
+  isLoading = false,
+  isReady = false,
+  onGenerate,
   isEnd,
-  showRegenerate,
 }: {
   label: string
   sublabel: string
   hover: boolean
   onHover: (v: boolean) => void
   prompt: string
+  imageUrl: string
+  fallbackImageUrl?: string
+  isLoading?: boolean
+  isReady?: boolean
+  onGenerate?: () => void
   isEnd?: boolean
-  showRegenerate?: boolean
 }) {
+  const [imageError, setImageError] = useState(false)
+  const [currentImageUrl, setCurrentImageUrl] = useState(imageUrl)
+
+  useEffect(() => {
+    setImageError(false)
+    setCurrentImageUrl(imageUrl)
+  }, [imageUrl])
+
   return (
     <div
       className="flex flex-col flex-1 rounded-lg overflow-hidden transition-all duration-150"
@@ -418,39 +482,47 @@ function FrameCard({
             {sublabel}
           </span>
         </div>
-        {showRegenerate && (
-          <button
-            className="flex items-center gap-1 rounded-full transition-colors duration-150"
+        <button
+          className="flex items-center gap-1 rounded-full transition-colors duration-150"
+          style={{
+            padding: "4px 10px",
+            background: "rgba(64,69,86,0.18)",
+            border: "1px solid rgba(64,69,86,0.45)",
+            color: "#C7CEDA",
+            opacity: isLoading ? 0.75 : 1,
+            cursor: isLoading ? "not-allowed" : "pointer",
+          }}
+          onMouseEnter={(e) => {
+            if (isLoading) return
+            e.currentTarget.style.background = "rgba(64,69,86,0.28)"
+            e.currentTarget.style.borderColor = "rgba(64,69,86,0.65)"
+            e.currentTarget.style.color = "#FFFFFF"
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "rgba(64,69,86,0.18)"
+            e.currentTarget.style.borderColor = "rgba(64,69,86,0.45)"
+            e.currentTarget.style.color = "#C7CEDA"
+          }}
+          onClick={onGenerate}
+          disabled={isLoading}
+          aria-label={`${isReady ? "Regenerate" : "Generate"} ${label.toLowerCase()}`}
+          title={prompt}
+        >
+          <RefreshCw
+            size={10}
+            className={isLoading ? "animate-spin" : undefined}
+            style={isLoading ? { animationDuration: "1.3s" } : undefined}
+          />
+          <span
             style={{
-              padding: "4px 10px",
-              background: "rgba(64,69,86,0.18)",
-              border: "1px solid rgba(64,69,86,0.45)",
-              color: "#C7CEDA",
+              fontSize: "9px",
+              fontWeight: 600,
+              letterSpacing: "0.02em",
             }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "rgba(64,69,86,0.28)"
-              e.currentTarget.style.borderColor = "rgba(64,69,86,0.65)"
-              e.currentTarget.style.color = "#FFFFFF"
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "rgba(64,69,86,0.18)"
-              e.currentTarget.style.borderColor = "rgba(64,69,86,0.45)"
-              e.currentTarget.style.color = "#C7CEDA"
-            }}
-            aria-label="Regenerate frame"
           >
-            <RefreshCw size={10} />
-            <span
-              style={{
-                fontSize: "9px",
-                fontWeight: 600,
-                letterSpacing: "0.02em",
-              }}
-            >
-              Regenerate
-            </span>
-          </button>
-        )}
+            {isLoading ? "Generating..." : isReady ? "Regenerate" : "Generate"}
+          </span>
+        </button>
       </div>
 
       {/* Image area */}
@@ -465,32 +537,103 @@ function FrameCard({
           }}
         />
 
-        {/* Empty state */}
-        <div className="relative flex flex-col items-center gap-2">
-          <div
-            className="flex items-center justify-center rounded-lg"
-            style={{
-              width: "36px",
-              height: "36px",
-              background: isEnd
-                ? "rgba(96,81,92,0.1)"
-                : "rgba(64,69,86,0.15)",
-              border: isEnd
-                ? "1px dashed rgba(96,81,92,0.25)"
-                : "1px dashed rgba(64,69,86,0.3)",
+        {isLoading ? (
+          <DitherLoading label="Generating frame..." />
+        ) : isReady && currentImageUrl && !imageError ? (
+          <img
+            src={currentImageUrl}
+            alt={`${label} preview`}
+            className="absolute inset-0 h-full w-full object-cover"
+            onError={() => {
+              if (fallbackImageUrl && currentImageUrl !== fallbackImageUrl) {
+                setCurrentImageUrl(fallbackImageUrl)
+                return
+              }
+              setImageError(true)
             }}
-          >
-            {isEnd ? (
-              <ImageIcon size={14} style={{ color: "#60515C" }} />
-            ) : (
-              <Sparkles size={14} style={{ color: "#404556" }} />
-            )}
+          />
+        ) : (
+          <div className="relative flex flex-col items-center gap-2">
+            <div
+              className="flex items-center justify-center rounded-lg"
+              style={{
+                width: "36px",
+                height: "36px",
+                background: isEnd
+                  ? "rgba(96,81,92,0.1)"
+                  : "rgba(64,69,86,0.15)",
+                border: isEnd
+                  ? "1px dashed rgba(96,81,92,0.25)"
+                  : "1px dashed rgba(64,69,86,0.3)",
+              }}
+            >
+              {isEnd ? (
+                <ImageIcon size={14} style={{ color: "#60515C" }} />
+              ) : (
+                <Sparkles size={14} style={{ color: "#404556" }} />
+              )}
+            </div>
+            <span
+              style={{
+                fontSize: "10px",
+                color: "#404556",
+                textAlign: "center",
+                maxWidth: "120px",
+                lineHeight: "1.4",
+              }}
+            >
+              {isReady && imageError ? "Frame preview unavailable" : "Generate frame from prompt"}
+            </span>
           </div>
-          <span style={{ fontSize: "10px", color: "#404556", textAlign: "center", maxWidth: "110px", lineHeight: "1.4" }}>
-            {"Generate frame from prompt"}
-          </span>
-        </div>
+        )}
       </div>
+    </div>
+  )
+}
+
+function DitherLoading({ label, compact = false }: { label: string; compact?: boolean }) {
+  return (
+    <div className="relative flex h-full w-full items-center justify-center overflow-hidden">
+      <div
+        className="absolute inset-0 animate-pulse"
+        style={{
+          background:
+            "linear-gradient(120deg, rgba(13,14,20,0.92) 20%, rgba(64,69,86,0.28) 50%, rgba(13,14,20,0.92) 80%)",
+          backgroundSize: "220% 100%",
+          animation: "dither-shimmer 1.2s linear infinite",
+        }}
+      />
+      <div
+        className="absolute inset-0 opacity-35"
+        style={{
+          backgroundImage:
+            "radial-gradient(rgba(119,112,118,0.4) 0.7px, transparent 0.7px)",
+          backgroundSize: "3px 3px",
+        }}
+      />
+      <div
+        className="relative z-10 rounded-md"
+        style={{
+          padding: compact ? "6px 10px" : "8px 12px",
+          background: "rgba(13,14,20,0.7)",
+          border: "1px solid rgba(64,69,86,0.5)",
+          color: "#C7CEDA",
+          fontSize: compact ? "10px" : "11px",
+          letterSpacing: "0.02em",
+        }}
+      >
+        {label}
+      </div>
+      <style>{`
+        @keyframes dither-shimmer {
+          0% {
+            background-position: 200% 0;
+          }
+          100% {
+            background-position: -20% 0;
+          }
+        }
+      `}</style>
     </div>
   )
 }

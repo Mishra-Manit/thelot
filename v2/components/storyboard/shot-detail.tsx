@@ -23,6 +23,11 @@ interface ShotDetailProps {
   sceneNumber: number
   onUpdate: (field: keyof StoryboardShotUpdateInput, value: string | number) => void
   widthPct?: number
+  onGenerateVideo: () => void
+  onResetSimulation: () => void
+  canGenerateVideo: boolean
+  isVideoLoading: boolean
+  isVideoReady: boolean
 }
 
 /* ─── Auto-resize textarea ─── */
@@ -120,7 +125,17 @@ function EditorBlock({
   )
 }
 
-export function ShotDetail({ shot, sceneNumber, onUpdate, widthPct = 50 }: ShotDetailProps) {
+export function ShotDetail({
+  shot,
+  sceneNumber,
+  onUpdate,
+  widthPct = 50,
+  onGenerateVideo,
+  onResetSimulation,
+  canGenerateVideo,
+  isVideoLoading,
+  isVideoReady,
+}: ShotDetailProps) {
   const clampedDuration = Math.min(
     MAX_DURATION_SECONDS,
     Math.max(MIN_DURATION_SECONDS, Math.round(shot.duration))
@@ -359,7 +374,7 @@ export function ShotDetail({ shot, sceneNumber, onUpdate, widthPct = 50 }: ShotD
           />
         </EditorBlock>
 
-        {/* Regenerate button */}
+        {/* Generate / Regenerate video */}
         <button
           className="flex items-center justify-center gap-2 w-full rounded-lg transition-all duration-150 mt-4"
           style={{
@@ -369,8 +384,11 @@ export function ShotDetail({ shot, sceneNumber, onUpdate, widthPct = 50 }: ShotD
             fontSize: "13px",
             fontWeight: 500,
             padding: "10px 0",
+            opacity: !canGenerateVideo || isVideoLoading ? 0.55 : 1,
+            cursor: !canGenerateVideo || isVideoLoading ? "not-allowed" : "pointer",
           }}
           onMouseEnter={(e) => {
+            if (!canGenerateVideo || isVideoLoading) return
             e.currentTarget.style.background =
               "linear-gradient(135deg, #40455633, #40455622)"
           }}
@@ -378,9 +396,44 @@ export function ShotDetail({ shot, sceneNumber, onUpdate, widthPct = 50 }: ShotD
             e.currentTarget.style.background =
               "linear-gradient(135deg, #40455622, #40455611)"
           }}
+          onClick={onGenerateVideo}
+          disabled={!canGenerateVideo || isVideoLoading}
         >
-          <Sparkles size={16} />
-          <span>Regenerate Shot with AI</span>
+          <Sparkles
+            size={16}
+            className={isVideoLoading ? "animate-spin" : undefined}
+            style={{ animationDuration: "1.6s" }}
+          />
+          <span>
+            {isVideoLoading
+              ? "Generating Shot with AI..."
+              : isVideoReady
+                ? "Regenerate Shot with AI"
+                : "Generate Shot with AI"}
+          </span>
+        </button>
+
+        <button
+          className="w-full rounded-lg transition-all duration-150 mt-2"
+          style={{
+            background: "transparent",
+            border: "1px dashed #40455655",
+            color: "#777076",
+            fontSize: "12px",
+            fontWeight: 500,
+            padding: "8px 0",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = "#555B6E"
+            e.currentTarget.style.color = "#C7CEDA"
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = "#40455655"
+            e.currentTarget.style.color = "#777076"
+          }}
+          onClick={onResetSimulation}
+        >
+          Reset Simulation
         </button>
       </div>
     </div>
