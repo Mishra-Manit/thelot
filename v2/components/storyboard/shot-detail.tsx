@@ -423,12 +423,12 @@ export function ShotDetail({
             {!areFramesReady
               ? isFramesLoading
                 ? "Generating Frames with AI..."
-                : "Generate Frames with AI"
+                : "Generate Frames"
               : isVideoLoading
-                ? "Generating Shot with AI..."
+                ? "Generating Video with AI..."
                 : isVideoReady
-                  ? "Regenerate Shot with AI"
-                  : "Generate Video with AI"}
+                  ? "Regenerate Video"
+                  : "Generate Video"}
           </span>
         </button>
 
