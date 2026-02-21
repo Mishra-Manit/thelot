@@ -312,7 +312,7 @@ export function ShotDetail({
         </div>
 
         {/* Block 1 — ACTION */}
-        <EditorBlock accentColor="#696969" icon={Clapperboard} label="Action" marginBottom={20}>
+        <EditorBlock accentColor="#696969" icon={Clapperboard} label="Action" marginBottom={20} showLabelRow={enableHoverLabels}>
           <AutoTextarea
             value={shot.action}
             onChange={(v) => onUpdate("action", v)}
@@ -326,7 +326,7 @@ export function ShotDetail({
         </EditorBlock>
 
         {/* Block 2 — INTERNAL MONOLOGUE */}
-        <EditorBlock accentColor="#575757" icon={Brain} label="Internal Monologue" marginBottom={0} marginTop={-16}>
+        <EditorBlock accentColor="#575757" icon={Brain} label="Internal Monologue" marginBottom={0} marginTop={-16} showLabelRow={enableHoverLabels}>
           <div
             style={{
               width: "60%",
@@ -361,7 +361,7 @@ export function ShotDetail({
         </EditorBlock>
 
         {/* Block 3 — CAMERA NOTES */}
-        <EditorBlock accentColor="#696969" icon={Camera} label="Camera Notes" marginBottom={0}>
+        <EditorBlock accentColor="#696969" icon={Camera} label="Camera Notes" marginBottom={0} showLabelRow={enableHoverLabels}>
           <PromptBox
             value={shot.cameraNotes}
             onChange={(v) => onUpdate("cameraNotes", v)}
@@ -371,7 +371,7 @@ export function ShotDetail({
         </EditorBlock>
 
         {/* Start Frame prompt */}
-        <EditorBlock accentColor="#696969" icon={ImageIcon} label="Start Frame" marginBottom={6}>
+        <EditorBlock accentColor="#696969" icon={ImageIcon} label="Start Frame" marginBottom={6} showLabelRow={enableHoverLabels}>
           <PromptBox
             value={shot.startFramePrompt}
             onChange={(v) => onUpdate("startFramePrompt", v)}
@@ -380,7 +380,7 @@ export function ShotDetail({
         </EditorBlock>
 
         {/* End Frame prompt */}
-        <EditorBlock accentColor="#7A7A7A" icon={Play} label="End Frame" marginBottom={8}>
+        <EditorBlock accentColor="#7A7A7A" icon={Play} label="End Frame" marginBottom={8} showLabelRow={enableHoverLabels}>
           <PromptBox
             value={shot.videoPrompt}
             onChange={(v) => onUpdate("videoPrompt", v)}
@@ -425,9 +425,9 @@ export function ShotDetail({
                 ? "Generating Frames with AI..."
                 : "Generate Frames with AI"
               : isVideoLoading
-                ? "Generating Video with AI..."
+                ? "Generating Shot with AI..."
                 : isVideoReady
-                  ? "Regenerate Video with AI"
+                  ? "Regenerate Shot with AI"
                   : "Generate Video with AI"}
           </span>
         </button>
