@@ -1,11 +1,14 @@
 'use client'
 
 import { useState } from 'react'
+import dynamic from 'next/dynamic'
 import SceneList from '@/components/SceneList'
 import ShotDetail from '@/components/ShotDetail'
-import FramePreview from '@/components/FramePreview'
 import Timeline from '@/components/Timeline'
 import type { Scene, Shot } from '@/db/schema'
+
+// Dynamic import — FramePreview uses @diffusionstudio/core which requires browser APIs
+const FramePreview = dynamic(() => import('@/components/FramePreview'), { ssr: false })
 
 export default function Page() {
   const [selectedScene, setSelectedScene] = useState<Scene | null>(null)

@@ -1,36 +1,33 @@
+'use client'
+
 import type { Shot } from '@/db/schema'
+import CompositionProvider from './editor/CompositionProvider'
+import VideoPlayer from './editor/VideoPlayer'
+import PlaybackControls from './editor/PlaybackControls'
 
 type Props = {
   shot: Shot | null
 }
 
-// Placeholder frame box — will show start/end frame images when media upload is added
-function FrameBox({ label }: { label: string }) {
-  return (
-    <div className="flex flex-col gap-2">
-      <span className="text-xs font-heading font-500 uppercase tracking-widest text-warm-gray">
-        {label}
-      </span>
-      <div className="aspect-video bg-dark-navy border border-slate-gray rounded flex items-center justify-center text-warm-gray text-xs">
-        No frame
-      </div>
-    </div>
-  )
-}
-
 export default function FramePreview({ shot }: Props) {
   return (
-    <aside className="w-72 bg-dark-black border-l border-slate-gray p-4 flex flex-col gap-6 overflow-y-auto shrink-0">
-      <span className="font-heading font-600 text-sm uppercase tracking-widest text-warm-gray">
-        Preview
-      </span>
+    <aside className="w-72 bg-dark-black border-l border-slate-gray flex flex-col overflow-hidden shrink-0">
+      <div className="p-4 border-b border-slate-gray">
+        <span className="font-heading font-600 text-sm uppercase tracking-widest text-warm-gray">
+          Preview
+        </span>
+      </div>
 
       {shot ? (
-        <>
-          <FrameBox label="Start Frame" />
-          <FrameBox label="End Frame" />
+        <CompositionProvider>
+          {/* Video canvas — fills available vertical space */}
+          <VideoPlayer />
 
-          <div className="flex flex-col gap-1">
+          {/* Playback bar */}
+          <PlaybackControls />
+
+          {/* Duration info */}
+          <div className="flex flex-col gap-1 p-4 border-t border-slate-gray">
             <span className="text-xs font-heading font-500 uppercase tracking-widest text-warm-gray">
               Duration
             </span>
@@ -38,7 +35,7 @@ export default function FramePreview({ shot }: Props) {
               {shot.duration != null ? `${shot.duration}s` : '—'}
             </span>
           </div>
-        </>
+        </CompositionProvider>
       ) : (
         <div className="flex-1 flex items-center justify-center text-warm-gray text-xs font-body">
           No shot selected
