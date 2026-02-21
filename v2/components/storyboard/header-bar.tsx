@@ -1,8 +1,13 @@
 "use client"
 
-import { ArrowLeft, Coins, Download, FileText, Settings, Share2 } from "lucide-react"
+import { ArrowLeft, Coins, Download, FileText, Rewind, Settings, Share2 } from "lucide-react"
 
-export function HeaderBar() {
+interface HeaderBarProps {
+  onRewindSimulation: () => void
+  canRewindSimulation: boolean
+}
+
+export function HeaderBar({ onRewindSimulation, canRewindSimulation }: HeaderBarProps) {
   return (
     <header
       className="flex items-center h-[48px] w-full shrink-0"
@@ -73,6 +78,32 @@ export function HeaderBar() {
             <Icon size={16} />
           </button>
         ))}
+
+        <button
+          className="flex items-center justify-center rounded-lg transition-colors duration-150"
+          style={{
+            width: "32px",
+            height: "32px",
+            color: canRewindSimulation ? "#D9D9D9" : "#4A4A4A",
+            cursor: canRewindSimulation ? "pointer" : "not-allowed",
+          }}
+          onMouseEnter={(e) => {
+            if (!canRewindSimulation) return
+            e.currentTarget.style.background = "#232323"
+            e.currentTarget.style.color = "#ffffff"
+          }}
+          onMouseLeave={(e) => {
+            if (!canRewindSimulation) return
+            e.currentTarget.style.background = "transparent"
+            e.currentTarget.style.color = "#D9D9D9"
+          }}
+          onClick={onRewindSimulation}
+          disabled={!canRewindSimulation}
+          aria-label="Rewind simulation"
+          title="Rewind simulation"
+        >
+          <Rewind size={16} />
+        </button>
 
         {/* Share button */}
         <button

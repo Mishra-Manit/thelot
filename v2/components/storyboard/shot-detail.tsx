@@ -13,10 +13,12 @@ import {
   Minus,
   Plus,
 } from "lucide-react"
+import type { LucideIcon } from "lucide-react"
 import type { StoryboardShot, StoryboardShotUpdateInput } from "@/lib/storyboard-types"
 
 const MIN_DURATION_SECONDS = 1
 const MAX_DURATION_SECONDS = 30
+const SCREENPLAY_FONT_FAMILY = "var(--font-mono)"
 
 interface ShotDetailProps {
   shot: StoryboardShot
@@ -24,7 +26,6 @@ interface ShotDetailProps {
   onUpdate: (field: keyof StoryboardShotUpdateInput, value: string | number) => void
   widthPct?: number
   onGenerateVideo: () => void
-  onResetSimulation: () => void
   canGenerateVideo: boolean
   isVideoLoading: boolean
   isVideoReady: boolean
@@ -83,14 +84,16 @@ function EditorBlock({
   icon: Icon,
   label,
   children,
+  marginBottom = 12,
 }: {
   accentColor: string
-  icon: React.ElementType
+  icon: LucideIcon
   label: string
   children: React.ReactNode
+  marginBottom?: number
 }) {
   return (
-    <div className="group relative" style={{ marginBottom: "20px" }}>
+    <div className="group relative" style={{ marginBottom: `${marginBottom}px` }}>
       {/* Drag handle */}
       <div
         className="absolute opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex items-start pt-7"
@@ -100,7 +103,7 @@ function EditorBlock({
       </div>
       <div className="transition-colors duration-150 rounded-md">
         {/* Label row */}
-        <div className="flex items-center gap-1.5 mb-2 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-150">
+        <div className="flex items-center gap-1.5 mb-1.5 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-150">
           <Icon size={12} style={{ color: accentColor }} />
           <span
             style={{
@@ -126,7 +129,6 @@ export function ShotDetail({
   onUpdate,
   widthPct = 50,
   onGenerateVideo,
-  onResetSimulation,
   canGenerateVideo,
   isVideoLoading,
   isVideoReady,
@@ -155,12 +157,12 @@ export function ShotDetail({
     >
       <div
         style={{
-          padding: "24px 16px 32px 16px",
+          padding: "16px 16px 24px 16px",
           maxWidth: "720px",
         }}
       >
         {/* Top metadata */}
-        <div className="flex items-center gap-2 mb-3">
+        <div className="flex items-center gap-2 mb-2">
           <span
             style={{
               background: "#69696918",
@@ -228,24 +230,45 @@ export function ShotDetail({
         </div>
 
         {/* Shot title */}
-        <input
-          type="text"
-          value={shot.title}
-          onChange={(e) => onUpdate("title", e.target.value)}
-          className="font-serif"
+        <div
           style={{
-            fontSize: "26px",
-            color: "#eeeeee",
-            fontWeight: 600,
-            letterSpacing: "-0.02em",
-            lineHeight: 1.25,
-            border: "none",
-            background: "transparent",
-            outline: "none",
-            width: "100%",
-            marginBottom: "24px",
+            display: "flex",
+            alignItems: "baseline",
+            gap: "10px",
+            marginBottom: "14px",
           }}
-        />
+        >
+          <span
+            style={{
+              fontSize: "26px",
+              color: "#eeeeee",
+              fontWeight: 600,
+              letterSpacing: "-0.02em",
+              lineHeight: 1.25,
+              fontFamily: SCREENPLAY_FONT_FAMILY,
+            }}
+          >
+            EXT.
+          </span>
+          <input
+            type="text"
+            value={shot.title}
+            onChange={(e) => onUpdate("title", e.target.value)}
+            className="font-serif"
+            style={{
+              fontSize: "26px",
+              color: "#eeeeee",
+              fontWeight: 600,
+              letterSpacing: "-0.02em",
+              lineHeight: 1.25,
+              border: "none",
+              background: "transparent",
+              outline: "none",
+              width: "100%",
+              fontFamily: SCREENPLAY_FONT_FAMILY,
+            }}
+          />
+        </div>
 
         {/* Block 1 — ACTION */}
         <EditorBlock accentColor="#696969" icon={Clapperboard} label="Action">
@@ -254,8 +277,9 @@ export function ShotDetail({
             onChange={(v) => onUpdate("action", v)}
             style={{
               fontSize: "15px",
-              lineHeight: 1.85,
+              lineHeight: 1.72,
               color: "#d4d4d4",
+              fontFamily: SCREENPLAY_FONT_FAMILY,
             }}
           />
         </EditorBlock>
@@ -276,6 +300,7 @@ export function ShotDetail({
                 marginBottom: "4px",
                 textTransform: "uppercase",
                 color: "#cccccc",
+                fontFamily: SCREENPLAY_FONT_FAMILY,
               }}
             >
               CHARACTER (V.O.)
@@ -288,6 +313,7 @@ export function ShotDetail({
                 color: "#cccccc",
                 textAlign: "center",
                 fontStyle: "normal",
+                fontFamily: SCREENPLAY_FONT_FAMILY,
               }}
             />
           </div>
@@ -296,7 +322,7 @@ export function ShotDetail({
         {/* Block 3 — CAMERA NOTES */}
         <EditorBlock accentColor="#696969" icon={Camera} label="Camera Notes">
           <div className="flex items-start gap-2">
-            <span className="font-mono" style={{ color: "#696969", fontSize: "13px", lineHeight: 1.7 }}>[CAMERA]</span>
+            <span className="font-mono" style={{ color: "#A8A8A8", fontSize: "13px", lineHeight: 1.7 }}>[CAMERA]</span>
             <AutoTextarea
               value={shot.cameraNotes}
               onChange={(v) => onUpdate("cameraNotes", v)}
@@ -305,26 +331,45 @@ export function ShotDetail({
                 fontSize: "13px",
                 lineHeight: 1.7,
                 color: "#8a8a8a",
+                fontFamily: SCREENPLAY_FONT_FAMILY,
               }}
             />
           </div>
         </EditorBlock>
 
-        {/* Block 4 — VIDEO CLIP */}
-        <EditorBlock accentColor="#7A7A7A" icon={Play} label="Video Clip">
+        <div style={{ height: "1px", background: "#232323", marginTop: "16px", marginBottom: "14px" }} />
+
+        {/* Director's Notes header + integrated clip selector */}
+        <div className="flex items-center justify-between gap-3 mb-2">
+          <div className="flex items-center gap-1.5">
+            <Sparkles size={13} style={{ color: "#696969" }} />
+            <span
+              style={{
+                fontSize: "11px",
+                color: "#696969",
+                fontWeight: 600,
+                letterSpacing: "0.03em",
+              }}
+            >
+              🎬 DIRECTOR'S NOTES
+            </span>
+          </div>
           <select
             value={shot.videoUrl}
             onChange={(e) => onUpdate("videoUrl", e.target.value)}
             style={{
-              background: "#111111",
-              border: "1px solid #232323",
+              background: "#0B0B0B",
+              border: "1px solid #2E2E2E",
               borderRadius: "6px",
               padding: "6px 10px",
-              fontSize: "13px",
-              color: "#D9D9D9",
-              width: "100%",
+              fontSize: "12px",
+              color: "#E6E8EE",
+              minWidth: "220px",
+              maxWidth: "280px",
               outline: "none",
+              fontFamily: SCREENPLAY_FONT_FAMILY,
             }}
+            aria-label="Select reference clip"
           >
             {[
               { label: "— none —", value: "" },
@@ -334,56 +379,42 @@ export function ShotDetail({
               { label: "Paul Atreides Close-up", value: "/videos/paul_atreides_closeup.mp4" },
               { label: "Sandworm Erupting", value: "/videos/sandworm_erupting.mp4" },
             ].map((opt) => (
-              <option key={opt.value} value={opt.value} style={{ background: "#111111" }}>
+              <option key={opt.value} value={opt.value} style={{ background: "#000000" }}>
                 {opt.label}
               </option>
             ))}
           </select>
-        </EditorBlock>
-
-        {/* Director's Notes header */}
-        <div className="flex items-center gap-3 mb-5 mt-8">
-          <div className="flex items-center gap-1.5 shrink-0">
-            <Sparkles size={14} style={{ color: "#696969" }} />
-            <span
-              style={{
-                fontSize: "12px",
-                color: "#696969",
-                fontWeight: 600,
-              }}
-            >
-              🎬 DIRECTOR'S NOTES
-            </span>
-          </div>
-          <div className="flex-1" style={{ height: "1px", background: "#232323" }} />
         </div>
 
         {/* Start Frame prompt */}
-        <EditorBlock accentColor="#696969" icon={ImageIcon} label="Start Frame">
+        <EditorBlock accentColor="#696969" icon={ImageIcon} label="Start Frame" marginBottom={6}>
           <PromptBox
             value={shot.startFramePrompt}
             onChange={(v) => onUpdate("startFramePrompt", v)}
+            prefix="[START FRAME]"
           />
         </EditorBlock>
 
-        {/* Video prompt */}
-        <EditorBlock accentColor="#7A7A7A" icon={Play} label="Video">
+        {/* End Frame prompt */}
+        <EditorBlock accentColor="#7A7A7A" icon={Play} label="End Frame" marginBottom={8}>
           <PromptBox
             value={shot.videoPrompt}
             onChange={(v) => onUpdate("videoPrompt", v)}
+            prefix="[END FRAME]"
           />
         </EditorBlock>
 
         {/* Generate / Regenerate video */}
         <button
-          className="flex items-center justify-center gap-2 w-full rounded-lg transition-all duration-150 mt-4"
+          className="flex items-center justify-center gap-2 rounded-lg transition-all duration-150 mt-3 mx-auto"
           style={{
             background: "linear-gradient(135deg, #69696922, #69696911)",
             border: "1px solid #69696944",
             color: "#696969",
             fontSize: "13px",
             fontWeight: 500,
-            padding: "10px 0",
+            padding: "10px 18px",
+            minWidth: "280px",
             opacity: !canGenerateVideo || isVideoLoading ? 0.55 : 1,
             cursor: !canGenerateVideo || isVideoLoading ? "not-allowed" : "pointer",
           }}
@@ -413,28 +444,6 @@ export function ShotDetail({
           </span>
         </button>
 
-        <button
-          className="w-full rounded-lg transition-all duration-150 mt-2"
-          style={{
-            background: "transparent",
-            border: "1px dashed #69696955",
-            color: "#D9D9D9",
-            fontSize: "12px",
-            fontWeight: 500,
-            padding: "8px 0",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.borderColor = "#7A7A7A"
-            e.currentTarget.style.color = "#F0F0F0"
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.borderColor = "#69696955"
-            e.currentTarget.style.color = "#D9D9D9"
-          }}
-          onClick={onResetSimulation}
-        >
-          Reset Simulation
-        </button>
       </div>
     </div>
   )
@@ -443,9 +452,11 @@ export function ShotDetail({
 function PromptBox({
   value,
   onChange,
+  prefix,
 }: {
   value: string
   onChange: (v: string) => void
+  prefix?: string
 }) {
   return (
     <div
@@ -453,19 +464,34 @@ function PromptBox({
       style={{
         background: "#000000",
         border: "1px solid #111111",
-        padding: "10px 14px",
-        minHeight: "56px",
+        padding: "9px 12px",
+        minHeight: "50px",
       }}
     >
-      <AutoTextarea
-        value={value}
-        onChange={onChange}
-        style={{
-          fontSize: "13px",
-          lineHeight: 1.7,
-          color: "#D9D9D9",
-        }}
-      />
+      <div className="flex items-start gap-1">
+        {prefix ? (
+          <span
+            style={{
+              fontSize: "15px",
+              lineHeight: 1.72,
+              color: "#D9D9D9",
+              whiteSpace: "nowrap",
+              fontFamily: SCREENPLAY_FONT_FAMILY,
+            }}
+          >
+            {prefix}
+          </span>
+        ) : null}
+        <AutoTextarea
+          value={value}
+          onChange={onChange}
+          style={{
+            fontSize: "15px",
+            lineHeight: 1.72,
+            color: "#D9D9D9",
+          }}
+        />
+      </div>
     </div>
   )
 }

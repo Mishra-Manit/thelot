@@ -11,7 +11,9 @@ import {
   Sparkles,
 } from "lucide-react"
 import { VideoPlayer, type VideoPlayerHandle } from "./video-player"
-import { OceanWaveLoading } from "./ocean-wave-loading"
+import { SpongebobLoading } from "./loading/spongebob-loading"
+import { SimpsonLoading } from "./loading/simpson-loading"
+import { PrincessLoading } from "./loading/princess-loading"
 
 function formatTime(seconds: number): string {
   const m = Math.floor(seconds / 60)
@@ -265,7 +267,7 @@ export function FramePreview({
                 />
                 {isVideoLoading && (
                   <div className="absolute inset-0 z-10">
-                    <OceanWaveLoading compact />
+                    <SpongebobLoading compact />
                   </div>
                 )}
               </div>
@@ -539,7 +541,7 @@ function FrameCard({
         />
 
         {isLoading ? (
-          <OceanWaveLoading />
+          isEnd ? <PrincessLoading /> : <SimpsonLoading />
         ) : isReady && currentImageUrl && !imageError ? (
           <img
             src={currentImageUrl}

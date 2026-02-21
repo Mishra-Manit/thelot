@@ -317,7 +317,10 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
 
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden" style={{ background: "#000000" }}>
-      <HeaderBar />
+      <HeaderBar
+        onRewindSimulation={() => handleResetSimulation(activeShot?.id)}
+        canRewindSimulation={Boolean(activeShot)}
+      />
 
       {/* Body: panels row above, full-width timeline below */}
       <div ref={bodyRef} className="flex flex-col flex-1 min-h-0">
@@ -375,7 +378,6 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
                   onUpdate={handleUpdateShot}
                   widthPct={leftPct}
                   onGenerateVideo={() => handleGenerateVideo(activeShot.id)}
-                  onResetSimulation={() => handleResetSimulation(activeShot.id)}
                   canGenerateVideo={activeSimulation.frames === "ready"}
                   isVideoLoading={activeSimulation.video === "loading"}
                   isVideoReady={activeSimulation.video === "ready"}
