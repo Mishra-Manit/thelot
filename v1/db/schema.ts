@@ -19,6 +19,7 @@ export const shots = pgTable('shots', {
   action: text('action'),
   internalMonologue: text('internal_monologue'),
   cameraNotes: text('camera_notes'),
+  videoUrl: varchar('video_url', { length: 2048 }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 })
 

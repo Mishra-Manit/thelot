@@ -9,6 +9,7 @@ type CompositionContextValue = {
     isPlaying: boolean
     currentTime: number
     duration: number
+    loading: boolean
     play: () => Promise<void>
     pause: () => Promise<void>
     seek: (time: number) => Promise<void>
@@ -22,14 +23,19 @@ export function useComposition() {
     return ctx
 }
 
-type Props = { children: ReactNode }
+type Props = {
+    videoUrl?: string | null
+    children: ReactNode
+}
 
-export default function CompositionProvider({ children }: Props) {
+export default function CompositionProvider({ videoUrl, children }: Props) {
     const compositionRef = useRef<core.Composition | null>(null)
+    const coreRef = useRef<typeof core | null>(null)
     const [composition, setComposition] = useState<core.Composition | null>(null)
     const [isPlaying, setIsPlaying] = useState(false)
     const [currentTime, setCurrentTime] = useState(0)
     const [duration, setDuration] = useState(0)
+    const [loading, setLoading] = useState(false)
 
     // Create the Composition once on mount
     useEffect(() => {
@@ -38,6 +44,8 @@ export default function CompositionProvider({ children }: Props) {
         async function init() {
             const coreModule = await import('@diffusionstudio/core')
             if (cancelled) return
+
+            coreRef.current = coreModule
 
             const comp = new coreModule.Composition({
                 width: 1920,
@@ -53,10 +61,50 @@ export default function CompositionProvider({ children }: Props) {
 
         return () => {
             cancelled = true
-            // Unmount canvas if attached
             compositionRef.current?.unmount()
         }
     }, [])
+
+    // Load a video clip when videoUrl changes
+    useEffect(() => {
+        const comp = compositionRef.current
+        const coreModule = coreRef.current
+        if (!comp || !coreModule || !videoUrl) return
+
+        let cancelled = false
+
+        async function loadVideo() {
+            setLoading(true)
+
+            try {
+                // Remove all existing layers before loading a new video
+                for (const layer of [...comp!.layers]) {
+                    await comp!.remove(layer)
+                }
+
+                const source = await coreModule!.Source.from<core.VideoSource>(videoUrl!)
+                if (cancelled) return
+
+                const layer = await comp!.add(new coreModule!.Layer())
+                await layer.add(new coreModule!.VideoClip(source, {
+                    position: 'center',
+                    width: '100%',
+                    keepAspectRatio: true,
+                }))
+
+                setDuration(comp!.duration)
+                setCurrentTime(0)
+            } catch (err) {
+                console.error('Failed to load video:', err)
+            } finally {
+                if (!cancelled) setLoading(false)
+            }
+        }
+
+        loadVideo()
+
+        return () => { cancelled = true }
+    }, [videoUrl])
 
     // Poll current time while playing
     useEffect(() => {
@@ -89,7 +137,7 @@ export default function CompositionProvider({ children }: Props) {
     }, [composition])
 
     return (
-        <CompositionContext.Provider value={{ composition, isPlaying, currentTime, duration, play, pause, seek }}>
+        <CompositionContext.Provider value={{ composition, isPlaying, currentTime, duration, loading, play, pause, seek }}>
             {children}
         </CompositionContext.Provider>
     )

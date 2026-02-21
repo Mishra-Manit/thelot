@@ -15,9 +15,9 @@ export default function Page() {
   const [selectedShot, setSelectedShot] = useState<Shot | null>(null)
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden">
+    <div className="flex h-screen flex-col gap-4 overflow-hidden bg-dark-black p-4">
       {/* Three-panel main area */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex min-h-0 flex-1 gap-4 overflow-hidden">
         <SceneList
           selectedScene={selectedScene}
           selectedShot={selectedShot}

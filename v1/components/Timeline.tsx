@@ -14,15 +14,24 @@ export default function Timeline({ scene, selectedShot, onSelectShot }: Props) {
 
   useEffect(() => {
     if (!scene) { setShots([]); return }
+
+    let cancelled = false
+
     fetch(`/api/scenes/${scene.id}/shots`)
-      .then(r => r.json())
-      .then(({ data }) => setShots(data))
+      .then(r => {
+        if (!r.ok) throw new Error(`Failed: ${r.status}`)
+        return r.json()
+      })
+      .then(({ data }) => { if (!cancelled) setShots(data) })
+      .catch(() => { if (!cancelled) setShots([]) })
+
+    return () => { cancelled = true }
   }, [scene])
 
   return (
-    <footer className="h-24 bg-dark-navy border-t border-slate-gray flex items-center px-4 gap-2 overflow-x-auto shrink-0">
+    <footer className="flex h-24 shrink-0 items-center gap-2 overflow-x-auto rounded-xl border border-transparent bg-dark-navy/80 px-5 py-3">
       {shots.length === 0 ? (
-        <span className="text-warm-gray text-xs font-body">
+        <span className="text-slate-gray text-[10px] font-body tracking-widest uppercase">
           {scene ? 'No shots in this scene' : 'Select a scene'}
         </span>
       ) : (
@@ -30,12 +39,12 @@ export default function Timeline({ scene, selectedShot, onSelectShot }: Props) {
           <button
             key={shot.id}
             onClick={() => onSelectShot(shot)}
-            className={`shrink-0 h-14 px-3 rounded text-xs font-heading font-500 border transition-colors ${
-              selectedShot?.id === shot.id
-                ? 'bg-teal border-teal text-white'
-                : 'bg-dark-black border-slate-gray text-warm-gray hover:border-teal hover:text-white'
-            }`}
             style={{ minWidth: shot.duration ? `${shot.duration * 20}px` : '80px' }}
+            className={`h-12 shrink-0 rounded-md border px-3 text-xs font-heading font-500 transition-colors ${
+              selectedShot?.id === shot.id
+                ? 'bg-forest-green/25 border-forest-green text-white'
+                : 'bg-dark-black border-transparent text-muted-mauve hover:border-forest-green hover:text-warm-gray'
+            }`}
           >
             {shot.title}
           </button>
