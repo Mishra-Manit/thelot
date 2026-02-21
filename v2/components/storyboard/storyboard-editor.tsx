@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from "framer-motion"
 import { HeaderBar } from "./header-bar"
 import { SceneList } from "./scene-list"
 import { ShotDetail } from "./shot-detail"
-import { FramePreview } from "./frame-preview"
+import { FramePreview, type FramePreviewHandle } from "./frame-preview"
 import { ShotTimeline } from "./shot-timeline"
 import { updateShotAction } from "@/app/storyboard/actions"
 import type { StoryboardScene, StoryboardShotUpdateInput } from "@/lib/storyboard-types"
@@ -42,7 +42,7 @@ interface StoryboardEditorProps {
 
 export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
   const [scenes, setScenes] = useState(initialScenes)
-  const [isPending, startTransition] = useTransition()
+  const [, startTransition] = useTransition()
   const [simulationByShot, setSimulationByShot] = useState<Record<string, ShotSimulationState>>({})
   const [frameVersionByShot, setFrameVersionByShot] = useState<Record<string, number>>({})
   const [selectedScene, setSelectedScene] = useState<string | null>(() => {
@@ -65,6 +65,11 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
   const [isTimelineHandleHovered, setIsTimelineHandleHovered] = useState(false)
   const bodyRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
+  const framePreviewRef = useRef<FramePreviewHandle>(null)
+
+  const [videoCurrentTime, setVideoCurrentTime] = useState(0)
+  const [videoTotalDuration, setVideoTotalDuration] = useState(0)
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false)
   const simulationTimersRef = useRef<Record<string, Partial<Record<SimulationTimerKey, number>>>>(
     {}
   )
@@ -315,6 +320,14 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
     [selectedShot, startTransition]
   )
 
+  const handleTimelinePlayPause = useCallback(() => {
+    if (isVideoPlaying) {
+      framePreviewRef.current?.pause()
+    } else {
+      framePreviewRef.current?.play()
+    }
+  }, [isVideoPlaying])
+
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden" style={{ background: "#000000" }}>
       <HeaderBar
@@ -381,6 +394,10 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
                   canGenerateVideo={activeSimulation.frames === "ready"}
                   isVideoLoading={activeSimulation.video === "loading"}
                   isVideoReady={activeSimulation.video === "ready"}
+                  onGenerateFrames={() => handleGenerateFrames(activeShot.id)}
+                  canGenerateFrames={true} // Modify as needed based on your logic
+                  isFramesLoading={activeSimulation.frames === "loading"}
+                  areFramesReady={activeSimulation.frames === "ready"}
                 />
 
                 {/* ── Drag Handle ───────────────────── */}
@@ -449,6 +466,7 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
                 </motion.div>
 
                 <FramePreview
+                  ref={framePreviewRef}
                   sceneNumber={activeScene.number}
                   shotNumber={activeShot.number}
                   totalShots={activeScene.shots.length}
@@ -456,7 +474,6 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
                   startFramePrompt={activeShot.startFramePrompt}
                   shotTitle={activeShot.title}
                   videoUrl={activeSimulation.video === "ready" ? activeShot.videoUrl : ""}
-                  isSaving={isPending}
                   startFrameImageUrl={startFrameImageUrl}
                   endFrameImageUrl={endFrameImageUrl}
                   endFrameFallbackImageUrl={startFrameImageUrl}
@@ -464,6 +481,11 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
                   areFramesReady={activeSimulation.frames === "ready"}
                   isVideoLoading={activeSimulation.video === "loading"}
                   onGenerateFrames={() => handleGenerateFrames(activeShot.id)}
+                  onVideoTimeUpdate={(time, dur) => {
+                    setVideoCurrentTime(time)
+                    setVideoTotalDuration(dur)
+                  }}
+                  onVideoPlayStateChange={setIsVideoPlaying}
                 />
               </>
             ) : (
@@ -548,6 +570,10 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
               selectedShot={selectedShot}
               sceneNumber={activeScene.number}
               onSelectShot={handleSelectShot}
+              currentTime={videoCurrentTime}
+              totalDuration={videoTotalDuration}
+              isPlaying={isVideoPlaying}
+              onPlayPause={handleTimelinePlayPause}
             />
           </div>
         )}
