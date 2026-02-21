@@ -98,14 +98,9 @@ function EditorBlock({
       >
         <GripVertical size={14} style={{ opacity: 0.45 }} />
       </div>
-      {/* Left accent border on hover */}
-      <div
-        className="absolute left-0 top-0 bottom-0 w-[2px] opacity-0 group-hover:opacity-100 transition-opacity duration-150 rounded-full"
-        style={{ background: accentColor }}
-      />
-      <div className="group-hover:bg-[#ffffff04] transition-colors duration-150 rounded-md pl-3">
+      <div className="transition-colors duration-150 rounded-md">
         {/* Label row */}
-        <div className="flex items-center gap-1.5 mb-2">
+        <div className="flex items-center gap-1.5 mb-2 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-150">
           <Icon size={12} style={{ color: accentColor }} />
           <span
             style={{
