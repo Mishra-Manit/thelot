@@ -5,7 +5,7 @@ import { Canvas, useThree } from "@react-three/fiber"
 import { EffectComposer } from "@react-three/postprocessing"
 import { useVideoTexture } from "@react-three/drei"
 import { Vector2 } from "three"
-import { AsciiEffect } from "../ascii-effect"
+import { AsciiEffect } from "../../ascii-effect"
 
 // Full-screen video plane — fills whatever the viewport is via useThree
 function VideoPlane({ cellSize, resolution }: { cellSize: number; resolution: Vector2 }) {
@@ -18,10 +18,25 @@ function VideoPlane({ cellSize, resolution }: { cellSize: number; resolution: Ve
 
   const { viewport } = useThree()
 
+  // Calculate dimensions to maintain aspect ratio (contain)
+  const videoAspect = texture.image.videoWidth / texture.image.videoHeight
+  const viewportAspect = viewport.width / viewport.height
+
+  let planeWidth = viewport.width
+  let planeHeight = viewport.height
+
+  if (viewportAspect > videoAspect) {
+    // Viewport is wider than video -> constrain by height
+    planeWidth = viewport.height * videoAspect
+  } else {
+    // Viewport is taller than video -> constrain by width
+    planeHeight = viewport.width / videoAspect
+  }
+
   return (
     <>
       <mesh>
-        <planeGeometry args={[viewport.width, viewport.height]} />
+        <planeGeometry args={[planeWidth, planeHeight]} />
         <meshBasicMaterial map={texture} toneMapped={false} />
       </mesh>
       <EffectComposer>
@@ -42,12 +57,12 @@ function VideoPlane({ cellSize, resolution }: { cellSize: number; resolution: Ve
   )
 }
 
-export interface OceanWaveLoadingProps {
+export interface SpongebobLoadingProps {
   label?: string
   compact?: boolean
 }
 
-export function OceanWaveLoading({ label, compact = false }: OceanWaveLoadingProps) {
+export function SpongebobLoading({ label, compact = false }: SpongebobLoadingProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [resolution, setResolution] = useState(new Vector2(400, 300))
 
@@ -64,8 +79,8 @@ export function OceanWaveLoading({ label, compact = false }: OceanWaveLoadingPro
     return () => ro.disconnect()
   }, [])
 
-  // Compact (video overlay) uses a coarser cell grid
-  const cellSize = compact ? 5 : 3
+  // Use a fine cell grid for high sharpness
+  const cellSize = 3
 
   return (
     <div ref={containerRef} className="absolute inset-0" style={{ background: "#000" }}>
