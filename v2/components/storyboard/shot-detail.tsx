@@ -94,7 +94,7 @@ function EditorBlock({
       {/* Drag handle */}
       <div
         className="absolute opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex items-start pt-7"
-        style={{ left: "-28px", color: "#404556" }}
+        style={{ left: "-28px", color: "#696969" }}
       >
         <GripVertical size={14} style={{ opacity: 0.45 }} />
       </div>
@@ -153,7 +153,7 @@ export function ShotDetail({
     <div
       className="overflow-y-auto scrollbar-hide"
       style={{
-        background: "#0D0E14",
+        background: "#000000",
         width: `${widthPct}%`,
         flexShrink: 0,
       }}
@@ -168,11 +168,11 @@ export function ShotDetail({
         <div className="flex items-center gap-2 mb-3">
           <span
             style={{
-              background: "#40455618",
-              border: "1px solid #40455633",
+              background: "#69696918",
+              border: "1px solid #69696933",
               fontSize: "10px",
               textTransform: "uppercase",
-              color: "#404556",
+              color: "#696969",
               fontWeight: 600,
               letterSpacing: "0.05em",
               borderRadius: "4px",
@@ -181,12 +181,12 @@ export function ShotDetail({
           >
             Scene {sceneNumber}
           </span>
-          <span style={{ color: "#404556", fontSize: "12px" }}>&middot;</span>
+          <span style={{ color: "#696969", fontSize: "12px" }}>&middot;</span>
           <div
             className="inline-flex items-center gap-1 rounded-md"
             style={{
-              background: "#11131D",
-              border: "1px solid #252933",
+              background: "#111111",
+              border: "1px solid #232323",
               padding: "2px",
             }}
           >
@@ -198,7 +198,7 @@ export function ShotDetail({
               style={{
                 width: "18px",
                 height: "18px",
-                color: clampedDuration <= MIN_DURATION_SECONDS ? "#252933" : "#777076",
+                color: clampedDuration <= MIN_DURATION_SECONDS ? "#232323" : "#D9D9D9",
               }}
               aria-label="Decrease duration by one second"
             >
@@ -223,7 +223,7 @@ export function ShotDetail({
               style={{
                 width: "18px",
                 height: "18px",
-                color: clampedDuration >= MAX_DURATION_SECONDS ? "#252933" : "#777076",
+                color: clampedDuration >= MAX_DURATION_SECONDS ? "#232323" : "#D9D9D9",
               }}
               aria-label="Increase duration by one second"
             >
@@ -253,7 +253,7 @@ export function ShotDetail({
         />
 
         {/* Block 1 — ACTION */}
-        <EditorBlock accentColor="#404556" icon={Clapperboard} label="Action">
+        <EditorBlock accentColor="#696969" icon={Clapperboard} label="Action">
           <AutoTextarea
             value={shot.action}
             onChange={(v) => onUpdate("action", v)}
@@ -266,11 +266,11 @@ export function ShotDetail({
         </EditorBlock>
 
         {/* Block 2 — INTERNAL MONOLOGUE */}
-        <EditorBlock accentColor="#60515C" icon={Brain} label="Internal Monologue">
+        <EditorBlock accentColor="#575757" icon={Brain} label="Internal Monologue">
           <div
             style={{
-              background: "#60515C08",
-              borderLeft: "3px solid #60515C44",
+              background: "#57575708",
+              borderLeft: "3px solid #57575744",
               padding: "10px 16px",
               borderRadius: "0 4px 4px 0",
             }}
@@ -288,11 +288,11 @@ export function ShotDetail({
         </EditorBlock>
 
         {/* Block 3 — CAMERA NOTES */}
-        <EditorBlock accentColor="#404556" icon={Camera} label="Camera Notes">
+        <EditorBlock accentColor="#696969" icon={Camera} label="Camera Notes">
           <div
             style={{
-              background: "#1A1C25",
-              border: "1px solid #252933",
+              background: "#111111",
+              border: "1px solid #232323",
               borderRadius: "6px",
               padding: "10px 14px",
             }}
@@ -304,24 +304,24 @@ export function ShotDetail({
               style={{
                 fontSize: "13px",
                 lineHeight: 1.7,
-                color: "#777076",
+                color: "#D9D9D9",
               }}
             />
           </div>
         </EditorBlock>
 
         {/* Block 4 — VIDEO CLIP */}
-        <EditorBlock accentColor="#555B6E" icon={Play} label="Video Clip">
+        <EditorBlock accentColor="#7A7A7A" icon={Play} label="Video Clip">
           <select
             value={shot.videoUrl}
             onChange={(e) => onUpdate("videoUrl", e.target.value)}
             style={{
-              background: "#1A1C25",
-              border: "1px solid #252933",
+              background: "#111111",
+              border: "1px solid #232323",
               borderRadius: "6px",
               padding: "6px 10px",
               fontSize: "13px",
-              color: "#777076",
+              color: "#D9D9D9",
               width: "100%",
               outline: "none",
             }}
@@ -334,7 +334,7 @@ export function ShotDetail({
               { label: "Paul Atreides Close-up", value: "/videos/paul_atreides_closeup.mp4" },
               { label: "Sandworm Erupting", value: "/videos/sandworm_erupting.mp4" },
             ].map((opt) => (
-              <option key={opt.value} value={opt.value} style={{ background: "#1A1C25" }}>
+              <option key={opt.value} value={opt.value} style={{ background: "#111111" }}>
                 {opt.label}
               </option>
             ))}
@@ -344,22 +344,22 @@ export function ShotDetail({
         {/* AI Generation Prompts header */}
         <div className="flex items-center gap-3 mb-5 mt-8">
           <div className="flex items-center gap-1.5 shrink-0">
-            <Sparkles size={14} style={{ color: "#404556" }} />
+            <Sparkles size={14} style={{ color: "#696969" }} />
             <span
               style={{
                 fontSize: "12px",
-                color: "#404556",
+                color: "#696969",
                 fontWeight: 600,
               }}
             >
               AI Generation Prompts
             </span>
           </div>
-          <div className="flex-1" style={{ height: "1px", background: "#252933" }} />
+          <div className="flex-1" style={{ height: "1px", background: "#232323" }} />
         </div>
 
         {/* Start Frame prompt */}
-        <EditorBlock accentColor="#404556" icon={ImageIcon} label="Start Frame">
+        <EditorBlock accentColor="#696969" icon={ImageIcon} label="Start Frame">
           <PromptBox
             value={shot.startFramePrompt}
             onChange={(v) => onUpdate("startFramePrompt", v)}
@@ -367,7 +367,7 @@ export function ShotDetail({
         </EditorBlock>
 
         {/* Video prompt */}
-        <EditorBlock accentColor="#555B6E" icon={Play} label="Video">
+        <EditorBlock accentColor="#7A7A7A" icon={Play} label="Video">
           <PromptBox
             value={shot.videoPrompt}
             onChange={(v) => onUpdate("videoPrompt", v)}
@@ -378,9 +378,9 @@ export function ShotDetail({
         <button
           className="flex items-center justify-center gap-2 w-full rounded-lg transition-all duration-150 mt-4"
           style={{
-            background: "linear-gradient(135deg, #40455622, #40455611)",
-            border: "1px solid #40455644",
-            color: "#404556",
+            background: "linear-gradient(135deg, #69696922, #69696911)",
+            border: "1px solid #69696944",
+            color: "#696969",
             fontSize: "13px",
             fontWeight: 500,
             padding: "10px 0",
@@ -390,11 +390,11 @@ export function ShotDetail({
           onMouseEnter={(e) => {
             if (!canGenerateVideo || isVideoLoading) return
             e.currentTarget.style.background =
-              "linear-gradient(135deg, #40455633, #40455622)"
+              "linear-gradient(135deg, #69696933, #69696922)"
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.background =
-              "linear-gradient(135deg, #40455622, #40455611)"
+              "linear-gradient(135deg, #69696922, #69696911)"
           }}
           onClick={onGenerateVideo}
           disabled={!canGenerateVideo || isVideoLoading}
@@ -417,19 +417,19 @@ export function ShotDetail({
           className="w-full rounded-lg transition-all duration-150 mt-2"
           style={{
             background: "transparent",
-            border: "1px dashed #40455655",
-            color: "#777076",
+            border: "1px dashed #69696955",
+            color: "#D9D9D9",
             fontSize: "12px",
             fontWeight: 500,
             padding: "8px 0",
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.borderColor = "#555B6E"
-            e.currentTarget.style.color = "#C7CEDA"
+            e.currentTarget.style.borderColor = "#7A7A7A"
+            e.currentTarget.style.color = "#F0F0F0"
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.borderColor = "#40455655"
-            e.currentTarget.style.color = "#777076"
+            e.currentTarget.style.borderColor = "#69696955"
+            e.currentTarget.style.color = "#D9D9D9"
           }}
           onClick={onResetSimulation}
         >
@@ -449,10 +449,10 @@ function PromptBox({
 }) {
   return (
     <div
-      className="rounded-lg transition-colors duration-150 focus-within:bg-[#1A1C25] focus-within:border-[#40455655]"
+      className="rounded-lg transition-colors duration-150 focus-within:bg-[#111111] focus-within:border-[#69696955]"
       style={{
-        background: "#0D0E14",
-        border: "1px solid #1A1C25",
+        background: "#000000",
+        border: "1px solid #111111",
         padding: "10px 14px",
         minHeight: "56px",
       }}
@@ -463,7 +463,7 @@ function PromptBox({
         style={{
           fontSize: "13px",
           lineHeight: 1.7,
-          color: "#777076",
+          color: "#D9D9D9",
         }}
       />
     </div>

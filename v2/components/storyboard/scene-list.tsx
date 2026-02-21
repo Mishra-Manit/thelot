@@ -47,8 +47,8 @@ export function SceneList({
         className="flex flex-col shrink-0 items-center"
         style={{
           width: "44px",
-          background: "#0D0E14",
-          borderRight: "1px solid #252933",
+          background: "#000000",
+          borderRight: "1px solid #232323",
           transition: "width 250ms cubic-bezier(0.4,0,0.2,1)",
         }}
         role="navigation"
@@ -61,10 +61,10 @@ export function SceneList({
           style={{
             width: "44px",
             height: "40px",
-            color: "#404556",
+            color: "#696969",
           }}
           onMouseEnter={(e) => (e.currentTarget.style.color = "#ffffff")}
-          onMouseLeave={(e) => (e.currentTarget.style.color = "#404556")}
+          onMouseLeave={(e) => (e.currentTarget.style.color = "#696969")}
           aria-label="Expand scene panel"
         >
           <ChevronRight size={16} />
@@ -74,7 +74,7 @@ export function SceneList({
           style={{
             width: "20px",
             height: "1px",
-            background: "#252933",
+            background: "#232323",
             marginBottom: "8px",
           }}
         />
@@ -92,19 +92,19 @@ export function SceneList({
                   height: "30px",
                   fontSize: "10px",
                   fontWeight: 600,
-                  background: "#1A1C25",
-                  color: "#777076",
-                  border: "1px solid #252933",
+                  background: "#111111",
+                  color: "#D9D9D9",
+                  border: "1px solid #232323",
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "#22252F"
+                  e.currentTarget.style.background = "#232323"
                   e.currentTarget.style.color = "#ffffff"
-                  e.currentTarget.style.borderColor = "#555B6E"
+                  e.currentTarget.style.borderColor = "#7A7A7A"
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "#1A1C25"
-                  e.currentTarget.style.color = "#777076"
-                  e.currentTarget.style.borderColor = "#252933"
+                  e.currentTarget.style.background = "#111111"
+                  e.currentTarget.style.color = "#D9D9D9"
+                  e.currentTarget.style.borderColor = "#232323"
                 }}
                 aria-label={`Scene ${scene.number}: ${scene.title}`}
                 title={`Scene ${scene.number}: ${scene.title}`}
@@ -122,10 +122,10 @@ export function SceneList({
               style={{
                 width: "30px",
                 height: "22px",
-                color: "#404556",
+                color: "#696969",
               }}
               onMouseEnter={(e) => (e.currentTarget.style.color = "#ffffff")}
-              onMouseLeave={(e) => (e.currentTarget.style.color = "#404556")}
+              onMouseLeave={(e) => (e.currentTarget.style.color = "#696969")}
               aria-label="Back to all scenes"
               title="All Scenes"
             >
@@ -136,7 +136,7 @@ export function SceneList({
               style={{
                 width: "20px",
                 height: "1px",
-                background: "#1a1c25",
+                background: "#111111",
                 margin: "2px 0",
               }}
             />
@@ -154,22 +154,22 @@ export function SceneList({
                     height: "26px",
                     fontSize: "9px",
                     fontWeight: 600,
-                    background: isSelected ? "#1A1C25" : "transparent",
-                    color: isSelected ? "#404556" : "#404556",
+                    background: isSelected ? "#111111" : "transparent",
+                    color: isSelected ? "#FFFFFF" : "#696969",
                     border: isSelected
-                      ? "1px solid #40455655"
+                      ? "1px solid #69696955"
                       : "1px solid transparent",
                   }}
                   onMouseEnter={(e) => {
                     if (!isSelected) {
-                      e.currentTarget.style.background = "#1A1C2588"
-                      e.currentTarget.style.color = "#777076"
+                      e.currentTarget.style.background = "#11111188"
+                      e.currentTarget.style.color = "#D9D9D9"
                     }
                   }}
                   onMouseLeave={(e) => {
                     if (!isSelected) {
                       e.currentTarget.style.background = "transparent"
-                      e.currentTarget.style.color = "#404556"
+                      e.currentTarget.style.color = "#696969"
                     }
                   }}
                   aria-label={`Shot ${shot.number}: ${shot.title}`}
@@ -188,10 +188,10 @@ export function SceneList({
           style={{
             width: "44px",
             height: "36px",
-            borderTop: "1px solid #1a1c25",
+            borderTop: "1px solid #111111",
           }}
         >
-          <Clapperboard size={13} style={{ color: "#252933" }} />
+          <Clapperboard size={13} style={{ color: "#232323" }} />
         </div>
       </aside>
     )
@@ -203,8 +203,8 @@ export function SceneList({
       className="flex flex-col shrink-0 overflow-hidden"
       style={{
         width: "200px",
-        background: "#0D0E14",
-        borderRight: "1px solid #252933",
+        background: "#000000",
+        borderRight: "1px solid #232323",
         transition: "width 250ms cubic-bezier(0.4,0,0.2,1)",
       }}
       role="navigation"
@@ -215,7 +215,7 @@ export function SceneList({
         <>
           {/* Header with collapse toggle */}
           <div className="flex items-center justify-between px-3 pt-3 pb-1">
-            <span style={{ fontSize: "10px", fontWeight: 600, color: "#404556", letterSpacing: "0.05em", textTransform: "uppercase" }}>
+            <span style={{ fontSize: "10px", fontWeight: 600, color: "#696969", letterSpacing: "0.05em", textTransform: "uppercase" }}>
               Scenes
             </span>
             <button
@@ -224,14 +224,14 @@ export function SceneList({
               style={{
                 width: "22px",
                 height: "22px",
-                color: "#404556",
+                color: "#696969",
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.color = "#ffffff"
-                e.currentTarget.style.background = "#252933"
+                e.currentTarget.style.background = "#232323"
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.color = "#404556"
+                e.currentTarget.style.color = "#696969"
                 e.currentTarget.style.background = "transparent"
               }}
               aria-label="Collapse scene panel"
@@ -244,18 +244,18 @@ export function SceneList({
             <button
               className="flex items-center justify-center gap-1.5 w-full rounded-lg transition-colors duration-150"
               style={{
-                background: "#252933",
-                color: "#777076",
+                background: "#232323",
+                color: "#D9D9D9",
                 fontSize: "13px",
                 padding: "8px 0",
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = "#404556"
+                e.currentTarget.style.background = "#696969"
                 e.currentTarget.style.color = "#ffffff"
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = "#252933"
-                e.currentTarget.style.color = "#777076"
+                e.currentTarget.style.background = "#232323"
+                e.currentTarget.style.color = "#D9D9D9"
               }}
             >
               <Plus size={14} />
@@ -275,14 +275,14 @@ export function SceneList({
                   key={scene.id}
                   className="flex rounded-lg transition-colors duration-150 text-left"
                   style={{
-                    background: "#1A1C25",
+                    background: "#111111",
                     minHeight: "90px",
                   }}
                   onMouseEnter={(e) =>
-                    (e.currentTarget.style.background = "#22252F")
+                    (e.currentTarget.style.background = "#232323")
                   }
                   onMouseLeave={(e) =>
-                    (e.currentTarget.style.background = "#1A1C25")
+                    (e.currentTarget.style.background = "#111111")
                   }
                   onClick={() => onSelectScene(scene.id)}
                 >
@@ -291,7 +291,7 @@ export function SceneList({
                     style={{
                       width: "28px",
                       fontSize: "11px",
-                      color: "#404556",
+                      color: "#696969",
                     }}
                   >
                     {scene.number}
@@ -300,7 +300,7 @@ export function SceneList({
                     <div
                       className="w-full rounded-md relative overflow-hidden"
                       style={{
-                        background: "#252933",
+                        background: "#232323",
                         aspectRatio: "16/9",
                       }}
                     >
@@ -313,10 +313,10 @@ export function SceneList({
                         }}
                       />
                     </div>
-                    <span style={{ fontSize: "11px", color: "#777076" }}>
+                    <span style={{ fontSize: "11px", color: "#D9D9D9" }}>
                       {scene.title}
                     </span>
-                    <span style={{ fontSize: "10px", color: "#404556" }}>
+                    <span style={{ fontSize: "10px", color: "#696969" }}>
                       {scene.shots.length} shots &middot; {totalDuration}s
                     </span>
                   </div>
@@ -332,9 +332,9 @@ export function SceneList({
             <div className="flex items-center justify-between">
               <button
                 className="flex items-center gap-0.5 transition-colors duration-150"
-                style={{ fontSize: "11px", color: "#777076" }}
+                style={{ fontSize: "11px", color: "#D9D9D9" }}
                 onMouseEnter={(e) => (e.currentTarget.style.color = "#ffffff")}
-                onMouseLeave={(e) => (e.currentTarget.style.color = "#777076")}
+                onMouseLeave={(e) => (e.currentTarget.style.color = "#D9D9D9")}
                 onClick={onBack}
               >
                 <ChevronLeft size={14} />
@@ -346,14 +346,14 @@ export function SceneList({
                 style={{
                   width: "22px",
                   height: "22px",
-                  color: "#404556",
+                  color: "#696969",
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.color = "#ffffff"
-                  e.currentTarget.style.background = "#252933"
+                  e.currentTarget.style.background = "#232323"
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.color = "#404556"
+                  e.currentTarget.style.color = "#696969"
                   e.currentTarget.style.background = "transparent"
                 }}
                 aria-label="Collapse scene panel"
@@ -367,9 +367,9 @@ export function SceneList({
                 style={{
                   width: "22px",
                   height: "22px",
-                  background: "#40455622",
-                  border: "1px solid #40455644",
-                  color: "#404556",
+                  background: "#69696922",
+                  border: "1px solid #69696944",
+                  color: "#696969",
                   fontSize: "10px",
                   fontWeight: 700,
                 }}
@@ -380,14 +380,14 @@ export function SceneList({
                 {activeScene.title}
               </span>
             </div>
-            <div className="flex items-center gap-1" style={{ color: "#404556", fontSize: "10px" }}>
+            <div className="flex items-center gap-1" style={{ color: "#696969", fontSize: "10px" }}>
               <Film size={10} />
               <span>
                 {activeScene.shots.length} shots &middot;{" "}
                 {activeScene.shots.reduce((s, sh) => s + sh.duration, 0)}s total
               </span>
             </div>
-            <div style={{ borderTop: "1px solid #1A1C25" }} />
+            <div style={{ borderTop: "1px solid #111111" }} />
           </div>
           <div className="flex-1 overflow-y-auto px-3 flex flex-col gap-1.5 pb-2">
             {activeScene.shots.map((shot) => {
@@ -398,13 +398,13 @@ export function SceneList({
                   className="flex items-center gap-2 rounded-md transition-colors duration-150 text-left relative"
                   style={{
                     padding: "6px",
-                    background: isSelected ? "#1A1C25" : "transparent",
-                    border: isSelected ? "1px solid #252933" : "1px solid transparent",
-                    borderLeft: isSelected ? "3px solid #404556" : "1px solid transparent",
+                    background: isSelected ? "#111111" : "transparent",
+                    border: isSelected ? "1px solid #232323" : "1px solid transparent",
+                    borderLeft: isSelected ? "3px solid #696969" : "1px solid transparent",
                   }}
                   onMouseEnter={(e) => {
                     if (!isSelected)
-                      e.currentTarget.style.background = "#1A1C2588"
+                      e.currentTarget.style.background = "#11111188"
                   }}
                   onMouseLeave={(e) => {
                     if (!isSelected)
@@ -417,19 +417,19 @@ export function SceneList({
                     style={{
                       width: "56px",
                       height: "36px",
-                      background: "#252933",
+                      background: "#232323",
                     }}
                   />
                   <div className="flex flex-col gap-0.5 min-w-0">
                     <span
                       style={{
                         fontSize: "11px",
-                        color: isSelected ? "#ffffff" : "#777076",
+                        color: isSelected ? "#ffffff" : "#D9D9D9",
                       }}
                     >
                       <span
                         style={{
-                          color: isSelected ? "#404556" : "#404556",
+                          color: isSelected ? "#FFFFFF" : "#696969",
                           marginRight: "4px",
                         }}
                       >
@@ -439,7 +439,7 @@ export function SceneList({
                     </span>
                     <span
                       className="flex items-center gap-1"
-                      style={{ fontSize: "10px", color: "#404556" }}
+                      style={{ fontSize: "10px", color: "#696969" }}
                     >
                       <Clock size={10} />
                       {shot.duration}s
@@ -453,14 +453,14 @@ export function SceneList({
             <button
               className="flex items-center justify-center gap-1.5 w-full rounded-md transition-colors duration-150"
               style={{
-                background: "#1A1C25",
-                border: "1px dashed #40455666",
-                color: "#404556",
+                background: "#111111",
+                border: "1px dashed #69696966",
+                color: "#696969",
                 fontSize: "12px",
                 padding: "8px 0",
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = "#2A2E3B")}
-              onMouseLeave={(e) => (e.currentTarget.style.background = "#1A1C25")}
+              onMouseEnter={(e) => (e.currentTarget.style.background = "#343434")}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "#111111")}
             >
               <Plus size={14} />
               <span>Add Shot</span>

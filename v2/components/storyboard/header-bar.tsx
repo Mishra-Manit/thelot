@@ -7,17 +7,17 @@ export function HeaderBar() {
     <header
       className="flex items-center h-[48px] w-full shrink-0"
       style={{
-        background: "#0D0E14",
-        borderBottom: "1px solid #252933",
+        background: "#000000",
+        borderBottom: "1px solid #232323",
       }}
     >
       {/* Left group */}
       <div className="flex items-center gap-3 pl-4">
         <button
           className="transition-colors duration-150"
-          style={{ color: "#777076" }}
+          style={{ color: "#D9D9D9" }}
           onMouseEnter={(e) => (e.currentTarget.style.color = "#ffffff")}
-          onMouseLeave={(e) => (e.currentTarget.style.color = "#777076")}
+          onMouseLeave={(e) => (e.currentTarget.style.color = "#D9D9D9")}
           aria-label="Go back"
         >
           <ArrowLeft size={18} />
@@ -42,8 +42,8 @@ export function HeaderBar() {
         {/* Credits */}
         <button
           className="flex items-center gap-1 px-2 py-1 rounded-md transition-colors duration-150"
-          style={{ color: "#777076", fontWeight: 600, fontSize: "12px" }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = "#252933")}
+          style={{ color: "#D9D9D9", fontWeight: 600, fontSize: "12px" }}
+          onMouseEnter={(e) => (e.currentTarget.style.background = "#232323")}
           onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
         >
           <Coins size={14} />
@@ -58,15 +58,15 @@ export function HeaderBar() {
             style={{
               width: "32px",
               height: "32px",
-              color: "#777076",
+              color: "#D9D9D9",
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = "#252933"
+              e.currentTarget.style.background = "#232323"
               e.currentTarget.style.color = "#ffffff"
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.background = "transparent"
-              e.currentTarget.style.color = "#777076"
+              e.currentTarget.style.color = "#D9D9D9"
             }}
             aria-label={Icon.displayName}
           >
@@ -78,20 +78,20 @@ export function HeaderBar() {
         <button
           className="flex items-center gap-1.5 rounded-full transition-colors duration-150 ml-1"
           style={{
-            background: "#252933",
-            border: "1px solid #404556",
-            color: "#777076",
+            background: "#232323",
+            border: "1px solid #696969",
+            color: "#D9D9D9",
             fontSize: "12px",
             fontWeight: 500,
             padding: "6px 14px",
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = "#404556"
+            e.currentTarget.style.background = "#696969"
             e.currentTarget.style.color = "#ffffff"
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background = "#252933"
-            e.currentTarget.style.color = "#777076"
+            e.currentTarget.style.background = "#232323"
+            e.currentTarget.style.color = "#D9D9D9"
           }}
         >
           <Share2 size={13} />

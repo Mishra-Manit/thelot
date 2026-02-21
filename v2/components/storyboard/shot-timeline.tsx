@@ -22,8 +22,8 @@ export function ShotTimeline({
     <div
       className="shrink-0"
       style={{
-        background: "#0D0E14",
-        borderTop: "1px solid #252933",
+        background: "#000000",
+        borderTop: "1px solid #232323",
         padding: "16px 20px",
       }}
     >
@@ -33,7 +33,7 @@ export function ShotTimeline({
           className="shrink-0"
           style={{
             fontSize: "10px",
-            color: "#404556",
+            color: "#696969",
             textTransform: "uppercase",
             letterSpacing: "0.08em",
           }}
@@ -42,13 +42,13 @@ export function ShotTimeline({
         </span>
         <div
           className="flex-1"
-          style={{ height: "1px", background: "#252933" }}
+          style={{ height: "1px", background: "#232323" }}
         />
         <span
           className="shrink-0"
           style={{
             fontSize: "10px",
-            color: "#404556",
+            color: "#696969",
             fontVariantNumeric: "tabular-nums",
           }}
         >
@@ -69,11 +69,11 @@ export function ShotTimeline({
                 minWidth: "50px",
                 height: "60px",
                 borderRadius: "20px",
-                background: "#1A1C25",
+                background: "#111111",
                 border: isSelected
-                  ? "2px solid #404556"
+                  ? "2px solid #696969"
                   : "2px solid transparent",
-                boxShadow: isSelected ? "0 0 10px #40455644" : "none",
+                boxShadow: isSelected ? "0 0 10px #69696944" : "none",
                 opacity: isSelected ? 1 : 0.65,
               }}
               onMouseEnter={(e) => {
@@ -89,7 +89,7 @@ export function ShotTimeline({
                 className="absolute inset-0 pointer-events-none"
                 style={{
                   background:
-                    "linear-gradient(to right, rgba(13,14,20,0.6), rgba(13,14,20,0.25))",
+                    "linear-gradient(to right, rgba(17,17,17,0.6), rgba(17,17,17,0.25))",
                 }}
               />
               <span
@@ -97,7 +97,7 @@ export function ShotTimeline({
                 style={{
                   fontSize: "10px",
                   fontWeight: 600,
-                  color: isSelected ? "#404556" : "#777076",
+                  color: isSelected ? "#FFFFFF" : "#D9D9D9",
                 }}
               >
                 {shot.number}
@@ -112,12 +112,12 @@ export function ShotTimeline({
             width: "60px",
             height: "60px",
             borderRadius: "20px",
-            background: "#1A1C25",
-            border: "1px dashed #404556",
-            color: "#404556",
+            background: "#111111",
+            border: "1px dashed #696969",
+            color: "#696969",
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = "#2A2E3B")}
-          onMouseLeave={(e) => (e.currentTarget.style.background = "#1A1C25")}
+          onMouseEnter={(e) => (e.currentTarget.style.background = "#343434")}
+          onMouseLeave={(e) => (e.currentTarget.style.background = "#111111")}
           aria-label="Add shot"
         >
           <Plus size={16} />

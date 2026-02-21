@@ -41,6 +41,7 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
   const [scenes, setScenes] = useState(initialScenes)
   const [isPending, startTransition] = useTransition()
   const [simulationByShot, setSimulationByShot] = useState<Record<string, ShotSimulationState>>({})
+  const [frameVersionByShot, setFrameVersionByShot] = useState<Record<string, number>>({})
   const [selectedScene, setSelectedScene] = useState<string | null>(() => {
     if (initialScenes.length === 0) return null
     return initialScenes[2]?.id ?? initialScenes[0].id
@@ -65,10 +66,15 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
   const activeSimulation = selectedShot
     ? simulationByShot[selectedShot] ?? DEFAULT_SIMULATION_STATE
     : DEFAULT_SIMULATION_STATE
+  const activeFrameVersion = activeShot ? frameVersionByShot[activeShot.id] : undefined
   const startFrameImageUrl =
-    activeScene && activeShot ? createShotImagePath(activeScene.number, activeShot.number, "start") : ""
+    activeScene && activeShot
+      ? `${createShotImagePath(activeScene.number, activeShot.number, "start")}${activeFrameVersion ? `?v=${activeFrameVersion}` : ""}`
+      : ""
   const endFrameImageUrl =
-    activeScene && activeShot ? createShotImagePath(activeScene.number, activeShot.number, "end") : ""
+    activeScene && activeShot
+      ? `${createShotImagePath(activeScene.number, activeShot.number, "end")}${activeFrameVersion ? `?v=${activeFrameVersion}` : ""}`
+      : ""
 
   const handleSelectScene = useCallback(
     (sceneId: string) => {
@@ -141,11 +147,13 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
       const targetShotId = shotId ?? selectedShot
       if (!targetShotId) return
 
+      setFrameVersionByShot((prev) => ({ ...prev, [targetShotId]: Date.now() }))
       clearSimulationTimer(targetShotId, "frames")
       clearSimulationTimer(targetShotId, "video")
       updateSimulationState(targetShotId, { frames: "loading", video: "idle" })
 
       const timerId = window.setTimeout(() => {
+        setFrameVersionByShot((prev) => ({ ...prev, [targetShotId]: Date.now() }))
         setSimulationByShot((prev) => ({
           ...prev,
           [targetShotId]: {
@@ -269,7 +277,7 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
   )
 
   return (
-    <div className="flex flex-col h-screen w-screen overflow-hidden" style={{ background: "#0D0E14" }}>
+    <div className="flex flex-col h-screen w-screen overflow-hidden" style={{ background: "#000000" }}>
       <HeaderBar />
 
       {/* Body: panels row above, full-width timeline below */}
@@ -280,6 +288,7 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
             scenes={scenes}
             selectedScene={selectedScene}
             selectedShot={selectedShot}
+            frameVersionByShot={frameVersionByShot}
             collapsed={panelCollapsed}
             onSelectScene={handleSelectScene}
             onSelectShot={handleSelectShot}
@@ -337,7 +346,7 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
                     className="resize-rail absolute inset-y-0 left-1/2 -translate-x-1/2 transition-all duration-150"
                     style={{
                       width: isDragging ? "3px" : "1px",
-                      background: isDragging ? "#555B6E" : "#252933",
+                      background: isDragging ? "#7A7A7A" : "#232323",
                     }}
                   />
                   {/* Hover / active indicator pill */}
@@ -352,7 +361,7 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
                       style={{
                         width: "5px",
                         height: "32px",
-                        background: "#555B6E",
+                        background: "#7A7A7A",
                       }}
                     />
                   </div>
@@ -361,7 +370,7 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
                   <style>{`
                     .resize-handle:hover .resize-rail {
                       width: 2px !important;
-                      background: #404556 !important;
+                      background: #696969 !important;
                     }
                     .resize-handle:hover .resize-pill {
                       opacity: 0.6 !important;
@@ -390,7 +399,7 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
             ) : (
               <div
                 className="flex flex-1 items-center justify-center"
-                style={{ color: "#777076", fontSize: "13px" }}
+                style={{ color: "#D9D9D9", fontSize: "13px" }}
               >
                 Select a scene and shot to begin editing
               </div>

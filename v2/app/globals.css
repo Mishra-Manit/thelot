@@ -8,22 +8,22 @@
   --font-serif: var(--font-outfit), 'Outfit', sans-serif;
   --font-mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
 
-  --color-bg-base: #0D0E14;
-  --color-surface: #1A1C25;
-  --color-surface-hover: #22252F;
-  --color-lot-border: #252933;
-  --color-border-hover: #404556;
+  --color-bg-base: #000000;
+  --color-surface: #111111;
+  --color-surface-hover: #232323;
+  --color-lot-border: #232323;
+  --color-border-hover: #696969;
   --color-text-primary: #ffffff;
-  --color-text-secondary: #777076;
-  --color-text-tertiary: #404556;
-  --color-text-muted: #60515C;
-  --color-lot-accent: #777076;
-  --color-accent-hover: #8A8490;
-  --color-accent-deep: #4A4550;
+  --color-text-secondary: #D9D9D9;
+  --color-text-tertiary: #696969;
+  --color-text-muted: #575757;
+  --color-lot-accent: #D9D9D9;
+  --color-accent-hover: #F0F0F0;
+  --color-accent-deep: #464646;
 
-  --color-background: #0D0E14;
+  --color-background: #000000;
   --color-foreground: #ffffff;
-  --color-border: #252933;
+  --color-border: #232323;
 }
 
 @layer base {
@@ -31,7 +31,7 @@
     @apply border-lot-border outline-none;
   }
   body {
-    background-color: #0D0E14;
+    background-color: #000000;
     color: #ffffff;
     overflow: hidden;
   }
@@ -40,7 +40,7 @@
 /* Custom scrollbar */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #777076 transparent;
+  scrollbar-color: #7A7A7A transparent;
 }
 
 *::-webkit-scrollbar {
@@ -53,12 +53,12 @@
 }
 
 *::-webkit-scrollbar-thumb {
-  background-color: #777076;
+  background-color: #7A7A7A;
   border-radius: 9999px;
 }
 
 *::-webkit-scrollbar-thumb:hover {
-  background-color: #8A8490;
+  background-color: #D9D9D9;
 }
 
 /* Hide scrollbar but keep scrollable */

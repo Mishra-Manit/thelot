@@ -110,7 +110,7 @@ export function FramePreview({
   return (
     <div
       className="flex flex-col flex-1 min-w-0"
-      style={{ background: "#0D0E14" }}
+      style={{ background: "#000000" }}
     >
       {hasShot ? (
         <div ref={panelRef} className="flex flex-col flex-1 min-h-0" style={{ padding: "12px 12px 4px 12px" }}>
@@ -178,7 +178,7 @@ export function FramePreview({
               className="v-resize-rail absolute inset-x-0 top-1/2 -translate-y-1/2 transition-all duration-150"
               style={{
                 height: isVDragging ? "3px" : "1px",
-                background: isVDragging ? "#555B6E" : "#252933",
+                background: isVDragging ? "#7A7A7A" : "#232323",
               }}
             />
             {/* Hover / active indicator pill */}
@@ -193,7 +193,7 @@ export function FramePreview({
                 style={{
                   width: "32px",
                   height: "5px",
-                  background: "#555B6E",
+                  background: "#7A7A7A",
                 }}
               />
             </div>
@@ -202,7 +202,7 @@ export function FramePreview({
             <style>{`
               .v-resize-handle:hover .v-resize-rail {
                 height: 2px !important;
-                background: #404556 !important;
+                background: #696969 !important;
               }
               .v-resize-handle:hover .v-resize-pill {
                 opacity: 0.6 !important;
@@ -214,14 +214,14 @@ export function FramePreview({
           <div className="flex-1 min-h-0 flex flex-col">
             <div
               className="relative w-full h-full rounded-lg overflow-hidden flex flex-col"
-              style={{ background: "#0f1018", border: "1px solid #252933" }}
+              style={{ background: "#111111", border: "1px solid #232323" }}
             >
               {/* Video label bar */}
               <div
                 className="flex items-center justify-between"
                 style={{
                   padding: "8px 12px",
-                  borderBottom: "1px solid #252933",
+                  borderBottom: "1px solid #232323",
                 }}
               >
                 <div className="flex items-center gap-2">
@@ -230,20 +230,20 @@ export function FramePreview({
                     style={{
                       width: "6px",
                       height: "6px",
-                      background: "#404556",
+                      background: "#696969",
                     }}
                   />
                   <span style={{ fontSize: "11px", color: "#ffffff", fontWeight: 500 }}>
                     Video Preview
                   </span>
-                  <span style={{ fontSize: "10px", color: "#404556" }}>
+                  <span style={{ fontSize: "10px", color: "#696969" }}>
                     {shotTitle}
                   </span>
                 </div>
                 <span
                   style={{
                     fontSize: "10px",
-                    color: "#777076",
+                    color: "#D9D9D9",
                     fontVariantNumeric: "tabular-nums",
                   }}
                 >
@@ -274,13 +274,13 @@ export function FramePreview({
                 className="flex items-center justify-center gap-4"
                 style={{
                   padding: "10px 12px",
-                  borderTop: "1px solid #1a1c25",
+                  borderTop: "1px solid #232323",
                 }}
               >
                 <span
                   style={{
                     fontSize: "10px",
-                    color: "#404556",
+                    color: "#696969",
                     fontVariantNumeric: "tabular-nums",
                   }}
                 >
@@ -291,12 +291,12 @@ export function FramePreview({
                 <div className="flex-1 relative" style={{ height: "3px" }}>
                   <div
                     className="absolute inset-0 rounded-full"
-                    style={{ background: "#1a1c25" }}
+                    style={{ background: "#232323" }}
                   />
                   <div
                     className="absolute left-0 top-0 h-full rounded-full"
                     style={{
-                      background: "#404556",
+                      background: "#696969",
                       width: `${totalDuration > 0 ? (currentTime / totalDuration) * 100 : 0}%`,
                     }}
                   />
@@ -306,14 +306,14 @@ export function FramePreview({
                   <button
                     className="transition-colors duration-150"
                     style={{
-                      color: canControlPlayback ? "#404556" : "#252933",
+                      color: canControlPlayback ? "#696969" : "#232323",
                       cursor: canControlPlayback ? "pointer" : "not-allowed",
                     }}
                     onMouseEnter={(e) =>
                       canControlPlayback && (e.currentTarget.style.color = "#ffffff")
                     }
                     onMouseLeave={(e) =>
-                      canControlPlayback && (e.currentTarget.style.color = "#404556")
+                      canControlPlayback && (e.currentTarget.style.color = "#696969")
                     }
                     onClick={() => {
                       if (!canControlPlayback) return
@@ -329,14 +329,14 @@ export function FramePreview({
                     style={{
                       width: "28px",
                       height: "28px",
-                      background: canControlPlayback ? "#404556" : "#252933",
+                      background: canControlPlayback ? "#696969" : "#232323",
                       cursor: canControlPlayback ? "pointer" : "not-allowed",
                     }}
                     onMouseEnter={(e) =>
-                      canControlPlayback && (e.currentTarget.style.background = "#555B6E")
+                      canControlPlayback && (e.currentTarget.style.background = "#7A7A7A")
                     }
                     onMouseLeave={(e) =>
-                      canControlPlayback && (e.currentTarget.style.background = "#404556")
+                      canControlPlayback && (e.currentTarget.style.background = "#696969")
                     }
                     onClick={() => {
                       if (!canControlPlayback || !playerRef.current) return
@@ -352,25 +352,25 @@ export function FramePreview({
                     aria-label={isPlaying ? "Pause" : "Play"}
                   >
                     {isPlaying ? (
-                      <Pause size={12} style={{ color: "#0D0E14" }} />
+                      <Pause size={12} style={{ color: "#000000" }} />
                     ) : (
                       <Play
                         size={12}
-                        style={{ color: "#0D0E14", marginLeft: "1px" }}
+                        style={{ color: "#000000", marginLeft: "1px" }}
                       />
                     )}
                   </button>
                   <button
                     className="transition-colors duration-150"
                     style={{
-                      color: canControlPlayback ? "#404556" : "#252933",
+                      color: canControlPlayback ? "#696969" : "#232323",
                       cursor: canControlPlayback ? "pointer" : "not-allowed",
                     }}
                     onMouseEnter={(e) =>
                       canControlPlayback && (e.currentTarget.style.color = "#ffffff")
                     }
                     onMouseLeave={(e) =>
-                      canControlPlayback && (e.currentTarget.style.color = "#404556")
+                      canControlPlayback && (e.currentTarget.style.color = "#696969")
                     }
                     onClick={() => {
                       if (!canControlPlayback) return
@@ -386,7 +386,7 @@ export function FramePreview({
                 <span
                   style={{
                     fontSize: "10px",
-                    color: "#404556",
+                    color: "#696969",
                     fontVariantNumeric: "tabular-nums",
                   }}
                 >
@@ -398,7 +398,7 @@ export function FramePreview({
         </div>
       ) : (
         <div className="flex flex-1 items-center justify-center">
-          <span style={{ fontSize: "11px", color: "#777076" }}>
+          <span style={{ fontSize: "11px", color: "#D9D9D9" }}>
             Select a shot
           </span>
         </div>
@@ -446,8 +446,8 @@ function FrameCard({
     <div
       className="flex flex-col flex-1 rounded-lg overflow-hidden transition-all duration-150"
       style={{
-        background: "#0f1018",
-        border: hover ? "1px solid #404556" : "1px solid #252933",
+        background: "#111111",
+        border: hover ? "1px solid #696969" : "1px solid #232323",
       }}
       onMouseEnter={() => onHover(true)}
       onMouseLeave={() => onHover(false)}
@@ -457,11 +457,11 @@ function FrameCard({
         className="flex items-center justify-between"
         style={{
           padding: "7px 10px",
-          borderBottom: "1px solid #252933",
+          borderBottom: "1px solid #232323",
         }}
       >
         <div className="flex items-center gap-1.5">
-          <ImageIcon size={11} style={{ color: isEnd ? "#60515C" : "#404556" }} />
+          <ImageIcon size={11} style={{ color: isEnd ? "#575757" : "#696969" }} />
           <span
             style={{
               fontSize: "10px",
@@ -475,7 +475,7 @@ function FrameCard({
           <span
             style={{
               fontSize: "9px",
-              color: "#404556",
+              color: "#696969",
               marginLeft: "2px",
             }}
           >
@@ -486,22 +486,22 @@ function FrameCard({
           className="flex items-center gap-1 rounded-full transition-colors duration-150"
           style={{
             padding: "4px 10px",
-            background: "rgba(64,69,86,0.18)",
-            border: "1px solid rgba(64,69,86,0.45)",
-            color: "#C7CEDA",
+            background: "rgba(105,105,105,0.18)",
+            border: "1px solid rgba(105,105,105,0.45)",
+            color: "#D9D9D9",
             opacity: isLoading ? 0.75 : 1,
             cursor: isLoading ? "not-allowed" : "pointer",
           }}
           onMouseEnter={(e) => {
             if (isLoading) return
-            e.currentTarget.style.background = "rgba(64,69,86,0.28)"
-            e.currentTarget.style.borderColor = "rgba(64,69,86,0.65)"
+            e.currentTarget.style.background = "rgba(105,105,105,0.28)"
+            e.currentTarget.style.borderColor = "rgba(105,105,105,0.65)"
             e.currentTarget.style.color = "#FFFFFF"
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background = "rgba(64,69,86,0.18)"
-            e.currentTarget.style.borderColor = "rgba(64,69,86,0.45)"
-            e.currentTarget.style.color = "#C7CEDA"
+            e.currentTarget.style.background = "rgba(105,105,105,0.18)"
+            e.currentTarget.style.borderColor = "rgba(105,105,105,0.45)"
+            e.currentTarget.style.color = "#D9D9D9"
           }}
           onClick={onGenerate}
           disabled={isLoading}
@@ -532,8 +532,8 @@ function FrameCard({
           className="absolute inset-0"
           style={{
             background: isEnd
-              ? "linear-gradient(135deg, #0f1018 0%, #14121a 100%)"
-              : "linear-gradient(135deg, #0f1018 0%, #131520 100%)",
+              ? "linear-gradient(135deg, #111111 0%, #232323 100%)"
+              : "linear-gradient(135deg, #111111 0%, #232323 100%)",
           }}
         />
 
@@ -543,7 +543,7 @@ function FrameCard({
           <img
             src={currentImageUrl}
             alt={`${label} preview`}
-            className="absolute inset-0 h-full w-full object-contain"
+            className="absolute inset-0 h-full w-full object-cover"
             onError={() => {
               if (fallbackImageUrl && currentImageUrl !== fallbackImageUrl) {
                 setCurrentImageUrl(fallbackImageUrl)
@@ -560,23 +560,23 @@ function FrameCard({
                 width: "36px",
                 height: "36px",
                 background: isEnd
-                  ? "rgba(96,81,92,0.1)"
-                  : "rgba(64,69,86,0.15)",
+                  ? "rgba(87,87,87,0.12)"
+                  : "rgba(105,105,105,0.15)",
                 border: isEnd
-                  ? "1px dashed rgba(96,81,92,0.25)"
-                  : "1px dashed rgba(64,69,86,0.3)",
+                  ? "1px dashed rgba(87,87,87,0.25)"
+                  : "1px dashed rgba(105,105,105,0.3)",
               }}
             >
               {isEnd ? (
-                <ImageIcon size={14} style={{ color: "#60515C" }} />
+                <ImageIcon size={14} style={{ color: "#575757" }} />
               ) : (
-                <Sparkles size={14} style={{ color: "#404556" }} />
+                <Sparkles size={14} style={{ color: "#696969" }} />
               )}
             </div>
             <span
               style={{
                 fontSize: "10px",
-                color: "#404556",
+                color: "#696969",
                 textAlign: "center",
                 maxWidth: "120px",
                 lineHeight: "1.4",
@@ -598,7 +598,7 @@ function DitherLoading({ label, compact = false }: { label: string; compact?: bo
         className="absolute inset-0 animate-pulse"
         style={{
           background:
-            "linear-gradient(120deg, rgba(13,14,20,0.92) 20%, rgba(64,69,86,0.28) 50%, rgba(13,14,20,0.92) 80%)",
+            "linear-gradient(120deg, rgba(0,0,0,0.92) 20%, rgba(105,105,105,0.28) 50%, rgba(0,0,0,0.92) 80%)",
           backgroundSize: "220% 100%",
           animation: "dither-shimmer 1.2s linear infinite",
         }}
@@ -607,7 +607,7 @@ function DitherLoading({ label, compact = false }: { label: string; compact?: bo
         className="absolute inset-0 opacity-35"
         style={{
           backgroundImage:
-            "radial-gradient(rgba(119,112,118,0.4) 0.7px, transparent 0.7px)",
+            "radial-gradient(rgba(217,217,217,0.28) 0.7px, transparent 0.7px)",
           backgroundSize: "3px 3px",
         }}
       />
@@ -615,9 +615,9 @@ function DitherLoading({ label, compact = false }: { label: string; compact?: bo
         className="relative z-10 rounded-md"
         style={{
           padding: compact ? "6px 10px" : "8px 12px",
-          background: "rgba(13,14,20,0.7)",
-          border: "1px solid rgba(64,69,86,0.5)",
-          color: "#C7CEDA",
+          background: "rgba(0,0,0,0.7)",
+          border: "1px solid rgba(105,105,105,0.5)",
+          color: "#D9D9D9",
           fontSize: compact ? "10px" : "11px",
           letterSpacing: "0.02em",
         }}

@@ -150,13 +150,13 @@ export function VideoPlayer({
             className="flex items-center gap-2 rounded-lg"
             style={{
               padding: "6px 14px",
-              background: "rgba(13,14,20,0.6)",
+              background: "rgba(0,0,0,0.6)",
               backdropFilter: "blur(12px)",
-              border: "1px solid rgba(64,69,86,0.25)",
+              border: "1px solid rgba(105,105,105,0.25)",
             }}
           >
-            <Play size={12} style={{ color: "#404556" }} />
-            <span style={{ fontSize: "11px", color: "#777076" }}>
+            <Play size={12} style={{ color: "#696969" }} />
+            <span style={{ fontSize: "11px", color: "#D9D9D9" }}>
               No video clip selected
             </span>
           </div>
