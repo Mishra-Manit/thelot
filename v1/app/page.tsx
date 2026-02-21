@@ -23,6 +23,7 @@ export default function Page() {
           selectedShot={selectedShot}
           onSelectScene={setSelectedScene}
           onSelectShot={setSelectedShot}
+          onBack={() => setSelectedScene(null)}
         />
         <ShotDetail
           shot={selectedShot}

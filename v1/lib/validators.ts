@@ -17,6 +17,7 @@ export const createShotSchema = z.object({
   action: z.string().optional(),
   internalMonologue: z.string().optional(),
   cameraNotes: z.string().optional(),
+  videoUrl: z.string().max(2048).optional(),
 })
 
 export const updateShotSchema = z.object({
@@ -26,4 +27,5 @@ export const updateShotSchema = z.object({
   action: z.string().optional(),
   internalMonologue: z.string().optional(),
   cameraNotes: z.string().optional(),
+  videoUrl: z.string().max(2048).optional(),
 })

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { ChevronLeft, Film, Clock, Plus } from 'lucide-react'
 import type { Scene, Shot } from '@/db/schema'
 
 type Props = {
@@ -8,11 +9,18 @@ type Props = {
   selectedShot: Shot | null
   onSelectScene: (scene: Scene) => void
   onSelectShot: (shot: Shot) => void
+  onBack: () => void
 }
 
 type SceneWithShots = Scene & { shots: Shot[] }
 
-export default function SceneList({ selectedScene, selectedShot, onSelectScene, onSelectShot }: Props) {
+export default function SceneList({
+  selectedScene,
+  selectedShot,
+  onSelectScene,
+  onSelectShot,
+  onBack,
+}: Props) {
   const [scenes, setScenes] = useState<SceneWithShots[]>([])
 
   useEffect(() => {
@@ -64,63 +72,246 @@ export default function SceneList({ selectedScene, selectedShot, onSelectScene, 
     } catch { /* network error */ }
   }
 
+  const expandedScene = selectedScene
+    ? scenes.find(s => s.id === selectedScene.id) ?? null
+    : null
+
   return (
-    <aside className="w-64 shrink-0 overflow-hidden rounded-xl border border-transparent bg-dark-black/80">
-      <div className="flex h-full flex-col">
-      <div className="flex items-center justify-between px-4 py-3.5">
-        <span className="text-[10px] font-heading font-600 uppercase tracking-widest text-muted-mauve">
-          Scenes
-        </span>
+    <div
+      className="flex flex-col h-full"
+      style={{ width: 200, minWidth: 200, backgroundColor: '#0D0E14' }}
+    >
+      {expandedScene ? (
+        <ShotListView
+          scene={expandedScene}
+          selectedShot={selectedShot}
+          onSelectShot={onSelectShot}
+          onBack={onBack}
+          onAddShot={() => addShot(expandedScene)}
+        />
+      ) : (
+        <SceneListView
+          scenes={scenes}
+          onSelectScene={onSelectScene}
+          onAddScene={addScene}
+        />
+      )}
+    </div>
+  )
+}
+
+// ─── Scene List View ──────────────────────────────────────────────────────────
+
+type SceneListViewProps = {
+  scenes: SceneWithShots[]
+  onSelectScene: (scene: Scene) => void
+  onAddScene: () => void
+}
+
+function SceneListView({ scenes, onSelectScene, onAddScene }: SceneListViewProps) {
+  return (
+    <>
+      <div className="p-3">
         <button
-          onClick={addScene}
-          className="rounded-md px-2 py-1 text-base leading-none text-slate-gray transition-colors hover:bg-dark-teal/60 hover:text-white"
-          title="New scene"
+          onClick={onAddScene}
+          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg transition-colors cursor-pointer"
+          style={{ backgroundColor: '#252933', color: '#777076', fontSize: 13 }}
+          onMouseEnter={e => {
+            e.currentTarget.style.backgroundColor = '#404556'
+            e.currentTarget.style.color = '#ffffff'
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.backgroundColor = '#252933'
+            e.currentTarget.style.color = '#777076'
+          }}
         >
-          +
+          <Plus size={15} />
+          <span>Add Scene</span>
         </button>
       </div>
 
-      <div className="flex-1 space-y-1 overflow-y-auto px-3 pb-3 pt-1">
-        {scenes.map(scene => (
-          <div key={scene.id} className="space-y-1">
-            {/* Scene row — two sibling buttons to avoid nested interactive elements */}
-            <div className={`group flex items-center rounded-md transition-colors ${
-              selectedScene?.id === scene.id ? 'bg-dark-teal/70' : 'hover:bg-dark-teal/50'
-            }`}>
+      <div
+        className="flex-1 overflow-y-auto px-3 pb-3"
+        style={{ scrollbarWidth: 'thin', scrollbarColor: '#404556 transparent' }}
+      >
+        <div className="flex flex-col gap-2">
+          {scenes.map(scene => {
+            const totalDuration = scene.shots.reduce((sum, s) => sum + (s.duration ?? 0), 0)
+            return (
               <button
+                key={scene.id}
                 onClick={() => onSelectScene(scene)}
-                className={`flex-1 truncate rounded-l-md px-3.5 py-2.5 text-left text-xs font-heading font-500 transition-colors ${
-                  selectedScene?.id === scene.id ? 'text-white' : 'text-warm-gray'
-                }`}
+                className="relative flex rounded-lg overflow-hidden transition-all cursor-pointer text-left"
+                style={{ backgroundColor: '#17292B', minHeight: 90 }}
+                onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#193D31' }}
+                onMouseLeave={e => { e.currentTarget.style.backgroundColor = '#17292B' }}
               >
-                {scene.title}
-              </button>
-              <button
-                onClick={() => addShot(scene)}
-                className="rounded-r-md px-3 py-2.5 text-sm leading-none text-slate-gray opacity-0 transition-colors group-hover:opacity-100 hover:text-forest-green"
-                title="New shot"
-              >
-                +
-              </button>
-            </div>
+                {/* Scene number */}
+                <div
+                  className="flex items-center justify-center flex-shrink-0"
+                  style={{ width: 28, color: '#404556', fontSize: 11 }}
+                >
+                  {scene.order + 1}
+                </div>
 
-            {scene.shots.map(shot => (
+                {/* Thumbnail + meta */}
+                <div className="flex-1 flex flex-col py-2 pr-2 gap-1.5">
+                  <div className="w-full rounded-md overflow-hidden" style={{ aspectRatio: '16/9' }}>
+                    <div className="w-full h-full" style={{ backgroundColor: '#252933' }} />
+                  </div>
+                  <span style={{ fontSize: 11, color: '#777076', lineHeight: '1.3' }}>
+                    {scene.title}
+                  </span>
+                  <span style={{ fontSize: 10, color: '#404556' }}>
+                    {scene.shots.length} shots • {totalDuration}s
+                  </span>
+                </div>
+              </button>
+            )
+          })}
+        </div>
+      </div>
+    </>
+  )
+}
+
+// ─── Shot List View ───────────────────────────────────────────────────────────
+
+type ShotListViewProps = {
+  scene: SceneWithShots
+  selectedShot: Shot | null
+  onSelectShot: (shot: Shot) => void
+  onBack: () => void
+  onAddShot: () => void
+}
+
+function ShotListView({ scene, selectedShot, onSelectShot, onBack, onAddShot }: ShotListViewProps) {
+  const totalDuration = scene.shots.reduce((sum, s) => sum + (s.duration ?? 0), 0)
+
+  return (
+    <>
+      {/* Header */}
+      <div className="p-3 pb-2">
+        <button
+          onClick={onBack}
+          className="flex items-center gap-1 mb-2 cursor-pointer transition-colors w-full"
+          style={{ color: '#777076', fontSize: 11 }}
+          onMouseEnter={e => { e.currentTarget.style.color = '#ffffff' }}
+          onMouseLeave={e => { e.currentTarget.style.color = '#777076' }}
+        >
+          <ChevronLeft size={14} />
+          <span>All Scenes</span>
+        </button>
+
+        <div className="flex items-center gap-2">
+          <div
+            className="flex items-center justify-center rounded flex-shrink-0"
+            style={{
+              width: 22,
+              height: 22,
+              backgroundColor: '#597D7C22',
+              border: '1px solid #597D7C44',
+            }}
+          >
+            <span style={{ fontSize: 10, color: '#597D7C', fontWeight: 600 }}>
+              {scene.order + 1}
+            </span>
+          </div>
+          <span style={{ fontSize: 12, color: '#ffffff', fontWeight: 500, lineHeight: '1.3' }}>
+            {scene.title}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-1.5 mt-1.5">
+          <Film size={10} style={{ color: '#404556' }} />
+          <span style={{ fontSize: 10, color: '#404556' }}>
+            {scene.shots.length} shots • {totalDuration}s total
+          </span>
+        </div>
+      </div>
+
+      <div className="mx-3 mb-2" style={{ borderTop: '1px solid #17292B' }} />
+
+      {/* Shot list */}
+      <div
+        className="flex-1 overflow-y-auto px-3 pb-3"
+        style={{ scrollbarWidth: 'thin', scrollbarColor: '#404556 transparent' }}
+      >
+        <div className="flex flex-col gap-1.5">
+          {scene.shots.map((shot, idx) => {
+            const isSelected = shot.id === selectedShot?.id
+            return (
               <button
                 key={shot.id}
-                onClick={() => { onSelectScene(scene); onSelectShot(shot) }}
-                className={`w-full rounded-md border-l-2 py-2 pl-6 pr-3 text-left text-xs transition-colors ${
-                  selectedShot?.id === shot.id
-                    ? 'bg-forest-green/25 text-white border-forest-green'
-                    : 'text-muted-mauve hover:text-warm-gray hover:bg-dark-teal/40 border-transparent'
-                }`}
+                onClick={() => onSelectShot(shot)}
+                className="relative flex rounded-lg overflow-hidden transition-all cursor-pointer text-left"
+                style={{
+                  backgroundColor: isSelected ? '#17292B' : 'transparent',
+                  border: isSelected ? '1px solid #252933' : '1px solid transparent',
+                  boxShadow: isSelected ? '0 0 12px #17292B44' : 'none',
+                }}
+                onMouseEnter={e => {
+                  if (!isSelected) e.currentTarget.style.backgroundColor = '#17292B88'
+                }}
+                onMouseLeave={e => {
+                  if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent'
+                }}
               >
-                {shot.title}
+                <div className="flex gap-2 p-2 w-full">
+                  {/* Thumbnail placeholder */}
+                  <div
+                    className="rounded-md overflow-hidden flex-shrink-0"
+                    style={{ width: 56, height: 36, backgroundColor: '#252933' }}
+                  />
+
+                  {/* Info */}
+                  <div className="flex-1 min-w-0 flex flex-col justify-center">
+                    <div className="flex items-center gap-1">
+                      <span style={{ fontSize: 10, color: isSelected ? '#597D7C' : '#60515C', fontWeight: 600 }}>
+                        {idx + 1}.
+                      </span>
+                      <span
+                        className="truncate"
+                        style={{ fontSize: 11, color: isSelected ? '#ffffff' : '#777076', lineHeight: '1.3' }}
+                      >
+                        {shot.title}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1 mt-0.5">
+                      <Clock size={9} style={{ color: '#404556' }} />
+                      <span style={{ fontSize: 10, color: '#404556', fontVariantNumeric: 'tabular-nums' }}>
+                        {shot.duration ?? 0}s
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Active indicator bar */}
+                {isSelected && (
+                  <div
+                    className="absolute left-0 top-0 bottom-0"
+                    style={{ width: 3, backgroundColor: '#597D7C', borderRadius: '0 2px 2px 0' }}
+                  />
+                )}
               </button>
-            ))}
-          </div>
-        ))}
+            )
+          })}
+        </div>
       </div>
+
+      {/* Add Shot */}
+      <div className="p-3" style={{ borderTop: '1px solid #17292B' }}>
+        <button
+          onClick={onAddShot}
+          className="w-full flex items-center justify-center gap-2 py-2 rounded-lg transition-colors cursor-pointer"
+          style={{ backgroundColor: '#17292B', border: '1px dashed #597D7C66', color: '#597D7C', fontSize: 12 }}
+          onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#20504E' }}
+          onMouseLeave={e => { e.currentTarget.style.backgroundColor = '#17292B' }}
+        >
+          <Plus size={14} />
+          <span>Add Shot</span>
+        </button>
       </div>
-    </aside>
+    </>
   )
 }

@@ -89,7 +89,8 @@ export default function CompositionProvider({ videoUrl, children }: Props) {
                 await layer.add(new coreModule!.VideoClip(source, {
                     position: 'center',
                     width: '100%',
-                    keepAspectRatio: true,
+                    height: '100%',
+                    keepAspectRatio: false,
                 }))
 
                 setDuration(comp!.duration)
