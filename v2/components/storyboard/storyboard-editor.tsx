@@ -1,20 +1,33 @@
 "use client"
 
-import { useState, useCallback, useRef } from "react"
+import { useState, useCallback, useRef, useTransition } from "react"
 import { HeaderBar } from "./header-bar"
 import { SceneList } from "./scene-list"
 import { ShotDetail } from "./shot-detail"
 import { FramePreview } from "./frame-preview"
 import { ShotTimeline } from "./shot-timeline"
-import { SAMPLE_SCENES, type Shot } from "@/lib/storyboard-data"
+import { updateShotAction } from "@/app/storyboard/actions"
+import type { StoryboardScene, StoryboardShotUpdateInput } from "@/lib/storyboard-types"
 
 const MIN_LEFT_PCT = 30
 const MAX_LEFT_PCT = 70
 
-export function StoryboardEditor() {
-  const [scenes, setScenes] = useState(SAMPLE_SCENES)
-  const [selectedScene, setSelectedScene] = useState<number | null>(3)
-  const [selectedShot, setSelectedShot] = useState<number | null>(301)
+interface StoryboardEditorProps {
+  initialScenes: StoryboardScene[]
+}
+
+export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
+  const [scenes, setScenes] = useState(initialScenes)
+  const [isPending, startTransition] = useTransition()
+  const [selectedScene, setSelectedScene] = useState<string | null>(() => {
+    if (initialScenes.length === 0) return null
+    return initialScenes[2]?.id ?? initialScenes[0].id
+  })
+  const [selectedShot, setSelectedShot] = useState<string | null>(() => {
+    if (initialScenes.length === 0) return null
+    const defaultScene = initialScenes[2] ?? initialScenes[0]
+    return defaultScene.shots[0]?.id ?? null
+  })
   const [panelCollapsed, setPanelCollapsed] = useState(false)
 
   /* ── Resizable split ─── */
@@ -26,7 +39,7 @@ export function StoryboardEditor() {
   const activeShot = activeScene?.shots.find((s) => s.id === selectedShot)
 
   const handleSelectScene = useCallback(
-    (sceneId: number) => {
+    (sceneId: string) => {
       setSelectedScene(sceneId)
       const scene = scenes.find((s) => s.id === sceneId)
       if (scene && scene.shots.length > 0) {
@@ -38,7 +51,7 @@ export function StoryboardEditor() {
     [scenes]
   )
 
-  const handleSelectShot = useCallback((shotId: number) => {
+  const handleSelectShot = useCallback((shotId: string) => {
     setSelectedShot(shotId)
   }, [])
 
@@ -84,17 +97,31 @@ export function StoryboardEditor() {
   )
 
   const handleUpdateShot = useCallback(
-    (field: keyof Shot, value: string | number) => {
+    (field: keyof StoryboardShotUpdateInput, value: string | number) => {
+      const currentShotId = selectedShot
+      if (!currentShotId) return
+
       setScenes((prev) =>
         prev.map((scene) => ({
           ...scene,
           shots: scene.shots.map((shot) =>
-            shot.id === selectedShot ? { ...shot, [field]: value } : shot
+            shot.id === currentShotId ? { ...shot, [field]: value } : shot
           ),
         }))
       )
+
+      startTransition(async () => {
+        try {
+          await updateShotAction({
+            shotId: currentShotId,
+            [field]: value,
+          })
+        } catch (error) {
+          console.error("Failed to persist shot update:", error)
+        }
+      })
     },
-    [selectedShot]
+    [selectedShot, startTransition]
   )
 
   return (
@@ -200,6 +227,8 @@ export function StoryboardEditor() {
                   duration={activeShot.duration}
                   startFramePrompt={activeShot.startFramePrompt}
                   shotTitle={activeShot.title}
+                  videoUrl={activeShot.videoUrl}
+                  isSaving={isPending}
                 />
               </>
             ) : (

@@ -9,15 +9,15 @@ import {
   Layers,
   Clapperboard,
 } from "lucide-react"
-import type { Scene } from "@/lib/storyboard-data"
+import type { StoryboardScene } from "@/lib/storyboard-types"
 
 interface SceneListProps {
-  scenes: Scene[]
-  selectedScene: number | null
-  selectedShot: number | null
+  scenes: StoryboardScene[]
+  selectedScene: string | null
+  selectedShot: string | null
   collapsed: boolean
-  onSelectScene: (sceneId: number) => void
-  onSelectShot: (shotId: number) => void
+  onSelectScene: (sceneId: string) => void
+  onSelectShot: (shotId: string) => void
   onBack: () => void
   onToggleCollapse: () => void
 }

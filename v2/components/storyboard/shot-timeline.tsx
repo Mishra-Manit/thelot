@@ -1,13 +1,13 @@
 "use client"
 
 import { Plus } from "lucide-react"
-import type { Shot } from "@/lib/storyboard-data"
+import type { StoryboardShot } from "@/lib/storyboard-types"
 
 interface ShotTimelineProps {
-  shots: Shot[]
-  selectedShot: number | null
+  shots: StoryboardShot[]
+  selectedShot: string | null
   sceneNumber: number
-  onSelectShot: (shotId: number) => void
+  onSelectShot: (shotId: string) => void
 }
 
 export function ShotTimeline({

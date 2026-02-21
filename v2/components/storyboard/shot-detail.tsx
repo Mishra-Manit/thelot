@@ -13,15 +13,15 @@ import {
   Minus,
   Plus,
 } from "lucide-react"
-import type { Shot } from "@/lib/storyboard-data"
+import type { StoryboardShot, StoryboardShotUpdateInput } from "@/lib/storyboard-types"
 
 const MIN_DURATION_SECONDS = 1
 const MAX_DURATION_SECONDS = 30
 
 interface ShotDetailProps {
-  shot: Shot
+  shot: StoryboardShot
   sceneNumber: number
-  onUpdate: (field: keyof Shot, value: string | number) => void
+  onUpdate: (field: keyof StoryboardShotUpdateInput, value: string | number) => void
   widthPct?: number
 }
 
@@ -261,8 +261,8 @@ export function ShotDetail({ shot, sceneNumber, onUpdate, widthPct = 50 }: ShotD
             }}
           >
             <AutoTextarea
-              value={shot.monologue}
-              onChange={(v) => onUpdate("monologue", v)}
+              value={shot.internalMonologue}
+              onChange={(v) => onUpdate("internalMonologue", v)}
               style={{
                 fontSize: "15px",
                 color: "#cccccc",
@@ -298,8 +298,8 @@ export function ShotDetail({ shot, sceneNumber, onUpdate, widthPct = 50 }: ShotD
         {/* Block 4 — VIDEO CLIP */}
         <EditorBlock accentColor="#555B6E" icon={Play} label="Video Clip">
           <select
-            value={shot.videoClip}
-            onChange={(e) => onUpdate("videoClip", e.target.value)}
+            value={shot.videoUrl}
+            onChange={(e) => onUpdate("videoUrl", e.target.value)}
             style={{
               background: "#1A1C25",
               border: "1px solid #252933",
@@ -312,15 +312,15 @@ export function ShotDetail({ shot, sceneNumber, onUpdate, widthPct = 50 }: ShotD
             }}
           >
             {[
-              "— none —",
-              "Battle Scene",
-              "Dunes Cinematic",
-              "Flying Ornithopter",
-              "Paul Atreides Closeup",
-              "Sandworm Erupting",
+              { label: "— none —", value: "" },
+              { label: "Battle Scene", value: "/videos/battle_scene.mp4" },
+              { label: "Dunes Cinematic", value: "/videos/dunes_cinematic.mp4" },
+              { label: "Flying Ornithopter", value: "/videos/flying_ornithopter.mp4" },
+              { label: "Paul Atreides Close-up", value: "/videos/paul_atreides_closeup.mp4" },
+              { label: "Sandworm Erupting", value: "/videos/sandworm_erupting.mp4" },
             ].map((opt) => (
-              <option key={opt} value={opt} style={{ background: "#1A1C25" }}>
-                {opt}
+              <option key={opt.value} value={opt.value} style={{ background: "#1A1C25" }}>
+                {opt.label}
               </option>
             ))}
           </select>

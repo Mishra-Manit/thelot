@@ -20,6 +20,8 @@ interface FramePreviewProps {
   duration: number
   startFramePrompt: string
   shotTitle: string
+  videoUrl: string
+  isSaving?: boolean
 }
 
 export function FramePreview({
@@ -29,6 +31,8 @@ export function FramePreview({
   duration,
   startFramePrompt,
   shotTitle,
+  videoUrl,
+  isSaving = false,
 }: FramePreviewProps) {
   const hasShot = sceneNumber !== null && shotNumber !== null
   const durationStr = String(duration).padStart(2, "0")
@@ -210,32 +214,31 @@ export function FramePreview({
 
               {/* Video content area */}
               <div className="flex-1 relative">
-                {/* Vignette */}
-                <div
-                  className="absolute inset-0 pointer-events-none"
-                  style={{
-                    background:
-                      "radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.5) 100%)",
-                  }}
-                />
-
-                {/* Center play indicator */}
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div
-                    className="flex items-center gap-2 rounded-lg"
-                    style={{
-                      padding: "6px 14px",
-                      background: "rgba(13,14,20,0.6)",
-                      backdropFilter: "blur(12px)",
-                      border: "1px solid rgba(64,69,86,0.25)",
-                    }}
-                  >
-                    <Play size={12} style={{ color: "#404556" }} />
-                    <span style={{ fontSize: "11px", color: "#777076" }}>
-                      Generate video to preview
-                    </span>
+                {videoUrl ? (
+                  <video
+                    className="h-full w-full object-cover"
+                    src={videoUrl}
+                    controls
+                    preload="metadata"
+                  />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div
+                      className="flex items-center gap-2 rounded-lg"
+                      style={{
+                        padding: "6px 14px",
+                        background: "rgba(13,14,20,0.6)",
+                        backdropFilter: "blur(12px)",
+                        border: "1px solid rgba(64,69,86,0.25)",
+                      }}
+                    >
+                      <Play size={12} style={{ color: "#404556" }} />
+                      <span style={{ fontSize: "11px", color: "#777076" }}>
+                        No video clip selected
+                      </span>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
 
               {/* Playback controls */}
@@ -324,7 +327,7 @@ export function FramePreview({
                     fontVariantNumeric: "tabular-nums",
                   }}
                 >
-                  00:{durationStr}
+                  {isSaving ? "Saving..." : `00:${durationStr}`}
                 </span>
               </div>
             </div>
