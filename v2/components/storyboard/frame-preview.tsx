@@ -543,7 +543,7 @@ function FrameCard({
           <img
             src={currentImageUrl}
             alt={`${label} preview`}
-            className="absolute inset-0 h-full w-full object-cover"
+            className="absolute inset-0 h-full w-full object-contain"
             onError={() => {
               if (fallbackImageUrl && currentImageUrl !== fallbackImageUrl) {
                 setCurrentImageUrl(fallbackImageUrl)

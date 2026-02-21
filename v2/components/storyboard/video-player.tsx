@@ -123,35 +123,17 @@ export function VideoPlayer({
   }, [videoUrl]) // eslint-disable-line react-hooks/exhaustive-deps
   // onTimeUpdate / onPlayStateChange are stable setter functions from useState — intentionally omitted
 
-  if (!videoUrl) {
-    return (
-      <div className="absolute inset-0 flex items-center justify-center">
-        <div
-          className="flex items-center gap-2 rounded-lg"
-          style={{
-            padding: "6px 14px",
-            background: "rgba(13,14,20,0.6)",
-            backdropFilter: "blur(12px)",
-            border: "1px solid rgba(64,69,86,0.25)",
-          }}
-        >
-          <Play size={12} style={{ color: "#404556" }} />
-          <span style={{ fontSize: "11px", color: "#777076" }}>
-            No video clip selected
-          </span>
-        </div>
-      </div>
-    )
-  }
-
+  // Always render containerRef and mountRef so the ResizeObserver starts on the
+  // very first mount — even when videoUrl is initially empty (e.g. while loading).
+  // If we early-returned without refs, the observer would never attach and scaling
+  // would never fire once a URL arrived later.
   return (
-    // Outer container fills the available space
     <div
       ref={containerRef}
       className="absolute inset-0 flex items-center justify-center overflow-hidden"
-      style={{ background: "#000" }}
+      style={{ background: videoUrl ? "#000" : "transparent" }}
     >
-      {/* Inner mount is fixed at composition resolution; CSS scale brings it into view */}
+      {/* Fixed-resolution canvas — CSS scale applied by ResizeObserver */}
       <div
         ref={mountRef}
         style={{
@@ -160,6 +142,26 @@ export function VideoPlayer({
           transformOrigin: "center",
         }}
       />
+
+      {/* Empty state — shown as overlay when there is no video */}
+      {!videoUrl && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div
+            className="flex items-center gap-2 rounded-lg"
+            style={{
+              padding: "6px 14px",
+              background: "rgba(13,14,20,0.6)",
+              backdropFilter: "blur(12px)",
+              border: "1px solid rgba(64,69,86,0.25)",
+            }}
+          >
+            <Play size={12} style={{ color: "#404556" }} />
+            <span style={{ fontSize: "11px", color: "#777076" }}>
+              No video clip selected
+            </span>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

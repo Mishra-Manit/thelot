@@ -272,23 +272,23 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
     <div className="flex flex-col h-screen w-screen overflow-hidden" style={{ background: "#0D0E14" }}>
       <HeaderBar />
 
-      <div className="flex flex-1 min-h-0">
-        {/* Scene list sidebar */}
-        <SceneList
-          scenes={scenes}
-          selectedScene={selectedScene}
-          selectedShot={selectedShot}
-          collapsed={panelCollapsed}
-          onSelectScene={handleSelectScene}
-          onSelectShot={handleSelectShot}
-          onBack={handleBack}
-          onToggleCollapse={handleToggleCollapse}
-        />
+      {/* Body: panels row above, full-width timeline below */}
+      <div className="flex flex-col flex-1 min-h-0">
+        <div className="flex flex-1 min-h-0">
+          {/* Scene list sidebar */}
+          <SceneList
+            scenes={scenes}
+            selectedScene={selectedScene}
+            selectedShot={selectedShot}
+            collapsed={panelCollapsed}
+            onSelectScene={handleSelectScene}
+            onSelectShot={handleSelectShot}
+            onBack={handleBack}
+            onToggleCollapse={handleToggleCollapse}
+          />
 
-        {/* Main content area */}
-        <div className="flex flex-col flex-1 min-w-0">
-          {/* Top section: Shot Detail + Resize Handle + Frame Preview */}
-          <div ref={contentRef} className="flex flex-1 min-h-0 relative">
+          {/* Shot Detail + Resize Handle + Frame Preview */}
+          <div ref={contentRef} className="flex flex-1 min-w-0 relative">
             {/* Prevent text selection while dragging */}
             {isDragging && (
               <div className="fixed inset-0 z-50" style={{ cursor: "col-resize" }} />
@@ -396,17 +396,17 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
               </div>
             )}
           </div>
-
-          {/* Bottom: Shot Timeline */}
-          {activeScene && (
-            <ShotTimeline
-              shots={activeScene.shots}
-              selectedShot={selectedShot}
-              sceneNumber={activeScene.number}
-              onSelectShot={handleSelectShot}
-            />
-          )}
         </div>
+
+        {/* Full-width timeline spanning entire bottom */}
+        {activeScene && (
+          <ShotTimeline
+            shots={activeScene.shots}
+            selectedShot={selectedShot}
+            sceneNumber={activeScene.number}
+            onSelectShot={handleSelectShot}
+          />
+        )}
       </div>
     </div>
   )

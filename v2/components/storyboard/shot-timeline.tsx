@@ -24,7 +24,7 @@ export function ShotTimeline({
       style={{
         background: "#0D0E14",
         borderTop: "1px solid #252933",
-        padding: "12px 16px",
+        padding: "16px 20px",
       }}
     >
       {/* Label row */}
@@ -67,7 +67,7 @@ export function ShotTimeline({
               style={{
                 flex: shot.duration,
                 minWidth: "50px",
-                height: "44px",
+                height: "60px",
                 borderRadius: "20px",
                 background: "#1A1C25",
                 border: isSelected
@@ -109,8 +109,8 @@ export function ShotTimeline({
         <button
           className="flex items-center justify-center shrink-0 transition-colors duration-150"
           style={{
-            width: "44px",
-            height: "44px",
+            width: "60px",
+            height: "60px",
             borderRadius: "20px",
             background: "#1A1C25",
             border: "1px dashed #404556",

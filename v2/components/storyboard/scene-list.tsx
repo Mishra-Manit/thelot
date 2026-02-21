@@ -22,6 +22,12 @@ interface SceneListProps {
   onToggleCollapse: () => void
 }
 
+function getScenePreviewImage(sceneNumber: number, firstShotNumber: number): string {
+  return `/storyboard/shots/scene-${String(sceneNumber).padStart(2, "0")}-shot-${String(
+    firstShotNumber
+  ).padStart(2, "0")}-start.png`
+}
+
 export function SceneList({
   scenes,
   selectedScene,
@@ -262,6 +268,8 @@ export function SceneList({
                 (sum, s) => sum + s.duration,
                 0
               )
+              const firstShotNumber = scene.shots[0]?.number ?? 1
+              const previewImage = getScenePreviewImage(scene.number, firstShotNumber)
               return (
                 <button
                   key={scene.id}
@@ -290,12 +298,21 @@ export function SceneList({
                   </div>
                   <div className="flex flex-col flex-1 py-2 pr-2 gap-1.5">
                     <div
-                      className="w-full rounded-md"
+                      className="w-full rounded-md relative overflow-hidden"
                       style={{
                         background: "#252933",
                         aspectRatio: "16/9",
                       }}
-                    />
+                    >
+                      <img
+                        src={previewImage}
+                        alt={`Scene ${scene.number} preview`}
+                        className="absolute inset-0 h-full w-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.style.display = "none"
+                        }}
+                      />
+                    </div>
                     <span style={{ fontSize: "11px", color: "#777076" }}>
                       {scene.title}
                     </span>
