@@ -36,7 +36,7 @@
 | **TypeScript** | Language |
 | **Bun** | Runtime + package manager |
 | **Next.js 14 (App Router)** | Fullstack framework |
-| **PlanetScale** | Hosted MySQL database |
+| **PlanetScale** | Hosted PostgreSQL database |
 | **Drizzle ORM** | Type-safe database queries |
 | **Zod** | Runtime data validation |
 
