@@ -26,13 +26,13 @@ function VideoPlane({ cellSize, resolution }: { cellSize: number; resolution: Ve
       </mesh>
       <EffectComposer>
         <AsciiEffect
-          style="standard"
+          style="dense"
           cellSize={cellSize}
           invert={false}
           color={true}
           resolution={resolution}
           postfx={{
-            brightnessAdjust: 0.05,
+            brightnessAdjust: 0.1,
             contrastAdjust: 0.85,
             colorPalette: 0,
           }}
@@ -65,7 +65,7 @@ export function OceanWaveLoading({ label, compact = false }: OceanWaveLoadingPro
   }, [])
 
   // Compact (video overlay) uses a coarser cell grid
-  const cellSize = compact ? 6 : 4
+  const cellSize = compact ? 5 : 3
 
   return (
     <div ref={containerRef} className="absolute inset-0" style={{ background: "#000" }}>

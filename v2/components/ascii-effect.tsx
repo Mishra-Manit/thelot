@@ -79,6 +79,24 @@ float getChar(float brightness, vec2 p, int style) {
     else if (brightness < 0.65) val = (grid.y == 0.0 || grid.y == 3.0) ? 1.0 : (grid.y == 1.0 || grid.y == 2.0) ? 0.5 : 0.0;
     else if (brightness < 0.8) val = (grid.x == 0.0 || grid.x == 2.0 || grid.y == 0.0 || grid.y == 2.0) ? 1.0 : 0.3;
     else val = 1.0;
+  } else if (style == 1) { // dense
+    if (brightness < 0.1) val = 0.0;
+    else if (brightness < 0.25) val = (grid.x == 1.0 && grid.y == 1.0) ? 0.5 : 0.0;
+    else if (brightness < 0.4) val = (grid.x == 1.0 || grid.x == 2.0) && (grid.y == 1.0 || grid.y == 2.0) ? 1.0 : 0.2;
+    else if (brightness < 0.55) val = (grid.x == 1.0 || grid.x == 2.0 || grid.y == 1.0 || grid.y == 2.0) ? 1.0 : 0.3;
+    else if (brightness < 0.7) val = (grid.x != 0.0 && grid.y != 0.0) ? 1.0 : 0.5;
+    else if (brightness < 0.85) val = (grid.x != 0.0 || grid.y != 0.0) ? 1.0 : 0.7;
+    else val = 1.0;
+  } else if (style == 2) { // minimal
+    if (brightness < 0.3) val = 0.0;
+    else if (brightness < 0.6) val = (grid.x == 1.0 && grid.y == 1.0) ? 1.0 : 0.0;
+    else if (brightness < 0.8) val = (grid.x == 1.0 || grid.x == 2.0) && (grid.y == 1.0 || grid.y == 2.0) ? 1.0 : 0.0;
+    else val = 1.0;
+  } else if (style == 3) { // blocks
+    if (brightness < 0.25) val = 0.0;
+    else if (brightness < 0.5) val = (grid.y < 2.0) ? 1.0 : 0.0;
+    else if (brightness < 0.75) val = (grid.x < 2.0) ? 1.0 : 0.0;
+    else val = 1.0;
   }
   return val;
 }
