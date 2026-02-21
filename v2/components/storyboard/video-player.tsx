@@ -1,0 +1,165 @@
+"use client"
+
+import { useEffect, useRef, useImperativeHandle } from "react"
+import { Play } from "lucide-react"
+// Type-only import: used purely for TypeScript annotations, never at runtime.
+// The actual runtime values come from the dynamic import() below.
+import type {
+  Composition as CompositionType,
+  VideoSource as VideoSourceType,
+} from "@diffusionstudio/core"
+
+export interface VideoPlayerHandle {
+  play: () => void
+  pause: () => void
+  seek: (seconds: number) => void
+}
+
+interface VideoPlayerProps {
+  videoUrl: string
+  onTimeUpdate: (current: number, duration: number) => void
+  onPlayStateChange: (playing: boolean) => void
+  playerRef: React.RefObject<VideoPlayerHandle | null>
+}
+
+// Composition pixel dimensions — drives aspect ratio scaling
+const COMP_WIDTH = 1920
+const COMP_HEIGHT = 1080
+
+export function VideoPlayer({
+  videoUrl,
+  onTimeUpdate,
+  onPlayStateChange,
+  playerRef,
+}: VideoPlayerProps) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const mountRef = useRef<HTMLDivElement>(null)
+
+  // Holds the live composition across renders without triggering re-renders
+  const compositionRef = useRef<CompositionType | null>(null)
+
+  // Expose play / pause / seek to the parent via the forwarded ref
+  useImperativeHandle(playerRef, () => ({
+    play() {
+      compositionRef.current?.play()
+    },
+    pause() {
+      compositionRef.current?.pause()
+    },
+    seek(seconds: number) {
+      compositionRef.current?.seek(seconds)
+    },
+  }))
+
+  // Scale the fixed-size mount div to fit the container while preserving aspect ratio
+  useEffect(() => {
+    const container = containerRef.current
+    const mount = mountRef.current
+    if (!container || !mount) return
+
+    const observer = new ResizeObserver(() => {
+      const scale = Math.min(
+        container.clientWidth / COMP_WIDTH,
+        container.clientHeight / COMP_HEIGHT
+      )
+      mount.style.transform = `scale(${scale})`
+    })
+
+    observer.observe(container)
+    return () => observer.disconnect()
+  }, [])
+
+  // Build the composition whenever videoUrl changes
+  useEffect(() => {
+    if (!videoUrl || !mountRef.current) return
+
+    let cancelled = false
+
+    async function init() {
+      // Dynamically import so Next.js doesn't attempt to bundle browser-only APIs on the server
+      const { Composition, VideoClip, Source } = await import(
+        "@diffusionstudio/core"
+      )
+
+      if (cancelled || !mountRef.current) return
+
+      // Tear down any previous composition
+      compositionRef.current?.unmount()
+
+      const composition = new Composition({ width: COMP_WIDTH, height: COMP_HEIGHT })
+
+      // Mount before loading content so the canvas is in the DOM
+      composition.mount(mountRef.current)
+
+      const source = await Source.from<VideoSourceType>(videoUrl)
+      if (cancelled) {
+        composition.unmount()
+        return
+      }
+
+      const layer = composition.createLayer()
+      await composition.add(layer)
+      await layer.add(new VideoClip(source, { position: "center", width: "100%" }))
+
+      // Wire playback events to parent callbacks
+      composition.on("playback:time", (time) => {
+        onTimeUpdate(time ?? 0, composition.duration)
+      })
+
+      composition.on("playback:end", () => {
+        onPlayStateChange(false)
+      })
+
+      compositionRef.current = composition
+    }
+
+    init().catch(console.error)
+
+    return () => {
+      cancelled = true
+      compositionRef.current?.unmount()
+      compositionRef.current = null
+    }
+  }, [videoUrl]) // eslint-disable-line react-hooks/exhaustive-deps
+  // onTimeUpdate / onPlayStateChange are stable setter functions from useState — intentionally omitted
+
+  if (!videoUrl) {
+    return (
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div
+          className="flex items-center gap-2 rounded-lg"
+          style={{
+            padding: "6px 14px",
+            background: "rgba(13,14,20,0.6)",
+            backdropFilter: "blur(12px)",
+            border: "1px solid rgba(64,69,86,0.25)",
+          }}
+        >
+          <Play size={12} style={{ color: "#404556" }} />
+          <span style={{ fontSize: "11px", color: "#777076" }}>
+            No video clip selected
+          </span>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    // Outer container fills the available space
+    <div
+      ref={containerRef}
+      className="absolute inset-0 flex items-center justify-center overflow-hidden"
+      style={{ background: "#000" }}
+    >
+      {/* Inner mount is fixed at composition resolution; CSS scale brings it into view */}
+      <div
+        ref={mountRef}
+        style={{
+          width: COMP_WIDTH,
+          height: COMP_HEIGHT,
+          transformOrigin: "center",
+        }}
+      />
+    </div>
+  )
+}

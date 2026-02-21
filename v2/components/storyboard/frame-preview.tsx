@@ -3,12 +3,20 @@
 import { useState, useCallback, useRef } from "react"
 import {
   Play,
+  Pause,
   SkipBack,
   SkipForward,
   ImageIcon,
   RefreshCw,
   Sparkles,
 } from "lucide-react"
+import { VideoPlayer, type VideoPlayerHandle } from "./video-player"
+
+function formatTime(seconds: number): string {
+  const m = Math.floor(seconds / 60)
+  const s = Math.floor(seconds % 60)
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`
+}
 
 const MIN_TOP_PCT = 20
 const MAX_TOP_PCT = 70
@@ -35,9 +43,14 @@ export function FramePreview({
   isSaving = false,
 }: FramePreviewProps) {
   const hasShot = sceneNumber !== null && shotNumber !== null
-  const durationStr = String(duration).padStart(2, "0")
   const [startHover, setStartHover] = useState(false)
   const [endHover, setEndHover] = useState(false)
+
+  // Playback state driven by the VideoPlayer composition
+  const [currentTime, setCurrentTime] = useState(0)
+  const [totalDuration, setTotalDuration] = useState(0)
+  const [isPlaying, setIsPlaying] = useState(false)
+  const playerRef = useRef<VideoPlayerHandle | null>(null)
 
   /* ── Vertical resize state ─── */
   const [topPct, setTopPct] = useState(45)
@@ -214,31 +227,15 @@ export function FramePreview({
 
               {/* Video content area */}
               <div className="flex-1 relative">
-                {videoUrl ? (
-                  <video
-                    className="h-full w-full object-cover"
-                    src={videoUrl}
-                    controls
-                    preload="metadata"
-                  />
-                ) : (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div
-                      className="flex items-center gap-2 rounded-lg"
-                      style={{
-                        padding: "6px 14px",
-                        background: "rgba(13,14,20,0.6)",
-                        backdropFilter: "blur(12px)",
-                        border: "1px solid rgba(64,69,86,0.25)",
-                      }}
-                    >
-                      <Play size={12} style={{ color: "#404556" }} />
-                      <span style={{ fontSize: "11px", color: "#777076" }}>
-                        No video clip selected
-                      </span>
-                    </div>
-                  </div>
-                )}
+                <VideoPlayer
+                  videoUrl={videoUrl}
+                  onTimeUpdate={(cur, dur) => {
+                    setCurrentTime(cur)
+                    setTotalDuration(dur)
+                  }}
+                  onPlayStateChange={setIsPlaying}
+                  playerRef={playerRef}
+                />
               </div>
 
               {/* Playback controls */}
@@ -256,7 +253,7 @@ export function FramePreview({
                     fontVariantNumeric: "tabular-nums",
                   }}
                 >
-                  00:00
+                  {formatTime(currentTime)}
                 </span>
 
                 {/* Progress bar */}
@@ -267,7 +264,10 @@ export function FramePreview({
                   />
                   <div
                     className="absolute left-0 top-0 h-full rounded-full"
-                    style={{ background: "#404556", width: "0%" }}
+                    style={{
+                      background: "#404556",
+                      width: `${totalDuration > 0 ? (currentTime / totalDuration) * 100 : 0}%`,
+                    }}
                   />
                 </div>
 
@@ -281,6 +281,7 @@ export function FramePreview({
                     onMouseLeave={(e) =>
                       (e.currentTarget.style.color = "#404556")
                     }
+                    onClick={() => playerRef.current?.seek(0)}
                     aria-label="Skip back"
                   >
                     <SkipBack size={13} />
@@ -298,12 +299,25 @@ export function FramePreview({
                     onMouseLeave={(e) =>
                       (e.currentTarget.style.background = "#404556")
                     }
-                    aria-label="Play"
+                    onClick={() => {
+                      if (isPlaying) {
+                        playerRef.current?.pause()
+                        setIsPlaying(false)
+                      } else {
+                        playerRef.current?.play()
+                        setIsPlaying(true)
+                      }
+                    }}
+                    aria-label={isPlaying ? "Pause" : "Play"}
                   >
-                    <Play
-                      size={12}
-                      style={{ color: "#0D0E14", marginLeft: "1px" }}
-                    />
+                    {isPlaying ? (
+                      <Pause size={12} style={{ color: "#0D0E14" }} />
+                    ) : (
+                      <Play
+                        size={12}
+                        style={{ color: "#0D0E14", marginLeft: "1px" }}
+                      />
+                    )}
                   </button>
                   <button
                     className="transition-colors duration-150"
@@ -314,6 +328,7 @@ export function FramePreview({
                     onMouseLeave={(e) =>
                       (e.currentTarget.style.color = "#404556")
                     }
+                    onClick={() => playerRef.current?.seek(totalDuration)}
                     aria-label="Skip forward"
                   >
                     <SkipForward size={13} />
@@ -327,7 +342,7 @@ export function FramePreview({
                     fontVariantNumeric: "tabular-nums",
                   }}
                 >
-                  {isSaving ? "Saving..." : `00:${durationStr}`}
+                  {isSaving ? "Saving..." : formatTime(totalDuration)}
                 </span>
               </div>
             </div>
