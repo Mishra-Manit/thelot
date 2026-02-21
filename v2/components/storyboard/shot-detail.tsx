@@ -395,45 +395,55 @@ export function ShotDetail({
 
         {/* Generate Frames / Generate Video button */}
         <button
-          className="flex items-center justify-center gap-2 rounded-lg transition-all duration-150 mt-3 mx-auto"
+          className="flex items-center justify-center gap-2 transition-all duration-200 mt-10 mx-auto group"
           style={{
-            background: "linear-gradient(135deg, #69696922, #69696911)",
-            border: "1px solid #69696944",
-            color: "#696969",
+            background: "transparent",
+            border: "1px dashed #696969",
+            color: "#888888",
             fontSize: "13px",
-            fontWeight: 500,
-            padding: "10px 18px",
-            minWidth: "280px",
-            opacity: (!areFramesReady && (!canGenerateFrames || isFramesLoading)) || (areFramesReady && (!canGenerateVideo || isVideoLoading)) ? 0.55 : 1,
+            fontFamily: SCREENPLAY_FONT_FAMILY,
+            fontWeight: 600,
+            letterSpacing: "0.05em",
+            padding: "12px 24px",
+            minWidth: "300px",
+            opacity: (!areFramesReady && (!canGenerateFrames || isFramesLoading)) || (areFramesReady && (!canGenerateVideo || isVideoLoading)) ? 0.4 : 1,
             cursor: (!areFramesReady && (!canGenerateFrames || isFramesLoading)) || (areFramesReady && (!canGenerateVideo || isVideoLoading)) ? "not-allowed" : "pointer",
           }}
           onMouseEnter={(e) => {
             if ((!areFramesReady && (!canGenerateFrames || isFramesLoading)) || (areFramesReady && (!canGenerateVideo || isVideoLoading))) return
-            e.currentTarget.style.background =
-              "linear-gradient(135deg, #69696933, #69696922)"
+            e.currentTarget.style.color = "#eeeeee"
+            e.currentTarget.style.borderColor = "#eeeeee"
+            e.currentTarget.style.borderStyle = "solid"
+            e.currentTarget.style.boxShadow = "0 0 15px rgba(238, 238, 238, 0.1)"
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background =
-              "linear-gradient(135deg, #69696922, #69696911)"
+            e.currentTarget.style.color = "#888888"
+            e.currentTarget.style.borderColor = "#696969"
+            e.currentTarget.style.borderStyle = "dashed"
+            e.currentTarget.style.boxShadow = "none"
           }}
           onClick={areFramesReady ? onGenerateVideo : onGenerateFrames}
           disabled={(!areFramesReady && (!canGenerateFrames || isFramesLoading)) || (areFramesReady && (!canGenerateVideo || isVideoLoading))}
         >
-          <Sparkles
-            size={16}
-            className={isFramesLoading || isVideoLoading ? "animate-spin" : undefined}
-            style={{ animationDuration: "1.6s" }}
-          />
-          <span>
-            {!areFramesReady
-              ? isFramesLoading
-                ? "Generating Frames with AI..."
-                : "Generate Frames with AI"
-              : isVideoLoading
-                ? "Generating Video with AI..."
-                : isVideoReady
-                  ? "Regenerate Video with AI"
-                  : "Generate Video with AI"}
+          <span className="flex items-center gap-2">
+            <span style={{ color: "#696969" }}>[</span>
+            <Sparkles
+              size={14}
+              className={isFramesLoading || isVideoLoading ? "animate-spin" : "transition-transform duration-300 group-hover:scale-110"}
+              style={{ animationDuration: "1.6s", color: "currentColor" }}
+            />
+            <span>
+              {!areFramesReady
+                ? isFramesLoading
+                  ? "ACTION: GENERATING FRAMES..."
+                  : "ACTION: GENERATE FRAMES"
+                : isVideoLoading
+                  ? "ACTION: GENERATING VIDEO..."
+                  : isVideoReady
+                    ? "ACTION: REGENERATE VIDEO"
+                    : "ACTION: GENERATE VIDEO"}
+            </span>
+            <span style={{ color: "#696969" }}>]</span>
           </span>
         </button>
 

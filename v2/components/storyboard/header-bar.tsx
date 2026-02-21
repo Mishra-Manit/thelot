@@ -35,13 +35,6 @@ export function HeaderBar({ onRewindSimulation, canRewindSimulation }: HeaderBar
         </span>
       </div>
 
-      {/* Center group - Page title */}
-      <div className="flex-1 flex items-center justify-center">
-        <span style={{ color: "#ffffff", fontSize: "14px", fontWeight: 600 }}>
-          Storyboard
-        </span>
-      </div>
-
       {/* Right group */}
       <div className="flex items-center gap-1 pr-4">
         {/* Credits */}
