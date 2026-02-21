@@ -295,22 +295,16 @@ export function ShotDetail({
 
         {/* Block 3 — CAMERA NOTES */}
         <EditorBlock accentColor="#696969" icon={Camera} label="Camera Notes">
-          <div
-            style={{
-              background: "#111111",
-              border: "1px solid #232323",
-              borderRadius: "6px",
-              padding: "10px 14px",
-            }}
-          >
+          <div className="flex items-start gap-2">
+            <span className="font-mono" style={{ color: "#696969", fontSize: "13px", lineHeight: 1.7 }}>[CAMERA]</span>
             <AutoTextarea
               value={shot.cameraNotes}
               onChange={(v) => onUpdate("cameraNotes", v)}
-              className="font-mono"
+              className="font-mono italic"
               style={{
                 fontSize: "13px",
                 lineHeight: 1.7,
-                color: "#D9D9D9",
+                color: "#8a8a8a",
               }}
             />
           </div>
@@ -347,7 +341,7 @@ export function ShotDetail({
           </select>
         </EditorBlock>
 
-        {/* AI Generation Prompts header */}
+        {/* Director's Notes header */}
         <div className="flex items-center gap-3 mb-5 mt-8">
           <div className="flex items-center gap-1.5 shrink-0">
             <Sparkles size={14} style={{ color: "#696969" }} />
@@ -358,7 +352,7 @@ export function ShotDetail({
                 fontWeight: 600,
               }}
             >
-              AI Generation Prompts
+              🎬 DIRECTOR'S NOTES
             </span>
           </div>
           <div className="flex-1" style={{ height: "1px", background: "#232323" }} />
