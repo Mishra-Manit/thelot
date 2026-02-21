@@ -10,8 +10,13 @@ import {
   GripVertical,
   Sparkles,
   Image as ImageIcon,
+  Minus,
+  Plus,
 } from "lucide-react"
 import type { Shot } from "@/lib/storyboard-data"
+
+const MIN_DURATION_SECONDS = 1
+const MAX_DURATION_SECONDS = 30
 
 interface ShotDetailProps {
   shot: Shot
@@ -116,6 +121,19 @@ function EditorBlock({
 }
 
 export function ShotDetail({ shot, sceneNumber, onUpdate, widthPct = 50 }: ShotDetailProps) {
+  const clampedDuration = Math.min(
+    MAX_DURATION_SECONDS,
+    Math.max(MIN_DURATION_SECONDS, Math.round(shot.duration))
+  )
+
+  const handleDurationChange = (nextValue: number) => {
+    const safeValue = Math.min(
+      MAX_DURATION_SECONDS,
+      Math.max(MIN_DURATION_SECONDS, Math.round(nextValue))
+    )
+    onUpdate("duration", safeValue)
+  }
+
   return (
     <div
       className="overflow-y-auto scrollbar-hide"
@@ -127,7 +145,7 @@ export function ShotDetail({ shot, sceneNumber, onUpdate, widthPct = 50 }: ShotD
     >
       <div
         style={{
-          padding: "24px 32px 32px 60px",
+          padding: "24px 16px 32px 16px",
           maxWidth: "720px",
         }}
       >
@@ -149,13 +167,54 @@ export function ShotDetail({ shot, sceneNumber, onUpdate, widthPct = 50 }: ShotD
             Scene {sceneNumber}
           </span>
           <span style={{ color: "#404556", fontSize: "12px" }}>&middot;</span>
-          <span
-            className="flex items-center gap-1"
-            style={{ color: "#60515C", fontSize: "11px" }}
+          <div
+            className="inline-flex items-center gap-1 rounded-md"
+            style={{
+              background: "#11131D",
+              border: "1px solid #252933",
+              padding: "2px",
+            }}
           >
-            <Clock size={11} />
-            {shot.duration}s
-          </span>
+            <button
+              type="button"
+              onClick={() => handleDurationChange(clampedDuration - 1)}
+              disabled={clampedDuration <= MIN_DURATION_SECONDS}
+              className="flex items-center justify-center rounded transition-all duration-150 disabled:cursor-not-allowed"
+              style={{
+                width: "18px",
+                height: "18px",
+                color: clampedDuration <= MIN_DURATION_SECONDS ? "#252933" : "#777076",
+              }}
+              aria-label="Decrease duration by one second"
+            >
+              <Minus size={10} />
+            </button>
+            <span
+              style={{
+                minWidth: "34px",
+                textAlign: "center",
+                fontSize: "11px",
+                color: "#E6E8EE",
+                fontVariantNumeric: "tabular-nums",
+              }}
+            >
+              {clampedDuration}s
+            </span>
+            <button
+              type="button"
+              onClick={() => handleDurationChange(clampedDuration + 1)}
+              disabled={clampedDuration >= MAX_DURATION_SECONDS}
+              className="flex items-center justify-center rounded transition-all duration-150 disabled:cursor-not-allowed"
+              style={{
+                width: "18px",
+                height: "18px",
+                color: clampedDuration >= MAX_DURATION_SECONDS ? "#252933" : "#777076",
+              }}
+              aria-label="Increase duration by one second"
+            >
+              <Plus size={10} />
+            </button>
+          </div>
         </div>
 
         {/* Shot title */}
@@ -174,29 +233,9 @@ export function ShotDetail({ shot, sceneNumber, onUpdate, widthPct = 50 }: ShotD
             background: "transparent",
             outline: "none",
             width: "100%",
-            marginBottom: "4px",
+            marginBottom: "24px",
           }}
         />
-
-        {/* Duration editor */}
-        <div className="flex items-center gap-1 mb-6">
-          <span style={{ fontSize: "11px", color: "#404556" }}>Duration:</span>
-          <input
-            type="number"
-            value={shot.duration}
-            onChange={(e) => onUpdate("duration", parseInt(e.target.value) || 0)}
-            style={{
-              fontSize: "11px",
-              color: "#777076",
-              background: "transparent",
-              border: "none",
-              outline: "none",
-              width: "24px",
-              textAlign: "center",
-            }}
-          />
-          <span style={{ fontSize: "11px", color: "#404556" }}>s</span>
-        </div>
 
         {/* Block 1 — ACTION */}
         <EditorBlock accentColor="#404556" icon={Clapperboard} label="Action">

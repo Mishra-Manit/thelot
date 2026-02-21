@@ -92,6 +92,7 @@ export function FramePreview({
               hover={startHover}
               onHover={setStartHover}
               prompt={startFramePrompt}
+              showRegenerate
             />
             {/* End Frame */}
             <FrameCard
@@ -101,6 +102,7 @@ export function FramePreview({
               onHover={setEndHover}
               prompt={startFramePrompt}
               isEnd
+              showRegenerate
             />
           </div>
 
@@ -116,7 +118,7 @@ export function FramePreview({
             tabIndex={0}
             className="v-resize-handle relative shrink-0"
             style={{
-              height: "15px",
+              height: "25px",
               cursor: "row-resize",
               zIndex: 10,
             }}
@@ -348,6 +350,7 @@ function FrameCard({
   onHover,
   prompt,
   isEnd,
+  showRegenerate,
 }: {
   label: string
   sublabel: string
@@ -355,6 +358,7 @@ function FrameCard({
   onHover: (v: boolean) => void
   prompt: string
   isEnd?: boolean
+  showRegenerate?: boolean
 }) {
   return (
     <div
@@ -396,20 +400,38 @@ function FrameCard({
             {sublabel}
           </span>
         </div>
-        {hover && (
-          <div className="flex items-center gap-1">
-            <button
-              className="flex items-center justify-center rounded transition-colors duration-150"
+        {showRegenerate && (
+          <button
+            className="flex items-center gap-1 rounded-full transition-colors duration-150"
+            style={{
+              padding: "4px 10px",
+              background: "rgba(64,69,86,0.18)",
+              border: "1px solid rgba(64,69,86,0.45)",
+              color: "#C7CEDA",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "rgba(64,69,86,0.28)"
+              e.currentTarget.style.borderColor = "rgba(64,69,86,0.65)"
+              e.currentTarget.style.color = "#FFFFFF"
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "rgba(64,69,86,0.18)"
+              e.currentTarget.style.borderColor = "rgba(64,69,86,0.45)"
+              e.currentTarget.style.color = "#C7CEDA"
+            }}
+            aria-label="Regenerate frame"
+          >
+            <RefreshCw size={10} />
+            <span
               style={{
-                width: "20px",
-                height: "20px",
-                background: "rgba(64,69,86,0.2)",
+                fontSize: "9px",
+                fontWeight: 600,
+                letterSpacing: "0.02em",
               }}
-              aria-label="Regenerate frame"
             >
-              <RefreshCw size={10} style={{ color: "#404556" }} />
-            </button>
-          </div>
+              Regenerate
+            </span>
+          </button>
         )}
       </div>
 
@@ -447,7 +469,7 @@ function FrameCard({
             )}
           </div>
           <span style={{ fontSize: "10px", color: "#404556", textAlign: "center", maxWidth: "110px", lineHeight: "1.4" }}>
-            {isEnd ? "Auto-generated from video" : "Generate from prompt"}
+            {"Generate frame from prompt"}
           </span>
         </div>
       </div>
