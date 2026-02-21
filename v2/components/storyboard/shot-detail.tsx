@@ -12,6 +12,7 @@ import {
   Plus,
   Eye,
   EyeOff,
+  Sparkles,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import type { StoryboardShot, StoryboardShotUpdateInput } from "@/lib/storyboard-types"
@@ -132,6 +133,333 @@ function EditorBlock({
   )
 }
 
+function ShotDetailHeader({
+  sceneNumber,
+  shotIndex,
+  duration,
+  onDurationChange,
+  enableHoverLabels,
+  onToggleHoverLabels,
+  isAdvancedMode,
+  onToggleAdvancedMode,
+}: {
+  sceneNumber: number
+  shotIndex: number
+  duration: number
+  onDurationChange: (nextValue: number) => void
+  enableHoverLabels: boolean
+  onToggleHoverLabels: () => void
+  isAdvancedMode: boolean
+  onToggleAdvancedMode: () => void
+}) {
+  return (
+    <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center gap-2">
+        <span
+          style={{
+            background: "#69696918",
+            border: "1px solid #69696933",
+            fontSize: "10px",
+            textTransform: "uppercase",
+            color: "#696969",
+            fontWeight: 600,
+            letterSpacing: "0.05em",
+            borderRadius: "4px",
+            padding: "2px 8px",
+          }}
+        >
+          Scene {sceneNumber}, Shot {shotIndex}
+        </span>
+        <span style={{ color: "#696969", fontSize: "12px" }}>&middot;</span>
+        <div
+          className="inline-flex items-center gap-1 rounded-md"
+          style={{
+            background: "#111111",
+            border: "1px solid #232323",
+            padding: "2px",
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => onDurationChange(duration - 1)}
+            disabled={duration <= MIN_DURATION_SECONDS}
+            className="flex items-center justify-center rounded transition-all duration-150 disabled:cursor-not-allowed"
+            style={{
+              width: "18px",
+              height: "18px",
+              color: duration <= MIN_DURATION_SECONDS ? "#232323" : "#D9D9D9",
+            }}
+            aria-label="Decrease duration by one second"
+          >
+            <Minus size={10} />
+          </button>
+          <span
+            style={{
+              minWidth: "34px",
+              textAlign: "center",
+              fontSize: "11px",
+              color: "#E6E8EE",
+              fontVariantNumeric: "tabular-nums",
+            }}
+          >
+            {duration}s
+          </span>
+          <button
+            type="button"
+            onClick={() => onDurationChange(duration + 1)}
+            disabled={duration >= MAX_DURATION_SECONDS}
+            className="flex items-center justify-center rounded transition-all duration-150 disabled:cursor-not-allowed"
+            style={{
+              width: "18px",
+              height: "18px",
+              color: duration >= MAX_DURATION_SECONDS ? "#232323" : "#D9D9D9",
+            }}
+            aria-label="Increase duration by one second"
+          >
+            <Plus size={10} />
+          </button>
+        </div>
+
+        <span style={{ color: "#696969", fontSize: "12px" }}>&middot;</span>
+        <button
+          type="button"
+          onClick={onToggleAdvancedMode}
+          className="flex items-center gap-1.5 rounded transition-all duration-150 hover:bg-[#222222]"
+          style={{
+            color: isAdvancedMode ? "#eeeeee" : "#888888",
+            fontSize: "10px",
+            fontWeight: 600,
+            textTransform: "uppercase",
+            letterSpacing: "0.05em",
+            padding: "4px 8px",
+            border: "1px solid transparent",
+            background: isAdvancedMode ? "#222222" : "transparent"
+          }}
+        >
+          <Sparkles size={12} />
+          <span>Advanced AI Editing</span>
+        </button>
+      </div>
+      
+      <button
+        type="button"
+        onClick={onToggleHoverLabels}
+        className="flex items-center gap-1.5 rounded transition-all duration-150 hover:bg-[#222222]"
+        style={{
+          color: enableHoverLabels ? "#888888" : "#444444",
+          fontSize: "10px",
+          fontWeight: 600,
+          textTransform: "uppercase",
+          letterSpacing: "0.05em",
+          padding: "4px 8px",
+          border: "1px solid transparent",
+        }}
+        aria-label="Toggle hover labels"
+      >
+        {enableHoverLabels ? <Eye size={12} /> : <EyeOff size={12} />}
+        <span>Labels</span>
+      </button>
+    </div>
+  )
+}
+
+function ShotDetailEditor({
+  shot,
+  onUpdate,
+  enableHoverLabels,
+  onGenerateVideo,
+  canGenerateVideo,
+  isVideoLoading,
+  isVideoReady,
+  onGenerateFrames,
+  canGenerateFrames,
+  isFramesLoading,
+  areFramesReady,
+}: {
+  shot: StoryboardShot
+  onUpdate: (field: keyof StoryboardShotUpdateInput, value: string | number) => void
+  enableHoverLabels: boolean
+  onGenerateVideo: () => void
+  canGenerateVideo: boolean
+  isVideoLoading: boolean
+  isVideoReady: boolean
+  onGenerateFrames: () => void
+  canGenerateFrames: boolean
+  isFramesLoading: boolean
+  areFramesReady: boolean
+}) {
+  return (
+    <>
+      {/* Shot title */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "baseline",
+          gap: "10px",
+          marginBottom: "14px",
+        }}
+      >
+        <span
+          style={{
+            fontSize: "26px",
+            color: "#eeeeee",
+            fontWeight: 600,
+            letterSpacing: "-0.02em",
+            lineHeight: 1.25,
+            fontFamily: SCREENPLAY_FONT_FAMILY,
+          }}
+        >
+          EXT.
+        </span>
+        <input
+          type="text"
+          value={shot.title}
+          onChange={(e) => onUpdate("title", e.target.value)}
+          className="font-serif"
+          style={{
+            fontSize: "26px",
+            color: "#eeeeee",
+            fontWeight: 600,
+            letterSpacing: "-0.02em",
+            lineHeight: 1.25,
+            border: "none",
+            background: "transparent",
+            outline: "none",
+            width: "100%",
+            fontFamily: SCREENPLAY_FONT_FAMILY,
+          }}
+        />
+      </div>
+
+      {/* Block 1 — ACTION */}
+      <EditorBlock accentColor="#696969" icon={Clapperboard} label="Action" marginBottom={20} showLabelRow={enableHoverLabels}>
+        <AutoTextarea
+          value={shot.action}
+          onChange={(v) => onUpdate("action", v)}
+          style={{
+            fontSize: "15px",
+            lineHeight: 1.72,
+            color: "#d4d4d4",
+            fontFamily: SCREENPLAY_FONT_FAMILY,
+          }}
+        />
+      </EditorBlock>
+
+      {/* Block 2 — INTERNAL MONOLOGUE */}
+      <EditorBlock accentColor="#575757" icon={Brain} label="Internal Monologue" marginBottom={0} marginTop={-16} showLabelRow={enableHoverLabels}>
+        <div
+          style={{
+            width: "60%",
+            margin: "0 auto",
+          }}
+        >
+          <div
+            style={{
+              textAlign: "center",
+              fontSize: "14px",
+              fontWeight: 600,
+              marginBottom: "4px",
+              textTransform: "uppercase",
+              color: "#cccccc",
+              fontFamily: SCREENPLAY_FONT_FAMILY,
+            }}
+          >
+            CHARACTER (V.O.)
+          </div>
+          <AutoTextarea
+            value={shot.internalMonologue}
+            onChange={(v) => onUpdate("internalMonologue", v)}
+            style={{
+              fontSize: "15px",
+              color: "#cccccc",
+              textAlign: "center",
+              fontStyle: "normal",
+              fontFamily: SCREENPLAY_FONT_FAMILY,
+            }}
+          />
+        </div>
+      </EditorBlock>
+
+      {/* Block 3 — CAMERA NOTES */}
+      <EditorBlock accentColor="#696969" icon={Camera} label="Camera Notes" marginBottom={0} showLabelRow={enableHoverLabels}>
+        <PromptBox
+          value={shot.cameraNotes}
+          onChange={(v) => onUpdate("cameraNotes", v)}
+          prefix="[CAMERA]"
+          italic
+        />
+      </EditorBlock>
+
+      {/* Start Frame prompt */}
+      <EditorBlock accentColor="#696969" icon={ImageIcon} label="Start Frame" marginBottom={6} showLabelRow={enableHoverLabels}>
+        <PromptBox
+          value={shot.startFramePrompt}
+          onChange={(v) => onUpdate("startFramePrompt", v)}
+          prefix="[START FRAME]"
+        />
+      </EditorBlock>
+
+      {/* End Frame prompt */}
+      <EditorBlock accentColor="#7A7A7A" icon={Play} label="End Frame" marginBottom={8} showLabelRow={enableHoverLabels}>
+        <PromptBox
+          value={shot.videoPrompt}
+          onChange={(v) => onUpdate("videoPrompt", v)}
+          prefix="[END FRAME]"
+        />
+      </EditorBlock>
+
+      {/* Generate Frames / Generate Video button */}
+      <button
+        className="flex items-center justify-center gap-2 transition-all duration-200 mt-10 mx-auto group"
+        style={{
+          background: "transparent",
+          border: "1px dashed #696969",
+          color: "#888888",
+          fontSize: "13px",
+          fontFamily: SCREENPLAY_FONT_FAMILY,
+          fontWeight: 600,
+          letterSpacing: "0.05em",
+          padding: "12px 24px",
+          minWidth: "300px",
+          opacity: (!areFramesReady && (!canGenerateFrames || isFramesLoading)) || (areFramesReady && (!canGenerateVideo || isVideoLoading)) ? 0.4 : 1,
+          cursor: (!areFramesReady && (!canGenerateFrames || isFramesLoading)) || (areFramesReady && (!canGenerateVideo || isVideoLoading)) ? "not-allowed" : "pointer",
+        }}
+        onMouseEnter={(e) => {
+          if ((!areFramesReady && (!canGenerateFrames || isFramesLoading)) || (areFramesReady && (!canGenerateVideo || isVideoLoading))) return
+          e.currentTarget.style.color = "#eeeeee"
+          e.currentTarget.style.borderColor = "#eeeeee"
+          e.currentTarget.style.borderStyle = "solid"
+          e.currentTarget.style.boxShadow = "0 0 15px rgba(238, 238, 238, 0.1)"
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.color = "#888888"
+          e.currentTarget.style.borderColor = "#696969"
+          e.currentTarget.style.borderStyle = "dashed"
+          e.currentTarget.style.boxShadow = "none"
+        }}
+        onClick={areFramesReady ? onGenerateVideo : onGenerateFrames}
+        disabled={(!areFramesReady && (!canGenerateFrames || isFramesLoading)) || (areFramesReady && (!canGenerateVideo || isVideoLoading))}
+      >
+        <span className="flex items-center gap-2">
+          <span style={{ color: "#696969" }}>[</span>
+          <span>
+            {!areFramesReady
+              ? isFramesLoading
+                ? "ACTION: GENERATING FRAMES..."
+                : "ACTION: GENERATE FRAMES"
+              : isVideoLoading
+                ? "ACTION: GENERATING VIDEO..."
+                : isVideoReady
+                  ? "ACTION: REGENERATE VIDEO"
+                  : "ACTION: GENERATE VIDEO"}
+          </span>
+          <span style={{ color: "#696969" }}>]</span>
+        </span>
+      </button>
+    </>
+  )
+}
+
 export function ShotDetail({
   shot,
   sceneNumber,
@@ -148,6 +476,7 @@ export function ShotDetail({
   areFramesReady,
 }: ShotDetailProps) {
   const [enableHoverLabels, setEnableHoverLabels] = useState(true)
+  const [isAdvancedMode, setIsAdvancedMode] = useState(false)
 
   const clampedDuration = Math.min(
     MAX_DURATION_SECONDS,
@@ -177,262 +506,55 @@ export function ShotDetail({
           maxWidth: "720px",
         }}
       >
-        {/* Top metadata */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <span
-              style={{
-                background: "#69696918",
-                border: "1px solid #69696933",
-                fontSize: "10px",
-                textTransform: "uppercase",
-                color: "#696969",
-                fontWeight: 600,
-                letterSpacing: "0.05em",
-                borderRadius: "4px",
-                padding: "2px 8px",
-              }}
-            >
-              Scene {sceneNumber}, Shot {shotIndex}
-            </span>
-            <span style={{ color: "#696969", fontSize: "12px" }}>&middot;</span>
-            <div
-              className="inline-flex items-center gap-1 rounded-md"
-              style={{
-                background: "#111111",
-                border: "1px solid #232323",
-                padding: "2px",
-              }}
-            >
-              <button
-                type="button"
-                onClick={() => handleDurationChange(clampedDuration - 1)}
-                disabled={clampedDuration <= MIN_DURATION_SECONDS}
-                className="flex items-center justify-center rounded transition-all duration-150 disabled:cursor-not-allowed"
-                style={{
-                  width: "18px",
-                  height: "18px",
-                  color: clampedDuration <= MIN_DURATION_SECONDS ? "#232323" : "#D9D9D9",
-                }}
-                aria-label="Decrease duration by one second"
-              >
-                <Minus size={10} />
-              </button>
-              <span
-                style={{
-                  minWidth: "34px",
-                  textAlign: "center",
-                  fontSize: "11px",
-                  color: "#E6E8EE",
-                  fontVariantNumeric: "tabular-nums",
-                }}
-              >
-                {clampedDuration}s
-              </span>
-              <button
-                type="button"
-                onClick={() => handleDurationChange(clampedDuration + 1)}
-                disabled={clampedDuration >= MAX_DURATION_SECONDS}
-                className="flex items-center justify-center rounded transition-all duration-150 disabled:cursor-not-allowed"
-                style={{
-                  width: "18px",
-                  height: "18px",
-                  color: clampedDuration >= MAX_DURATION_SECONDS ? "#232323" : "#D9D9D9",
-                }}
-                aria-label="Increase duration by one second"
-              >
-                <Plus size={10} />
-              </button>
+        <ShotDetailHeader 
+          sceneNumber={sceneNumber}
+          shotIndex={shotIndex}
+          duration={clampedDuration}
+          onDurationChange={handleDurationChange}
+          enableHoverLabels={enableHoverLabels}
+          onToggleHoverLabels={() => setEnableHoverLabels(prev => !prev)}
+          isAdvancedMode={isAdvancedMode}
+          onToggleAdvancedMode={() => setIsAdvancedMode(prev => !prev)}
+        />
+
+        {!isAdvancedMode ? (
+          <ShotDetailEditor 
+            shot={shot}
+            onUpdate={onUpdate}
+            enableHoverLabels={enableHoverLabels}
+            onGenerateVideo={onGenerateVideo}
+            canGenerateVideo={canGenerateVideo}
+            isVideoLoading={isVideoLoading}
+            isVideoReady={isVideoReady}
+            onGenerateFrames={onGenerateFrames}
+            canGenerateFrames={canGenerateFrames}
+            isFramesLoading={isFramesLoading}
+            areFramesReady={areFramesReady}
+          />
+        ) : (
+          <div className="flex-1 w-full min-h-[500px]" style={{ background: "#000000" }}>
+            <div className="grid grid-cols-2 gap-3 p-4">
+              {["Shot List", "Voice Generation", "Media Library", "Lip Sync"].map((label) => (
+                <div
+                  key={label}
+                  className="rounded-md flex items-center justify-center"
+                  style={{
+                    minHeight: "120px",
+                    background: "#0D0E14",
+                    border: "1px solid #252933",
+                    color: "#D9D9D9",
+                    fontSize: "12px",
+                    fontWeight: 600,
+                    letterSpacing: "0.04em",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  {label}
+                </div>
+              ))}
             </div>
           </div>
-          
-          <button
-            type="button"
-            onClick={() => setEnableHoverLabels(prev => !prev)}
-            className="flex items-center gap-1.5 rounded transition-all duration-150 hover:bg-[#222222]"
-            style={{
-              color: enableHoverLabels ? "#888888" : "#444444",
-              fontSize: "10px",
-              fontWeight: 600,
-              textTransform: "uppercase",
-              letterSpacing: "0.05em",
-              padding: "4px 8px",
-              border: "1px solid transparent",
-            }}
-            aria-label="Toggle hover labels"
-          >
-            {enableHoverLabels ? <Eye size={12} /> : <EyeOff size={12} />}
-            <span>Labels</span>
-          </button>
-        </div>
-
-        {/* Shot title */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "baseline",
-            gap: "10px",
-            marginBottom: "14px",
-          }}
-        >
-          <span
-            style={{
-              fontSize: "26px",
-              color: "#eeeeee",
-              fontWeight: 600,
-              letterSpacing: "-0.02em",
-              lineHeight: 1.25,
-              fontFamily: SCREENPLAY_FONT_FAMILY,
-            }}
-          >
-            EXT.
-          </span>
-          <input
-            type="text"
-            value={shot.title}
-            onChange={(e) => onUpdate("title", e.target.value)}
-            className="font-serif"
-            style={{
-              fontSize: "26px",
-              color: "#eeeeee",
-              fontWeight: 600,
-              letterSpacing: "-0.02em",
-              lineHeight: 1.25,
-              border: "none",
-              background: "transparent",
-              outline: "none",
-              width: "100%",
-              fontFamily: SCREENPLAY_FONT_FAMILY,
-            }}
-          />
-        </div>
-
-        {/* Block 1 — ACTION */}
-        <EditorBlock accentColor="#696969" icon={Clapperboard} label="Action" marginBottom={20} showLabelRow={enableHoverLabels}>
-          <AutoTextarea
-            value={shot.action}
-            onChange={(v) => onUpdate("action", v)}
-            style={{
-              fontSize: "15px",
-              lineHeight: 1.72,
-              color: "#d4d4d4",
-              fontFamily: SCREENPLAY_FONT_FAMILY,
-            }}
-          />
-        </EditorBlock>
-
-        {/* Block 2 — INTERNAL MONOLOGUE */}
-        <EditorBlock accentColor="#575757" icon={Brain} label="Internal Monologue" marginBottom={0} marginTop={-16} showLabelRow={enableHoverLabels}>
-          <div
-            style={{
-              width: "60%",
-              margin: "0 auto",
-            }}
-          >
-            <div
-              style={{
-                textAlign: "center",
-                fontSize: "14px",
-                fontWeight: 600,
-                marginBottom: "4px",
-                textTransform: "uppercase",
-                color: "#cccccc",
-                fontFamily: SCREENPLAY_FONT_FAMILY,
-              }}
-            >
-              CHARACTER (V.O.)
-            </div>
-            <AutoTextarea
-              value={shot.internalMonologue}
-              onChange={(v) => onUpdate("internalMonologue", v)}
-              style={{
-                fontSize: "15px",
-                color: "#cccccc",
-                textAlign: "center",
-                fontStyle: "normal",
-                fontFamily: SCREENPLAY_FONT_FAMILY,
-              }}
-            />
-          </div>
-        </EditorBlock>
-
-        {/* Block 3 — CAMERA NOTES */}
-        <EditorBlock accentColor="#696969" icon={Camera} label="Camera Notes" marginBottom={0} showLabelRow={enableHoverLabels}>
-          <PromptBox
-            value={shot.cameraNotes}
-            onChange={(v) => onUpdate("cameraNotes", v)}
-            prefix="[CAMERA]"
-            italic
-          />
-        </EditorBlock>
-
-        {/* Start Frame prompt */}
-        <EditorBlock accentColor="#696969" icon={ImageIcon} label="Start Frame" marginBottom={6} showLabelRow={enableHoverLabels}>
-          <PromptBox
-            value={shot.startFramePrompt}
-            onChange={(v) => onUpdate("startFramePrompt", v)}
-            prefix="[START FRAME]"
-          />
-        </EditorBlock>
-
-        {/* End Frame prompt */}
-        <EditorBlock accentColor="#7A7A7A" icon={Play} label="End Frame" marginBottom={8} showLabelRow={enableHoverLabels}>
-          <PromptBox
-            value={shot.videoPrompt}
-            onChange={(v) => onUpdate("videoPrompt", v)}
-            prefix="[END FRAME]"
-          />
-        </EditorBlock>
-
-        {/* Generate Frames / Generate Video button */}
-        <button
-          className="flex items-center justify-center gap-2 transition-all duration-200 mt-10 mx-auto group"
-          style={{
-            background: "transparent",
-            border: "1px dashed #696969",
-            color: "#888888",
-            fontSize: "13px",
-            fontFamily: SCREENPLAY_FONT_FAMILY,
-            fontWeight: 600,
-            letterSpacing: "0.05em",
-            padding: "12px 24px",
-            minWidth: "300px",
-            opacity: (!areFramesReady && (!canGenerateFrames || isFramesLoading)) || (areFramesReady && (!canGenerateVideo || isVideoLoading)) ? 0.4 : 1,
-            cursor: (!areFramesReady && (!canGenerateFrames || isFramesLoading)) || (areFramesReady && (!canGenerateVideo || isVideoLoading)) ? "not-allowed" : "pointer",
-          }}
-          onMouseEnter={(e) => {
-            if ((!areFramesReady && (!canGenerateFrames || isFramesLoading)) || (areFramesReady && (!canGenerateVideo || isVideoLoading))) return
-            e.currentTarget.style.color = "#eeeeee"
-            e.currentTarget.style.borderColor = "#eeeeee"
-            e.currentTarget.style.borderStyle = "solid"
-            e.currentTarget.style.boxShadow = "0 0 15px rgba(238, 238, 238, 0.1)"
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.color = "#888888"
-            e.currentTarget.style.borderColor = "#696969"
-            e.currentTarget.style.borderStyle = "dashed"
-            e.currentTarget.style.boxShadow = "none"
-          }}
-          onClick={areFramesReady ? onGenerateVideo : onGenerateFrames}
-          disabled={(!areFramesReady && (!canGenerateFrames || isFramesLoading)) || (areFramesReady && (!canGenerateVideo || isVideoLoading))}
-        >
-          <span className="flex items-center gap-2">
-            <span style={{ color: "#696969" }}>[</span>
-            <span>
-              {!areFramesReady
-                ? isFramesLoading
-                  ? "ACTION: GENERATING FRAMES..."
-                  : "ACTION: GENERATE FRAMES"
-                : isVideoLoading
-                  ? "ACTION: GENERATING VIDEO..."
-                  : isVideoReady
-                    ? "ACTION: REGENERATE VIDEO"
-                    : "ACTION: GENERATE VIDEO"}
-            </span>
-            <span style={{ color: "#696969" }}>]</span>
-          </span>
-        </button>
-
+        )}
       </div>
     </div>
   )

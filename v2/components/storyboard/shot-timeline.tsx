@@ -151,8 +151,8 @@ export function ShotTimeline({
     <div
       className="h-full min-h-0 flex flex-col rounded-xl"
       style={{
-        background: "#0D0E14",
-        padding: "12px 16px",
+        background: "#000000",
+        padding: "6px 16px 12px",
       }}
     >
       {/* Control Bar */}
@@ -165,7 +165,7 @@ export function ShotTimeline({
             borderRadius: "6px",
             background: "#252933",
             border: "1px solid #404556",
-            color: "#60515C",
+            color: "#FFFFFF",
             fontSize: "10px",
             fontWeight: 600,
             letterSpacing: "0.04em",
@@ -196,23 +196,23 @@ export function ShotTimeline({
             style={{
               width: "32px",
               height: "32px",
-              background: canControlPlayback ? "#386775" : "#252933",
+              background: canControlPlayback ? "#FFFFFF" : "#252933",
               cursor: canControlPlayback ? "pointer" : "not-allowed",
             }}
             onMouseEnter={(e) => {
-              if (canControlPlayback) e.currentTarget.style.background = "#597D7C"
+              if (canControlPlayback) e.currentTarget.style.background = "#D9D9D9"
             }}
             onMouseLeave={(e) => {
-              if (canControlPlayback) e.currentTarget.style.background = "#386775"
+              if (canControlPlayback) e.currentTarget.style.background = "#FFFFFF"
             }}
             onClick={canControlPlayback ? onPlayPause : undefined}
             disabled={!canControlPlayback}
             aria-label={isPlaying ? "Pause" : "Play"}
           >
             {isPlaying ? (
-              <Pause size={14} style={{ color: "#FFFFFF" }} />
+              <Pause size={14} style={{ color: "#000000" }} />
             ) : (
-              <Play size={14} style={{ color: "#FFFFFF", marginLeft: "2px" }} />
+              <Play size={14} style={{ color: "#000000", marginLeft: "2px" }} />
             )}
           </button>
 
@@ -303,7 +303,7 @@ export function ShotTimeline({
               borderRadius: "6px",
               background: "#252933",
               border: "1px solid #404556",
-              color: "#777076",
+              color: "#FFFFFF",
               fontSize: "10px",
               fontWeight: 600,
               letterSpacing: "0.04em",
@@ -311,11 +311,9 @@ export function ShotTimeline({
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = "#404556"
-              e.currentTarget.style.color = "#FFFFFF"
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.background = "#252933"
-              e.currentTarget.style.color = "#777076"
             }}
             onClick={handleFit}
             aria-label="Fit all shots to view"
@@ -332,7 +330,7 @@ export function ShotTimeline({
         className="flex-1 relative overflow-x-auto"
         style={{
           scrollbarWidth: "thin",
-          scrollbarColor: "#404556 #0D0E14",
+          scrollbarColor: "#404556 #000000",
         }}
         onClick={handleTimelineClick}
       >

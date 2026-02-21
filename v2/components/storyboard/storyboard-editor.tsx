@@ -14,7 +14,7 @@ const MIN_LEFT_PCT = 30
 const MAX_LEFT_PCT = 70
 const MIN_TIMELINE_PCT = 16
 const MAX_TIMELINE_PCT = 42
-const SIMULATION_DELAY_MS = 5000
+const SIMULATION_DELAY_MS = 3000
 
 type SimulationPhase = "idle" | "loading" | "ready"
 
