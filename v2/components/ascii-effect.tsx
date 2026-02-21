@@ -101,26 +101,9 @@ void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor)
     workUV.y += cos(workUV.x * waveFrequency + time * waveSpeed) * waveAmplitude;
   }
 
-  vec4 sampledColor;
-  if (aberrationStrength > 0.0) {
-    float offset = aberrationStrength;
-    float r = texture(inputBuffer, workUV + vec2(offset, 0.0)).r;
-    float g = texture(inputBuffer, workUV).g;
-    float b = texture(inputBuffer, workUV - vec2(offset, 0.0)).b;
-    sampledColor = vec4(r, g, b, 1.0);
-  } else {
-    sampledColor = texture(inputBuffer, workUV);
-  }
-
-  sampledColor.rgb = (sampledColor.rgb - 0.5) * contrastAdjust + 0.5 + brightnessAdjust;
-
-  if (noiseIntensity > 0.0) {
-    float noiseVal = noise(workUV * noiseScale + time * noiseSpeed);
-    sampledColor.rgb += (noiseVal - 0.5) * noiseIntensity;
-  }
-
   vec2 cellCount = resolution / cellSize;
-  vec2 cellCoord = floor(uv * cellCount);
+  // Calculate cellCoord based on workUV which includes curvature and wave distortions
+  vec2 cellCoord = floor(workUV * cellCount);
 
   if (jitterIntensity > 0.0) {
     float jitterTime = time * jitterSpeed;
@@ -139,8 +122,27 @@ void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor)
   }
 
   vec2 cellUV = (cellCoord + 0.5) / cellCount;
-  vec4 cellColor = texture(inputBuffer, cellUV);
-  float brightness = dot(cellColor.rgb, vec3(0.299, 0.587, 0.114));
+  
+  vec4 cellColor;
+  if (aberrationStrength > 0.0) {
+    float offset = aberrationStrength;
+    float r = texture(inputBuffer, cellUV + vec2(offset, 0.0)).r;
+    float g = texture(inputBuffer, cellUV).g;
+    float b = texture(inputBuffer, cellUV - vec2(offset, 0.0)).b;
+    cellColor = vec4(r, g, b, 1.0);
+  } else {
+    cellColor = texture(inputBuffer, cellUV);
+  }
+
+  if (noiseIntensity > 0.0) {
+    float noiseVal = noise(cellUV * noiseScale + time * noiseSpeed);
+    cellColor.rgb += (noiseVal - 0.5) * noiseIntensity;
+  }
+
+  // Calculate adjusted color for brightness thresholding and output
+  vec3 adjustedColor = (cellColor.rgb - 0.5) * contrastAdjust + 0.5 + brightnessAdjust;
+  adjustedColor = clamp(adjustedColor, 0.0, 1.0);
+  float brightness = dot(adjustedColor, vec3(0.299, 0.587, 0.114));
 
   if (invert) brightness = 1.0 - brightness;
 
@@ -149,7 +151,7 @@ void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor)
 
   vec3 finalColor;
   if (colorMode) {
-    finalColor = cellColor.rgb * charValue;
+    finalColor = adjustedColor * charValue;
   } else {
     finalColor = vec3(brightness * charValue);
   }
@@ -187,6 +189,8 @@ let _colorMode = true
 let _asciiStyle = 0
 let _resolution = new Vector2(1920, 1080)
 let _mousePos = new Vector2(0, 0)
+let _brightnessAdjust = 0
+let _contrastAdjust = 1
 
 interface PostFXOptions {
   scanlineIntensity?: number
@@ -302,6 +306,8 @@ class AsciiEffectImpl extends Effect {
     this.uniforms.get("asciiStyle")!.value = _asciiStyle
     this.uniforms.get("resolution")!.value = _resolution
     this.uniforms.get("mousePos")!.value = _mousePos
+    this.uniforms.get("brightnessAdjust")!.value = _brightnessAdjust
+    this.uniforms.get("contrastAdjust")!.value = _contrastAdjust
   }
 }
 
@@ -336,6 +342,8 @@ export const AsciiEffect = forwardRef<AsciiEffectImpl, AsciiEffectProps>((props,
   _asciiStyle = styleNum
   _resolution = resolution
   _mousePos = mousePos
+  _brightnessAdjust = postfx.brightnessAdjust ?? 0
+  _contrastAdjust = postfx.contrastAdjust ?? 1
 
   const effect = useMemo(
     () => new AsciiEffectImpl({ cellSize, invert, color, style: styleNum, postfx, resolution, mousePos }),
