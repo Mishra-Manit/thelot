@@ -137,8 +137,9 @@ Bare minimum tables to make the page functional. Expand later as needed.
 
 ### 2. Initialize the project
 ```bash
-mkdir v1 && cd v1
-bunx --bun create-next-app@latest ./ --typescript --app --src-dir --import-alias "@/*" --use-bun
+cd v1
+# Already initialized via create-next-app — skip if v1/ is cloned from repo
+# To re-init from scratch: bunx --bun create-next-app@latest ./ --typescript --app --src-dir --import-alias "@/*" --use-bun
 ```
 
 ### 3. Install dependencies
