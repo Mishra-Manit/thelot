@@ -108,6 +108,7 @@ Bare minimum tables to make the page functional. Expand later as needed.
 | action | text | Action description |
 | internalMonologue | text | Character thoughts |
 | cameraNotes | text | Lens, framing, movement |
+| videoUrl | varchar(2048) | Path to video in public folder (e.g. `/videos/shot1.mp4`) |
 | createdAt | timestamp | |
 
 ---
