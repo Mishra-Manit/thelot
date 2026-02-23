@@ -1,14 +1,12 @@
 "use client"
 
-import { useState, useCallback, useRef, useEffect, forwardRef, useImperativeHandle } from "react"
+import { useState, useRef, useEffect, forwardRef, useImperativeHandle } from "react"
 import { ImageIcon, Sparkles } from "lucide-react"
 import { VideoPlayer, type VideoPlayerHandle } from "./video-player"
 import { SpongebobLoading } from "./loading/spongebob-loading"
 import { SimpsonLoading } from "./loading/simpson-loading"
 import { PrincessLoading } from "./loading/princess-loading"
-
-const MIN_TOP_PCT = 20
-const MAX_TOP_PCT = 70
+import type { ShotInput } from "@/lib/storyboard-types"
 
 // Handle exposed to parent components for video control
 export interface FramePreviewHandle {
@@ -24,7 +22,7 @@ interface FramePreviewProps {
   duration: number
   startFramePrompt: string
   shotTitle: string
-  videoUrl: string
+  shots: ShotInput[]
   isSaving?: boolean
   startFrameImageUrl: string
   endFrameImageUrl: string
@@ -42,27 +40,14 @@ export const FramePreview = forwardRef<FramePreviewHandle, FramePreviewProps>(
     {
       sceneNumber,
       shotNumber,
-      totalShots,
-      duration,
-      startFramePrompt,
-      shotTitle,
-      videoUrl,
-      isSaving = false,
-      startFrameImageUrl,
-      endFrameImageUrl,
-      endFrameFallbackImageUrl,
-      isFramesLoading,
-      areFramesReady,
+      shots,
       isVideoLoading,
-      onGenerateFrames,
       onVideoTimeUpdate,
       onVideoPlayStateChange,
     },
     ref
   ) {
     const hasShot = sceneNumber !== null && shotNumber !== null
-    const [startHover, setStartHover] = useState(false)
-    const [endHover, setEndHover] = useState(false)
 
     // Playback state driven by the VideoPlayer composition
     const playerRef = useRef<VideoPlayerHandle | null>(null)
@@ -74,146 +59,48 @@ export const FramePreview = forwardRef<FramePreviewHandle, FramePreviewProps>(
       seek: (seconds: number) => playerRef.current?.seek(seconds),
     }))
 
-    /* ── Vertical resize state ─── */
-    const [topPct, setTopPct] = useState(30)
-    const [isVDragging, setIsVDragging] = useState(false)
-    const panelRef = useRef<HTMLDivElement>(null)
-
-  const handleVResizeStart = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault()
-      setIsVDragging(true)
-      const startY = e.clientY
-      const startPct = topPct
-      const container = panelRef.current
-      if (!container) return
-
-      const containerRect = container.getBoundingClientRect()
-      const containerHeight = containerRect.height
-
-      const onMove = (ev: MouseEvent) => {
-        const delta = ev.clientY - startY
-        const deltaPct = (delta / containerHeight) * 100
-        const next = Math.min(MAX_TOP_PCT, Math.max(MIN_TOP_PCT, startPct + deltaPct))
-        setTopPct(next)
-      }
-
-      const onUp = () => {
-        setIsVDragging(false)
-        window.removeEventListener("mousemove", onMove)
-        window.removeEventListener("mouseup", onUp)
-      }
-
-      window.addEventListener("mousemove", onMove)
-      window.addEventListener("mouseup", onUp)
-    },
-    [topPct]
-  )
-
   return (
     <div
       className="flex flex-col flex-1 min-w-0"
       style={{ background: "#000000" }}
     >
       {hasShot ? (
-        <div ref={panelRef} className="flex flex-col flex-1 min-h-0" style={{ padding: "12px 12px 4px 12px" }}>
-          {/* Prevent text selection while dragging */}
-          {isVDragging && (
-            <div className="fixed inset-0 z-50" style={{ cursor: "row-resize" }} />
-          )}
-
-          {/* Top: Start Frame + End Frame */}
-          <div className="flex gap-2.5" style={{ flex: `0 0 ${topPct}%`, minHeight: 0 }}>
-            {/* Start Frame */}
-            <FrameCard
-              label="Start Frame"
-              sublabel={`S${sceneNumber}.${shotNumber}`}
-              hover={startHover}
-              onHover={setStartHover}
-              prompt={startFramePrompt}
-              imageUrl={startFrameImageUrl}
-              isLoading={isFramesLoading}
-              isReady={areFramesReady}
-              onGenerate={onGenerateFrames}
-            />
-            {/* End Frame */}
-            <FrameCard
-              label="End Frame"
-              sublabel={`S${sceneNumber}.${shotNumber}`}
-              hover={endHover}
-              onHover={setEndHover}
-              prompt={startFramePrompt}
-              imageUrl={endFrameImageUrl}
-              fallbackImageUrl={endFrameFallbackImageUrl}
-              isLoading={isFramesLoading}
-              isReady={areFramesReady}
-              onGenerate={onGenerateFrames}
-              isEnd
-            />
-          </div>
-
-          {/* ── Vertical Drag Handle ───────────────────── */}
-          <div
-            onMouseDown={handleVResizeStart}
-            role="separator"
-            aria-orientation="horizontal"
-            aria-label="Resize frames and video preview"
-            aria-valuenow={Math.round(topPct)}
-            aria-valuemin={MIN_TOP_PCT}
-            aria-valuemax={MAX_TOP_PCT}
-            tabIndex={0}
-            className="v-resize-handle relative shrink-0"
-            style={{
-              height: "25px",
-              cursor: "row-resize",
-              zIndex: 10,
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "ArrowUp") {
-                setTopPct((p) => Math.max(MIN_TOP_PCT, p - 1))
-              } else if (e.key === "ArrowDown") {
-                setTopPct((p) => Math.min(MAX_TOP_PCT, p + 1))
-              }
-            }}
-          >
-            {/* Visible rail */}
-            <div
-              className="v-resize-rail absolute inset-x-0 top-1/2 -translate-y-1/2 transition-all duration-150"
-              style={{
-                height: isVDragging ? "3px" : "1px",
-                background: isVDragging ? "#7A7A7A" : "#232323",
-              }}
-            />
-            {/* Hover / active indicator pill */}
-            <div
-              className="v-resize-pill absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 transition-opacity duration-150"
-              style={{
-                opacity: isVDragging ? 1 : 0,
-              }}
-            >
+        <div className="flex flex-col flex-1 min-h-0" style={{ padding: "12px 12px 4px 12px" }}>
+          {/* AI Tools Row */}
+          <div className="grid grid-cols-4 gap-2 mb-3">
+            {["Shot List", "Voice Generation", "Media Library", "Lip Sync"].map((label) => (
               <div
-                className="rounded-full"
+                key={label}
+                className="relative rounded-lg overflow-hidden transition-all duration-150 border border-[#232323] hover:border-[#696969] cursor-pointer"
                 style={{
-                  width: "32px",
-                  height: "5px",
-                  background: "#7A7A7A",
+                  minHeight: "60px",
+                  background: "#111111",
                 }}
-              />
-            </div>
-            {/* Wider invisible hit area */}
-            <div className="absolute inset-x-0 -top-2 -bottom-2" />
-            <style>{`
-              .v-resize-handle:hover .v-resize-rail {
-                height: 2px !important;
-                background: #696969 !important;
-              }
-              .v-resize-handle:hover .v-resize-pill {
-                opacity: 0.6 !important;
-              }
-            `}</style>
+              >
+                <div
+                  className="absolute inset-0"
+                  style={{
+                    background: "linear-gradient(135deg, #111111 0%, #232323 100%)",
+                  }}
+                />
+                <div className="absolute inset-0 z-10 flex items-center justify-center">
+                  <span
+                    style={{
+                      fontSize: "10px",
+                      color: "#ffffff",
+                      fontWeight: 600,
+                      letterSpacing: "0.03em",
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    {label}
+                  </span>
+                </div>
+              </div>
+            ))}
           </div>
 
-          {/* Bottom: Video Player */}
+          {/* Video Preview */}
           <div className="flex-1 min-h-0 flex flex-col">
             <div
               className="relative w-full h-full rounded-lg overflow-hidden"
@@ -235,7 +122,7 @@ export const FramePreview = forwardRef<FramePreviewHandle, FramePreviewProps>(
               </div>
 
               <VideoPlayer
-                videoUrl={videoUrl}
+                shots={shots}
                 onTimeUpdate={(cur, dur) => {
                   onVideoTimeUpdate?.(cur, dur)
                 }}
@@ -266,7 +153,7 @@ export const FramePreview = forwardRef<FramePreviewHandle, FramePreviewProps>(
 
 /* ── Frame Card ─────────────────────────── */
 
-function FrameCard({
+export function FrameCard({
   label,
   sublabel,
   hover,

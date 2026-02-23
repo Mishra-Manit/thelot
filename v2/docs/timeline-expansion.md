@@ -1,319 +1,457 @@
-# Timeline Expansion Plan
+# Timeline Redesign Plan
 
-> Reference document for adding cut, split, trim, and audio controls to the video editor.
-> Speed control has been descoped — not planned for implementation.
+> Complete specification for rebuilding `shot-timeline.tsx` into a proper two-track pill-based timeline with ruler and draggable playhead. No new libraries. No bloat. Pure React + DOM.
 
 ---
 
-## Current Architecture (~500 LOC, 10 files)
+## What We're Building
 
-```mermaid
-graph TD
-  A["page.tsx"] --> B["SceneList"]
-  A --> C["ShotDetail"]
-  A --> D["FramePreview"]
-  A --> E["Timeline"]
-  D --> F["CompositionProvider"]
-  F --> G["VideoPlayer"]
-  F --> H["PlaybackControls"]
-  F -.-> I["@diffusionstudio/core v4"]
-  I --> J["Composition"]
-  J --> K["Layer"]
-  K --> L["VideoClip"]
+A compact, fixed-height timeline sitting at the bottom of the editor. Two horizontal pill tracks stacked vertically — one for video, one for audio. A timecode ruler above both tracks. A thick, draggable playhead that spans ruler + both tracks. All shots for the active scene are rendered as pills simultaneously, and all playable ones are loaded into the composition at once.
+
+```
+┌────────────────────────────────────────────────────────────────────────────────┐
+│  [SPLIT]          0:04 ▶ 0:32          [−] ══════ [+]  [FIT]                  │  ← control bar (28px)
+├────────────────────────────────────────────────────────────────────────────────┤
+│  0s       5s       10s       15s       20s       25s       30s                 │  ← ruler (20px)
+│                    ▼ playhead handle (diamond, 8×8px)                          │
+├──────────────────── │ ──────────────────────────────────────────────────────── │
+│  ▐████████ Shot 1 ██▌  ▐██████████ Shot 2 ██████▌  ▐████ Shot 3 █▌            │  ← video track (48px)
+├──────────────────── │ ──────────────────────────────────────────────────────── │
+│  ▐░░░░░░░ audio 1 ░░▌  ▐░░░░░░░░░░ audio 2 ░░░░░▌  ▐░░░░ audio 3 ░▌          │  ← audio track (36px)
+└──────────────────── │ ──────────────────────────────────────────────────────── │
+                      └── playhead line (2px, full height, spans tracks)
 ```
 
-### What exists today
-
-| File | Purpose |
-|------|---------|
-| `components/editor/CompositionProvider.tsx` | Creates a `Composition` (1920×1080), loads one `VideoClip` per shot, exposes `play()`, `pause()`, `seek()` via React context |
-| `components/editor/VideoPlayer.tsx` | Mounts the Composition canvas into a `<div>`, scales it to fit with `ResizeObserver` |
-| `components/editor/PlaybackControls.tsx` | Play/pause button, time display (MM:SS), seek slider |
-| `components/Timeline.tsx` | Shows shots as simple buttons (fetched from DB), no clip-level representation |
-| `components/FramePreview.tsx` | Wraps `CompositionProvider` + `VideoPlayer` + `PlaybackControls` into a preview panel per shot |
-| `components/SceneList.tsx` | Scene/shot CRUD sidebar — creates scenes and shots via API |
-| `components/ShotDetail.tsx` | Edit shot metadata (title, duration, action, monologue, camera notes) |
-| `db/schema.ts` | Drizzle schema — `scenes` and `shots` tables |
-| `app/api/scenes/[sceneId]/shots/route.ts` | GET/POST shots for a scene |
-| `app/api/shots/[shotId]/route.ts` | GET/PUT/DELETE a single shot |
-
-### What it does NOT do
-
-- No clip manipulation (trim, split, copy)
-- No multi-clip awareness (one VideoClip per shot, that's it)
-- No visual timeline with clip blocks
-- No audio controls (volume, mute, fade)
-- No undo/redo
+**Total timeline height (compact):** ~160px fixed. The resize handle above already controls how much of the screen it takes.
 
 ---
 
-## What @diffusionstudio/core v4 Supports Natively
+## Current Problems to Solve
 
-These were confirmed by reading the actual type definitions in `node_modules/@diffusionstudio/core/dist/`.
+### 1. Pill ring bug
 
-### Clip base class (`clips/clip/clip.d.ts`)
+**Root cause:** The current code uses:
+```ts
+border: isSelected ? "2px solid #404556" : "2px solid transparent"
+```
+A transparent border still occupies layout space and, depending on the background rendering context, the browser interpolates the background color beneath it — creating a faint lighter-shade ring on unselected pills.
 
-| Method / Property | Signature | Description |
-|-------------------|-----------|-------------|
-| `trim()` | `trim(start?: Time, end?: Time): this` | Trims clip to specified in/out points |
-| `split()` | `split(time?: Time): Promise<this>` | Splits clip into two at a given time. Returns the newly created clip. Falls back to `composition.currentTime` if no time is passed |
-| `copy()` | `copy(): this` | Deep-copies a clip (new ID, shared source) |
-| `delay` | `set delay(time: Time)` | Shifts when the clip starts in the composition (offset from zero) |
-| `duration` | `set duration(time: Time)` | Sets clip duration (must be positive) |
-| `start` | `get/set start: number / Time` | First visible frame. Setting it offsets the clip |
-| `end` | `get/set end: number / Time` | Last visible frame. Setting it offsets the clip |
-| `disabled` | `disabled: boolean` | Hides a clip without removing it |
-| `detach()` | `detach(): this` | Removes clip from its parent layer |
-| `transition` | `transition?: TransitionConfig` | Applies transition effects between clips |
-| `name` | `get/set name: string` | Human-readable identifier |
-| `index` | `get/set index: number` | Position of clip in the layer |
-| `animations` | `animations: ClipAnimationOptions` | Keyframe animation properties |
+**Fix:** Replace border-based selection with inset `box-shadow`. Border stays `none` always. Selection ring is drawn entirely inside the pill with no effect on layout:
+```ts
+border: "none",
+boxShadow: isSelected ? "inset 0 0 0 2px #404556" : "none",
+```
+This is the canonical approach for selection rings on elements with `overflow: hidden` (which pills have, for the thumbnail).
 
-### AudioClip (extended by VideoClip via mixin — `clips/audio/audio.d.ts`)
+### 2. Single-video composition
 
-| Method / Property | Signature | Description |
-|-------------------|-----------|-------------|
-| `range` | `get range(): [number, number]` / `set range(value: [Time \| undefined, Time \| undefined])` | Defines which portion of the source media to play (in seconds) |
-| `volume` | `get/set volume: number` | 0 to 1, defaults to 1 |
-| `muted` | `get/set muted: boolean` | Mutes audio |
-| `fadeInDurationSeconds` | `get/set fadeInDurationSeconds: number` | Fade-in duration |
-| `fadeOutDurationSeconds` | `get/set fadeOutDurationSeconds: number` | Fade-out duration |
-| `removeSilences()` | `removeSilences(options?: SilenceRemoveOptions): Promise<AudioClip[]>` | Auto-removes silence gaps |
-| `trim()` | `trim(start?: Time, end?: Time): this` | Override with audio awareness |
-| `split()` | `split(time?: Time): Promise<this>` | Override with audio awareness |
+Currently `VideoPlayer` accepts a single `videoUrl` and `FramePreview` only loads the selected shot's clip. The user wants all shots in the scene to be simultaneously loaded and playable end-to-end.
 
-### VideoClip (`clips/video/video.d.ts`)
+**Fix:** Refactor `VideoPlayer` to accept `shots: { id: string; videoUrl: string; duration: number }[]` and build a SEQUENTIAL layer with all shots that have a `videoUrl`. The composition's `duration` becomes the sum of all loaded clips.
 
-Extends `AudioClip` via a visual mixin. Adds spatial properties (position, scale, rotation, opacity, mask, effects, blend mode) but inherits all audio + base clip methods above. No additional time-manipulation methods.
+### 3. No ruler
 
-### What is NOT supported natively
+Currently there is no timecode display over the track area. Adding one makes the timeline feel like a proper NLE and makes the playhead position legible.
 
-| Feature | Status |
-|---------|--------|
-| ~~Speed / playback rate~~ | ❌ Not supported — **descoped, not pursuing** |
-| Undo / Redo | ⚠️ Partial — `createCheckpoint()` / `restoreCheckpoint()` exist but are low-level |
-| Timeline UI | ❌ Framework provides no UI at all |
+### 4. Playhead is too thin and not draggable
+
+Current playhead is a `1px` line updated via DOM mutation. It has no handle and is not draggable. The new playhead needs to be thick (`2px` line), have a diamond handle in the ruler, and be draggable.
 
 ---
 
-## Features to Implement
+## Visual Design Spec
 
-### 1. Trimming
-
-**Complexity:** 🟢 Low (~50–80 lines)
-**Framework support:** ✅ Native `clip.trim(start, end)`
-
-#### How it works
-
-```typescript
-// Trim a clip to play only from 2s to 8s of the source
-clip.trim(2, 8)
-
-// Alternative: set the range directly
-clip.range = [2, 8]
+### Color palette (existing)
+```
+#0D0E14  — deepest background (ruler)
+#252933  — track row background
+#404556  — borders, inactive ticks
+#60515C  — pill border when selected
+#777076  — secondary labels, minor ticks
+#597D7C  — teal accent (playhead)
+#386775  — playhead handle fill
+#20504E  — playhead handle border
+#FFFFFF  — text on pills, major tick labels
 ```
 
-#### What to build
+### Control bar (28px tall)
+- Background: `#000000`
+- Left: SPLIT button (placeholder, disabled) — `#252933` bg, `#404556` border
+- Center: `0:04 ▶ 0:32` — current time / play button (32px circle, white) / total duration
+- Right: `−` slider `+` controls, `FIT` button
 
-- Two drag handles (in-point / out-point) on the timeline or within `PlaybackControls`
-- On release, call `clip.trim(inPoint, outPoint)`
-- Update composition duration display
-- Persist trim values to the database (add `trimStart` / `trimEnd` columns to `shots` table)
+### Ruler (20px tall)
+- Background: `#0D0E14`
+- Major tick (every 5s): `height: 10px`, `color: #777076`, label in 9px font
+- Minor tick (every 1s): `height: 5px`, `color: #404556`, no label
+- When zoomed: adaptive — at 2x, major ticks every 2s; at 4x, every 1s
+- Drawn on a `<canvas>` element for performance — one repaint on zoom change only
 
-#### Files to touch
+### Video track (48px tall)
+- Background: `#252933`
+- Track label: `V` — 8px, `#404556`, left-side gutter (12px wide)
+- Pill height: 44px, `border-radius: 22px`
+- Thumbnail background: `source.thumbnailsInRange()` single frame at clip midpoint, set as `backgroundImage`
+- Dark gradient overlay: `linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.18) 100%)`
+- Shot title: bottom-left, 10px, weight 600, white
+- Duration: bottom-right, 10px, `#777076`
+- Selection: `boxShadow: "inset 0 0 0 2px #60515C"` + `opacity: 1`
+- Unselected: `opacity: 0.60`, no box shadow
 
-| File | Change |
-|------|--------|
-| `CompositionProvider.tsx` | Expose clip reference through context |
-| `PlaybackControls.tsx` or new `TrimControls.tsx` | Add trim handle UI |
-| `db/schema.ts` | Add `trimStart`, `trimEnd` columns |
-| `lib/validators.ts` | Update shot validators |
+### Audio track (36px tall)
+- Background: `#1A1C25` (slightly darker than video track)
+- Track label: `A` — 8px, `#404556`, same left gutter
+- Pill height: 32px, `border-radius: 16px`
+- No thumbnail — solid background: `#252933`
+- Subtle waveform bars: NOT drawn (too expensive for v1). Placeholder: a row of 2px-wide thin vertical bars at 40% opacity drawn on a canvas, representing amplitude peaks. Can be a static pattern based on clip index for now — or deferred entirely.
+- Shot title: vertically centered, 9px, `#777076`
+- Audio track shows the same shots as video track (same durations, same positions)
+- Selection: `boxShadow: "inset 0 0 0 2px #404556"`
+
+### Playhead
+- Line: `2px` wide, `background: #597D7C` (teal)
+- Handle: sits in the ruler. An 8×8px rotated square (CSS `transform: rotate(45deg)`) — a diamond — centered on the line. `background: #386775`, `border: 1.5px solid #20504E`
+- The line extends through both track rows with a `z-index` above pills
+- Draggable: mousedown on the diamond → mousemove tracks X → seeks composition
+
+### Gap between pills
+- `gap: 4px` between pills in the same track row
 
 ---
 
-### 2. Splitting
+## Component Structure (Single File)
 
-**Complexity:** 🟢 Low (~60–100 lines)
-**Framework support:** ✅ Native `clip.split(time)`
+All internal to `shot-timeline.tsx`. No new files. No exported sub-components.
 
-#### How it works
-
-```typescript
-// Split at the current playhead position
-const newClip = await clip.split()
-
-// Or split at a specific time
-const newClip = await clip.split(5.0) // split at 5 seconds
+```
+ShotTimeline (root)
+├─ state: zoom, isDraggingPlayhead, thumbnailCache
+├─ refs: containerRef, rulerCanvasRef, playheadRef, trackRef
+│
+├─ <ControlBar>          — local function, not exported
+├─ <div ruler-row>
+│   ├─ <canvas> rulerCanvas  — tick marks
+│   └─ <PlayheadHandle>      — diamond, draggable
+├─ <div tracks-area>
+│   ├─ <TrackRow type="video">
+│   │   └─ shots.map → <ShotPill>
+│   └─ <TrackRow type="audio">
+│       └─ shots.map → <ShotPill>
+└─ <div playhead-line>   — absolute, full-height, translateX via ref
 ```
 
-The framework automatically:
-- Creates a new clip from the split point to the original end
-- Trims the original clip to end at the split point
-- Inserts the new clip into the same layer
-
-#### What to build
-
-- A "Split" button (scissors icon) in the playback controls
-- On click: `await clip.split(composition.currentTime)`
-- Refresh the timeline UI to show both clips
-- Decide how splits map back to the database (create new shot records?)
-
-#### Files to touch
-
-| File | Change |
-|------|--------|
-| `CompositionProvider.tsx` | Add `splitAtPlayhead()` method to context |
-| `PlaybackControls.tsx` | Add split button |
-| `Timeline.tsx` | Update to reflect multiple clips |
+Target: **~350 lines** total (down from the current 530, despite more functionality, because the pill approach is cleaner and no inline `<style>` tag needed).
 
 ---
 
-### 3. Multi-Clip Timeline UI
+## Data Flow and Positioning
 
-**Complexity:** 🟡 Medium (~200–400 lines) — **this is the biggest piece of work**
-**Framework support:** ❌ Build it yourself
+### Computing pill positions
 
-#### Why this matters
+Each shot is assigned a start offset equal to the sum of all preceding shots' durations:
 
-The current `Timeline.tsx` just renders shot buttons from the database. To visually support trim and split, you need a real timeline where clips are draggable, resizable blocks.
+```ts
+// Computed once per shots array change
+interface ShotLayout {
+  shot: StoryboardShot
+  startSec: number   // accumulated offset
+  widthPct: number   // width as % of totalDuration
+  leftPct: number    // left offset as % of totalDuration
+}
 
-#### What to build
+function computeLayout(shots: StoryboardShot[]): ShotLayout[] {
+  let cursor = 0
+  return shots.map((shot) => {
+    const layout = {
+      shot,
+      startSec: cursor,
+      leftPct: totalDuration > 0 ? (cursor / totalDuration) * 100 : 0,
+      widthPct: totalDuration > 0 ? (shot.duration / totalDuration) * 100 : 0,
+    }
+    cursor += shot.duration
+    return layout
+  })
+}
 
-- A horizontal track area where each clip is rendered as a proportionally-sized block
-- Playhead cursor that moves with playback (driven by `currentTime`)
-- Click-to-select a clip (highlights it, enables trim/split operations)
-- Drag handles on clip edges for trimming
-- Drag-to-reorder clips within a layer
-- Time ruler with tick marks (seconds/frames)
-- Zoom in/out to adjust the time scale
-
-#### Data flow
-
-```mermaid
-graph LR
-  A["Composition.layers"] --> B["Layer.clips"]
-  B --> C["clip.start, clip.end, clip.duration"]
-  C --> D["Timeline UI blocks"]
-  D --> E["User drags/clicks"]
-  E --> F["clip.trim() / clip.split()"]
-  F --> A
+const totalDuration = shots.reduce((sum, s) => sum + s.duration, 0)
 ```
 
-The timeline reads clip positions from the Composition and renders them. User interactions call framework methods, which update the Composition, and the timeline re-renders.
+Pills are rendered with `position: absolute`, `left: layout.leftPct + "%"`, `width: layout.widthPct + "%"`. The track row is `position: relative`.
 
-#### Implementation approach
+### Zoom
 
-Option A: **Simple custom component** — render `<div>`s absolutely positioned based on `clip.start / composition.duration * trackWidth`. Handle mouse events for drag/resize. ~200-300 lines.
+Zoom multiplies the track width. At `zoom: 1`, track is `100%` of container. At `zoom: 2`, track is `200%` and the container scrolls horizontally.
 
-Option B: **Use a library** like `@dnd-kit/core` for drag-and-drop. More polished but adds a dependency.
-
----
-
-### 4. Volume / Mute / Fade Controls
-
-**Complexity:** 🟢 Low (~40–60 lines)
-**Framework support:** ✅ Native
-
-#### How it works
-
-```typescript
-clip.volume = 0.5                  // 50% volume
-clip.muted = true                  // mute toggle
-clip.fadeInDurationSeconds = 1.0   // 1 second fade in
-clip.fadeOutDurationSeconds = 0.5  // 0.5 second fade out
+```ts
+// pill left
+left: `${layout.leftPct}%`     // unchanged — percent of track width
+// track width
+width: `${zoom * 100}%`         // track div expands, container scrolls
 ```
 
-#### What to build
+The ruler canvas redraws when `zoom` changes using `requestAnimationFrame`.
 
-- Volume slider (0–100%) in `ShotDetail.tsx`
-- Mute toggle button
-- Fade in/out duration inputs
-- Persist values to database (add columns to `shots` table)
+### Playhead positioning
 
----
+Playhead `translateX` maps `currentTime → pixels`:
 
-### 5. Undo / Redo (Future)
+```ts
+// Called on every 'playback:time' event via direct DOM mutation (no re-render)
+const offset = (currentTime / effectiveDuration) * trackScrollWidth
+playheadRef.current.style.transform = `translateX(${offset}px)`
+```
 
-**Complexity:** 🔴 High (~200–300 lines)
-**Framework support:** ⚠️ Partial
-
-The framework has `createCheckpoint()` and `restoreCheckpoint()` on clips, but a full undo/redo system requires:
-- A command stack (command pattern)
-- Serializing composition state at each mutating action
-- Efficient diffing or snapshot storage
-
-This is a nice-to-have, not needed for MVP.
+`trackScrollWidth = trackRef.current.scrollWidth` — accounts for zoom.
 
 ---
 
-## Aggregate Complexity
+## Architecture Change: Multi-Clip VideoPlayer
 
-| Feature | Lines | Framework | Priority |
-|---------|-------|-----------|----------|
-| Trim | ~50–80 | ✅ Native | High |
-| Split | ~60–100 | ✅ Native | High |
-| Multi-clip Timeline UI | ~200–400 | ❌ Custom | High (prerequisite for trim/split UX) |
-| Volume / Mute / Fade | ~40–60 | ✅ Native | Medium |
-| Undo / Redo | ~200–300 | ⚠️ Partial | Low (future) |
+### Current
 
-**Total for trim + split + timeline: ~350–600 new lines**, roughly doubling the current ~500 LOC codebase.
+`VideoPlayer` props:
+```ts
+{ videoUrl: string; onTimeUpdate; onPlayStateChange; playerRef }
+```
+Loads one `VideoClip` from one URL.
 
-> [!NOTE]
-> ~80% of the effort is in the timeline UI component. The actual video operations (trim, split) are one-liner API calls. Once the timeline is built, wiring up trim and split is trivial.
+### New
+
+`VideoPlayer` props:
+```ts
+{ shots: { id: string; videoUrl: string; duration: number }[]; ... }
+```
+
+Internal change inside `VideoPlayer`:
+1. Create `new Composition(...)` with a SEQUENTIAL layer
+2. For each shot where `videoUrl` is non-empty: `Source.from(videoUrl)` → `new VideoClip(source, { position: 'center', width: '100%' })`
+3. Add all clips to the sequential layer
+4. Fire `onTimeUpdate(time, composition.duration)` on `'playback:time'`
+
+The composition's `duration` is now the sum of all loaded clips. Shots with no `videoUrl` are skipped.
+
+### Seeking to a specific shot
+
+From `StoryboardEditor`, clicking a pill calls `onSelectShot(shotId)` which:
+1. Updates `selectedShot` state (for UI highlighting)
+2. Also calls `framePreviewRef.current?.seek(shotStartSec)` where `shotStartSec` is the accumulated offset of that shot in the composition
+
+`StoryboardEditor` already knows this offset because it computed the layout. We expose this via a new handler:
+```ts
+const handleSelectShot = useCallback((shotId: string) => {
+  setSelectedShot(shotId)
+  // Find layout offset for this shot
+  const layout = computeLayout(activeScene.shots).find(l => l.shot.id === shotId)
+  if (layout) framePreviewRef.current?.seek(layout.startSec)
+}, [activeScene])
+```
+
+### Prop threading in StoryboardEditor
+
+Change line 482 in `storyboard-editor.tsx`:
+```ts
+// Before
+videoUrl={activeSimulation.video === "ready" ? activeShot.videoUrl : ""}
+
+// After — pass all scene shots with their ready state
+shots={activeScene.shots.map(s => ({
+  id: s.id,
+  videoUrl: simulationByShot[s.id]?.video === "ready" ? s.videoUrl : "",
+  duration: s.duration,
+}))}
+```
 
 ---
 
-## Key Architecture Change: Exposing Clips via Context
+## Playhead Drag Mechanics
 
-The single most important refactor is expanding `CompositionProvider` to expose clip-level operations:
+The diamond handle sits in the ruler div. It is the sole drag target.
 
-```typescript
-type CompositionContextValue = {
-  // Existing
-  composition: core.Composition | null
-  isPlaying: boolean
-  currentTime: number
-  duration: number
-  loading: boolean
-  play: () => Promise<void>
-  pause: () => Promise<void>
-  seek: (time: number) => Promise<void>
+```ts
+// On mousedown on the diamond handle:
+const handlePlayheadDragStart = (e: React.MouseEvent) => {
+  e.preventDefault()
+  const trackEl = trackRef.current
+  if (!trackEl) return
 
-  // New — clip management
-  clips: core.Clip[]
-  selectedClip: core.Clip | null
-  selectClip: (clip: core.Clip) => void
-  splitAtPlayhead: () => Promise<void>
-  trimClip: (start: number, end: number) => void
-  setVolume: (value: number) => void
-  toggleMute: () => void
+  const onMove = (ev: MouseEvent) => {
+    const rect = trackEl.getBoundingClientRect()
+    const scrollLeft = trackEl.scrollLeft
+    const x = ev.clientX - rect.left + scrollLeft
+    const clamped = Math.max(0, Math.min(x, trackEl.scrollWidth))
+    const seekTime = (clamped / trackEl.scrollWidth) * effectiveDuration
+    onSeek(seekTime)
+    // Also update playhead immediately via DOM for smoothness
+    if (playheadRef.current) {
+      playheadRef.current.style.transform = `translateX(${clamped}px)`
+    }
+  }
+
+  const onUp = () => {
+    window.removeEventListener("mousemove", onMove)
+    window.removeEventListener("mouseup", onUp)
+  }
+
+  window.addEventListener("mousemove", onMove)
+  window.addEventListener("mouseup", onUp)
 }
 ```
 
-This keeps the existing pattern (context provider wraps all diffusionstudio/core interactions) and lets UI components consume clip operations without directly importing the framework.
+Click-to-seek on the ruler (not the diamond) also works — same math, no drag state needed.
 
 ---
 
-## Database Schema Changes (When Ready)
+## Ruler Drawing
 
-```sql
--- Add to shots table
-ALTER TABLE shots ADD COLUMN trim_start REAL;
-ALTER TABLE shots ADD COLUMN trim_end REAL;
-ALTER TABLE shots ADD COLUMN volume REAL DEFAULT 1.0;
-ALTER TABLE shots ADD COLUMN muted BOOLEAN DEFAULT false;
-ALTER TABLE shots ADD COLUMN fade_in REAL DEFAULT 0;
-ALTER TABLE shots ADD COLUMN fade_out REAL DEFAULT 0;
+The ruler is a `<canvas>` painted via a `useEffect` that reruns when `zoom` or `totalDuration` changes. Drawing happens with `requestAnimationFrame`.
+
+```ts
+function drawRuler(canvas: HTMLCanvasElement, totalDuration: number, zoom: number) {
+  const ctx = canvas.getContext("2d")!
+  const dpr = window.devicePixelRatio ?? 1
+  const w = canvas.clientWidth * zoom
+  const h = canvas.clientHeight
+
+  canvas.width = w * dpr
+  canvas.height = h * dpr
+  ctx.scale(dpr, dpr)
+
+  ctx.clearRect(0, 0, w, h)
+
+  // Adaptive tick interval based on zoom and totalDuration
+  const pxPerSec = (canvas.clientWidth * zoom) / totalDuration
+  const majorInterval = pxPerSec >= 80 ? 1 : pxPerSec >= 40 ? 2 : pxPerSec >= 20 ? 5 : 10
+  const minorInterval = majorInterval / 5  // may be fractional — skip if < 1s
+
+  ctx.fillStyle = "#0D0E14"
+  ctx.fillRect(0, 0, w, h)
+
+  for (let t = 0; t <= totalDuration; t += minorInterval) {
+    const x = (t / totalDuration) * w
+    const isMajor = Number.isInteger(t / majorInterval)
+
+    ctx.beginPath()
+    ctx.moveTo(x, h)
+    ctx.lineTo(x, isMajor ? h - 10 : h - 5)
+    ctx.strokeStyle = isMajor ? "#777076" : "#404556"
+    ctx.lineWidth = 1
+    ctx.stroke()
+
+    if (isMajor) {
+      ctx.fillStyle = "#777076"
+      ctx.font = "9px system-ui, sans-serif"
+      ctx.fillText(formatTime(t), x + 3, h - 12)
+    }
+  }
+}
 ```
 
-Or in Drizzle:
+The canvas width is set to `containerWidth * zoom` and the container `overflow-x: auto` scrolls it. This keeps the ruler pixel-perfectly aligned with the track pills beneath it.
 
-```typescript
-// db/schema.ts additions to shots table
-trimStart: real('trim_start'),
-trimEnd: real('trim_end'),
-volume: real('volume').default(1.0),
-muted: boolean('muted').default(false),
-fadeIn: real('fade_in').default(0),
-fadeOut: real('fade_out').default(0),
+---
+
+## Thumbnail Strategy
+
+- Extract ONE thumbnail per pill (the midpoint frame of each shot)
+- Use `source.thumbnailsInRange({ start: midpoint, end: midpoint + 0.1, count: 1, width: 200, height: 80 })`
+- Cache by `shot.id` in a `useRef<Map<string, string>>` (same as current)
+- Apply as `backgroundImage` on the pill via direct DOM update to avoid re-renders
+- Only fire for shots with a `videoUrl` — skip the rest
+
+This is exactly what the current implementation does. No change needed here, just the pill selection ring fix.
+
+---
+
+## Interaction Model
+
+| Action | Result |
+|--------|--------|
+| Click a video pill | `onSelectShot(shotId)` → highlights pill, seeks composition to shot start |
+| Click the audio pill | Same as clicking the corresponding video pill (same `shotId`) |
+| Click ruler (not handle) | Seeks to clicked time position |
+| Drag playhead diamond | Seeks continuously while dragging |
+| Space key | Play / pause (wired in the control bar) |
+| Zoom slider | Scales both ruler and track width, scrolls horizontally |
+| FIT button | Resets zoom to 1 |
+
+---
+
+## Props Interface (unchanged from current, except VideoPlayer)
+
+`ShotTimeline` props stay the same — this is important because `StoryboardEditor` already passes these:
+
+```ts
+interface ShotTimelineProps {
+  shots: StoryboardShot[]          // all shots for active scene
+  selectedShot: string | null      // highlighted pill
+  sceneNumber: number
+  onSelectShot: (shotId: string) => void
+  currentTime: number              // from composition 'playback:time'
+  totalDuration: number            // from composition.duration
+  isPlaying: boolean
+  onPlayPause: () => void
+  onSeek: (seconds: number) => void
+}
 ```
+
+Only `VideoPlayer` changes its props (see architecture section above).
+
+---
+
+## Files to Touch
+
+| File | Change |
+|------|--------|
+| `shot-timeline.tsx` | Full rewrite — ruler + two tracks + new playhead |
+| `video-player.tsx` | Accept `shots[]` instead of single `videoUrl`, build sequential composition |
+| `frame-preview.tsx` | Pass `shots[]` prop down to `VideoPlayer` instead of `videoUrl` |
+| `storyboard-editor.tsx` | Pass all scene shots to `FramePreview`, update `handleSelectShot` to seek |
+| `storyboard-types.ts` | No changes needed |
+
+---
+
+## Implementation Order
+
+1. **Fix the pill ring bug first** — swap `border: transparent` for `boxShadow: inset` in the current code. One-line change, immediately visible.
+
+2. **Rewrite `ShotTimeline`** — new two-track layout, ruler, playhead. Use `shot.duration` for pill widths. `currentTime` and `totalDuration` props stay the same — the component doesn't care if they come from a single-clip or multi-clip composition.
+
+3. **Refactor `VideoPlayer`** — change `videoUrl: string` → `shots: ShotInput[]`. The SEQUENTIAL layer means the composition naturally plays all clips end-to-end. The `duration` emitted to `onTimeUpdate` is now the full scene duration.
+
+4. **Thread the changes up** — update `FramePreview` → `StoryboardEditor`. Update `handleSelectShot` in the editor to also seek.
+
+5. **Test** — with no videos, with some videos, with all videos. Verify the playhead tracks, pills highlight correctly, zoom works.
+
+---
+
+## What We Are NOT Building (Descoped)
+
+| Feature | Reason |
+|---------|--------|
+| Audio waveforms | Requires `audioSource.decode()` which is async and expensive per clip. Static placeholder pattern for now. |
+| Clip trimming | Drag handles on pill edges. Deferred — no `clip.trim()` integration yet. |
+| Clip splitting | SPLIT button is already a placeholder. Wire up `clip.split()` separately. |
+| Drag-to-reorder clips | Requires `layer.relocate()`. Deferred. |
+| Undo / redo | Requires command stack. Deferred. |
+| Speed control | Permanently descoped. WebCodecs does not support rate changes. |
+
+---
+
+## Line Count Target
+
+| Section | Est. Lines |
+|---------|-----------|
+| Imports + types | 20 |
+| `formatTime` util | 8 |
+| `computeLayout` util | 15 |
+| `drawRuler` function | 40 |
+| `thumbnailExtract` function | 18 |
+| `ShotTimeline` component state + refs + effects | 80 |
+| `ControlBar` local component | 50 |
+| Ruler + playhead render | 40 |
+| Video track row render | 40 |
+| Audio track row render | 30 |
+| `ShotPill` local component | 45 |
+| **Total** | **~386 lines** |
+
+This is 30% shorter than the current 530-line implementation while delivering more functionality.

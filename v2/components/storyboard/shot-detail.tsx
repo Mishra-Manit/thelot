@@ -2,20 +2,11 @@
 
 import { useRef, useEffect, useCallback, useState, useLayoutEffect } from "react"
 import {
-  Clock,
-  Clapperboard,
-  Brain,
-  Camera,
-  Play,
-  Image as ImageIcon,
   Minus,
   Plus,
-  Eye,
-  EyeOff,
-  Sparkles,
 } from "lucide-react"
-import type { LucideIcon } from "lucide-react"
 import type { StoryboardShot, StoryboardShotUpdateInput } from "@/lib/storyboard-types"
+import { FrameCard } from "./frame-preview"
 
 const MIN_DURATION_SECONDS = 1
 const MAX_DURATION_SECONDS = 30
@@ -25,6 +16,7 @@ interface ShotDetailProps {
   shot: StoryboardShot
   sceneNumber: number
   shotIndex: number
+  startFrameImageUrl: string
   onUpdate: (field: keyof StoryboardShotUpdateInput, value: string | number) => void
   widthPct?: number
   onGenerateVideo: () => void
@@ -88,45 +80,19 @@ function AutoTextarea({
 
 /* ─── Editor block ─── */
 function EditorBlock({
-  accentColor,
-  icon: Icon,
-  label,
   children,
   marginBottom = 12,
   marginTop = 0,
-  showLabelRow = true,
 }: {
-  accentColor: string
-  icon: LucideIcon
-  label: string
   children: React.ReactNode
   marginBottom?: number
   marginTop?: number
-  showLabelRow?: boolean
 }) {
   return (
     <div className="group" style={{ marginBottom: `${marginBottom}px`, marginTop: `${marginTop}px` }}>
       <div className="transition-colors duration-150 rounded-md">
-        {/* Label row */}
-        <div 
-          className={`flex items-center gap-1.5 mb-1.5 opacity-0 transition-opacity duration-150 ${
-            showLabelRow ? "group-hover:opacity-100 group-focus-within:opacity-100" : ""
-          }`}
-          aria-hidden={!showLabelRow}
-        >
-          <Icon size={12} style={{ color: accentColor }} />
-          <span
-            style={{
-              fontSize: "10px",
-              letterSpacing: "0.08em",
-              fontWeight: 600,
-              color: accentColor,
-              textTransform: "uppercase",
-            }}
-          >
-            {label}
-          </span>
-        </div>
+        {/* Preserve label-row spacing after label removal */}
+        <div className="mb-1.5 h-3" aria-hidden="true" />
         {children}
       </div>
     </div>
@@ -138,19 +104,11 @@ function ShotDetailHeader({
   shotIndex,
   duration,
   onDurationChange,
-  enableHoverLabels,
-  onToggleHoverLabels,
-  isAdvancedMode,
-  onToggleAdvancedMode,
 }: {
   sceneNumber: number
   shotIndex: number
   duration: number
   onDurationChange: (nextValue: number) => void
-  enableHoverLabels: boolean
-  onToggleHoverLabels: () => void
-  isAdvancedMode: boolean
-  onToggleAdvancedMode: () => void
 }) {
   return (
     <div className="flex items-center justify-between mb-4">
@@ -219,54 +177,18 @@ function ShotDetailHeader({
             <Plus size={10} />
           </button>
         </div>
-
-        <span style={{ color: "#696969", fontSize: "12px" }}>&middot;</span>
-        <button
-          type="button"
-          onClick={onToggleAdvancedMode}
-          className="flex items-center gap-1.5 rounded transition-all duration-150 hover:bg-[#222222]"
-          style={{
-            color: isAdvancedMode ? "#eeeeee" : "#888888",
-            fontSize: "10px",
-            fontWeight: 600,
-            textTransform: "uppercase",
-            letterSpacing: "0.05em",
-            padding: "4px 8px",
-            border: "1px solid transparent",
-            background: isAdvancedMode ? "#222222" : "transparent"
-          }}
-        >
-          <Sparkles size={12} />
-          <span>Advanced AI Editing</span>
-        </button>
       </div>
       
-      <button
-        type="button"
-        onClick={onToggleHoverLabels}
-        className="flex items-center gap-1.5 rounded transition-all duration-150 hover:bg-[#222222]"
-        style={{
-          color: enableHoverLabels ? "#888888" : "#444444",
-          fontSize: "10px",
-          fontWeight: 600,
-          textTransform: "uppercase",
-          letterSpacing: "0.05em",
-          padding: "4px 8px",
-          border: "1px solid transparent",
-        }}
-        aria-label="Toggle hover labels"
-      >
-        {enableHoverLabels ? <Eye size={12} /> : <EyeOff size={12} />}
-        <span>Labels</span>
-      </button>
     </div>
   )
 }
 
 function ShotDetailEditor({
   shot,
+  sceneNumber,
+  shotIndex,
+  startFrameImageUrl,
   onUpdate,
-  enableHoverLabels,
   onGenerateVideo,
   canGenerateVideo,
   isVideoLoading,
@@ -277,8 +199,10 @@ function ShotDetailEditor({
   areFramesReady,
 }: {
   shot: StoryboardShot
+  sceneNumber: number
+  shotIndex: number
+  startFrameImageUrl: string
   onUpdate: (field: keyof StoryboardShotUpdateInput, value: string | number) => void
-  enableHoverLabels: boolean
   onGenerateVideo: () => void
   canGenerateVideo: boolean
   isVideoLoading: boolean
@@ -288,6 +212,8 @@ function ShotDetailEditor({
   isFramesLoading: boolean
   areFramesReady: boolean
 }) {
+  const [isStartFrameHover, setIsStartFrameHover] = useState(false)
+
   return (
     <>
       {/* Shot title */}
@@ -332,7 +258,7 @@ function ShotDetailEditor({
       </div>
 
       {/* Block 1 — ACTION */}
-      <EditorBlock accentColor="#696969" icon={Clapperboard} label="Action" marginBottom={20} showLabelRow={enableHoverLabels}>
+      <EditorBlock marginBottom={20}>
         <AutoTextarea
           value={shot.action}
           onChange={(v) => onUpdate("action", v)}
@@ -346,7 +272,7 @@ function ShotDetailEditor({
       </EditorBlock>
 
       {/* Block 2 — INTERNAL MONOLOGUE */}
-      <EditorBlock accentColor="#575757" icon={Brain} label="Internal Monologue" marginBottom={0} marginTop={-16} showLabelRow={enableHoverLabels}>
+      <EditorBlock marginBottom={0} marginTop={-16}>
         <div
           style={{
             width: "60%",
@@ -381,7 +307,7 @@ function ShotDetailEditor({
       </EditorBlock>
 
       {/* Block 3 — CAMERA NOTES */}
-      <EditorBlock accentColor="#696969" icon={Camera} label="Camera Notes" marginBottom={0} showLabelRow={enableHoverLabels}>
+      <EditorBlock marginBottom={0}>
         <PromptBox
           value={shot.cameraNotes}
           onChange={(v) => onUpdate("cameraNotes", v)}
@@ -391,7 +317,7 @@ function ShotDetailEditor({
       </EditorBlock>
 
       {/* Start Frame prompt */}
-      <EditorBlock accentColor="#696969" icon={ImageIcon} label="Start Frame" marginBottom={6} showLabelRow={enableHoverLabels}>
+      <EditorBlock marginBottom={6}>
         <PromptBox
           value={shot.startFramePrompt}
           onChange={(v) => onUpdate("startFramePrompt", v)}
@@ -399,8 +325,24 @@ function ShotDetailEditor({
         />
       </EditorBlock>
 
+      <EditorBlock marginBottom={10}>
+        <div className="flex" style={{ height: "200px" }}>
+          <FrameCard
+            label="[START FRAME]"
+            sublabel={`S${sceneNumber}.${shotIndex}`}
+            hover={isStartFrameHover}
+            onHover={setIsStartFrameHover}
+            prompt={shot.startFramePrompt}
+            imageUrl={startFrameImageUrl}
+            isLoading={isFramesLoading}
+            isReady={areFramesReady}
+            onGenerate={onGenerateFrames}
+          />
+        </div>
+      </EditorBlock>
+
       {/* End Frame prompt */}
-      <EditorBlock accentColor="#7A7A7A" icon={Play} label="End Frame" marginBottom={8} showLabelRow={enableHoverLabels}>
+      <EditorBlock marginBottom={8}>
         <PromptBox
           value={shot.videoPrompt}
           onChange={(v) => onUpdate("videoPrompt", v)}
@@ -464,6 +406,7 @@ export function ShotDetail({
   shot,
   sceneNumber,
   shotIndex,
+  startFrameImageUrl,
   onUpdate,
   widthPct = 50,
   onGenerateVideo,
@@ -475,9 +418,6 @@ export function ShotDetail({
   isFramesLoading,
   areFramesReady,
 }: ShotDetailProps) {
-  const [enableHoverLabels, setEnableHoverLabels] = useState(true)
-  const [isAdvancedMode, setIsAdvancedMode] = useState(false)
-
   const clampedDuration = Math.min(
     MAX_DURATION_SECONDS,
     Math.max(MIN_DURATION_SECONDS, Math.round(shot.duration))
@@ -511,50 +451,23 @@ export function ShotDetail({
           shotIndex={shotIndex}
           duration={clampedDuration}
           onDurationChange={handleDurationChange}
-          enableHoverLabels={enableHoverLabels}
-          onToggleHoverLabels={() => setEnableHoverLabels(prev => !prev)}
-          isAdvancedMode={isAdvancedMode}
-          onToggleAdvancedMode={() => setIsAdvancedMode(prev => !prev)}
         />
 
-        {!isAdvancedMode ? (
-          <ShotDetailEditor 
-            shot={shot}
-            onUpdate={onUpdate}
-            enableHoverLabels={enableHoverLabels}
-            onGenerateVideo={onGenerateVideo}
-            canGenerateVideo={canGenerateVideo}
-            isVideoLoading={isVideoLoading}
-            isVideoReady={isVideoReady}
-            onGenerateFrames={onGenerateFrames}
-            canGenerateFrames={canGenerateFrames}
-            isFramesLoading={isFramesLoading}
-            areFramesReady={areFramesReady}
-          />
-        ) : (
-          <div className="flex-1 w-full min-h-[500px]" style={{ background: "#000000" }}>
-            <div className="grid grid-cols-2 gap-3 p-4">
-              {["Shot List", "Voice Generation", "Media Library", "Lip Sync"].map((label) => (
-                <div
-                  key={label}
-                  className="rounded-md flex items-center justify-center"
-                  style={{
-                    minHeight: "120px",
-                    background: "#0D0E14",
-                    border: "1px solid #252933",
-                    color: "#D9D9D9",
-                    fontSize: "12px",
-                    fontWeight: 600,
-                    letterSpacing: "0.04em",
-                    textTransform: "uppercase",
-                  }}
-                >
-                  {label}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        <ShotDetailEditor 
+          shot={shot}
+          sceneNumber={sceneNumber}
+          shotIndex={shotIndex}
+          startFrameImageUrl={startFrameImageUrl}
+          onUpdate={onUpdate}
+          onGenerateVideo={onGenerateVideo}
+          canGenerateVideo={canGenerateVideo}
+          isVideoLoading={isVideoLoading}
+          isVideoReady={isVideoReady}
+          onGenerateFrames={onGenerateFrames}
+          canGenerateFrames={canGenerateFrames}
+          isFramesLoading={isFramesLoading}
+          areFramesReady={areFramesReady}
+        />
       </div>
     </div>
   )

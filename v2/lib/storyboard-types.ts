@@ -34,3 +34,18 @@ export type StoryboardShotUpdateInput = Partial<{
   endFramePrompt: string
   videoPrompt: string
 }>
+
+// Input type for VideoPlayer multi-clip composition
+export interface ShotInput {
+  id: string
+  videoUrl: string
+  duration: number
+}
+
+// Layout info for timeline pill positioning
+export interface ShotLayout {
+  shot: StoryboardShot
+  startSec: number
+  leftPct: number
+  widthPct: number
+}

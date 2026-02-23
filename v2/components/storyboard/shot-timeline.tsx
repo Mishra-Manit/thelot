@@ -90,7 +90,7 @@ async function extractThumbnail(videoUrl: string, duration: number): Promise<str
       width: 200,
       height: 80,
     })) {
-      if (frame) return frame.canvas.toDataURL()
+      if (frame) return (frame.canvas as HTMLCanvasElement).toDataURL()
     }
     return null
   } catch {

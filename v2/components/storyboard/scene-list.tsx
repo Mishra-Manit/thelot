@@ -24,23 +24,6 @@ interface SceneListProps {
   onToggleCollapse: () => void
 }
 
-function getShotPreviewImage(sceneNumber: number, shotNumber: number, version?: number): string {
-  const base = `/storyboard/shots/scene-${String(sceneNumber).padStart(2, "0")}-shot-${String(
-    shotNumber
-  ).padStart(2, "0")}-start.png`
-  return version ? `${base}?v=${version}` : base
-}
-
-function getScenePreviewImage(
-  sceneNumber: number,
-  firstShotNumber: number,
-  version?: number
-): string {
-  const base = `/storyboard/shots/scene-${String(sceneNumber).padStart(2, "0")}-shot-${String(
-    firstShotNumber
-  ).padStart(2, "0")}-start.png`
-  return version ? `${base}?v=${version}` : base
-}
 
 export function SceneList({
   scenes,
@@ -277,21 +260,12 @@ export function SceneList({
                       (sum, s) => sum + s.duration,
                       0
                     )
-                    const firstShot = scene.shots[0]
-                    const firstShotNumber = firstShot?.number ?? 1
-                    const firstShotVersion = firstShot ? frameVersionByShot[firstShot.id] : undefined
-                    const previewImage = getScenePreviewImage(
-                      scene.number,
-                      firstShotNumber,
-                      firstShotVersion
-                    )
                     return (
                       <button
                         key={scene.id}
-                        className="flex rounded-lg transition-colors duration-150 text-left"
+                        className="flex flex-col rounded-lg transition-colors duration-150 text-left px-3 py-2"
                         style={{
                           background: "#111111",
-                          minHeight: "90px",
                         }}
                         onMouseEnter={(e) =>
                           (e.currentTarget.style.background = "#232323")
@@ -301,40 +275,12 @@ export function SceneList({
                         }
                         onClick={() => onSelectScene(scene.id)}
                       >
-                        <div
-                          className="flex items-center justify-center shrink-0"
-                          style={{
-                            width: "28px",
-                            fontSize: "11px",
-                            color: "#696969",
-                          }}
-                        >
-                          {scene.number}
-                        </div>
-                        <div className="flex flex-col flex-1 py-2 pr-2 gap-1.5">
-                          <div
-                            className="w-full rounded-md relative overflow-hidden"
-                            style={{
-                              background: "#232323",
-                              aspectRatio: "16/9",
-                            }}
-                          >
-                            <img
-                              src={previewImage}
-                              alt={`Scene ${scene.number} preview`}
-                              className="absolute inset-0 h-full w-full object-cover"
-                              onError={(e) => {
-                                e.currentTarget.style.display = "none"
-                              }}
-                            />
-                          </div>
-                          <span style={{ fontSize: "11px", color: "#D9D9D9" }}>
-                            {scene.title}
-                          </span>
-                          <span style={{ fontSize: "10px", color: "#696969" }}>
-                            {scene.shots.length} shots &middot; {totalDuration}s
-                          </span>
-                        </div>
+                        <span style={{ fontSize: "11px", color: "#D9D9D9" }}>
+                          {scene.number}. {scene.title}
+                        </span>
+                        <span style={{ fontSize: "12px", color: "#696969" }}>
+                          {scene.shots.length} shots &middot; {totalDuration}s
+                        </span>
                       </button>
                     )
                   })}
@@ -406,17 +352,11 @@ export function SceneList({
                 <div className="flex-1 overflow-y-auto px-3 flex flex-col gap-1.5 pb-2">
                   {activeScene.shots.map((shot) => {
                     const isSelected = selectedShot === shot.id
-                    const previewImage = getShotPreviewImage(
-                      activeScene.number,
-                      shot.number,
-                      frameVersionByShot[shot.id]
-                    )
                     return (
                       <button
                         key={shot.id}
-                        className="flex items-center gap-2 rounded-md transition-colors duration-150 text-left relative"
+                        className="flex flex-col rounded-md transition-colors duration-150 text-left relative px-3 py-2"
                         style={{
-                          padding: "6px",
                           background: isSelected ? "#111111" : "transparent",
                           border: isSelected ? "1px solid #232323" : "1px solid transparent",
                           borderLeft: isSelected ? "3px solid #696969" : "1px solid transparent",
@@ -431,48 +371,29 @@ export function SceneList({
                         }}
                         onClick={() => onSelectShot(shot.id)}
                       >
-                        <div
-                          className="rounded-md shrink-0 relative overflow-hidden"
+                        <span
                           style={{
-                            width: "56px",
-                            height: "36px",
-                            background: "#232323",
+                            fontSize: "11px",
+                            color: isSelected ? "#ffffff" : "#D9D9D9",
                           }}
                         >
-                          <img
-                            src={previewImage}
-                            alt={`Shot ${shot.number} preview`}
-                            className="absolute inset-0 h-full w-full object-cover"
-                            onError={(e) => {
-                              e.currentTarget.style.display = "none"
-                            }}
-                          />
-                        </div>
-                        <div className="flex flex-col gap-0.5 min-w-0">
                           <span
                             style={{
-                              fontSize: "11px",
-                              color: isSelected ? "#ffffff" : "#D9D9D9",
+                              color: isSelected ? "#FFFFFF" : "#696969",
+                              marginRight: "4px",
                             }}
                           >
-                            <span
-                              style={{
-                                color: isSelected ? "#FFFFFF" : "#696969",
-                                marginRight: "4px",
-                              }}
-                            >
-                              {shot.number}.
-                            </span>
-                            {shot.title}
+                            {shot.number}.
                           </span>
-                          <span
-                            className="flex items-center gap-1"
-                            style={{ fontSize: "10px", color: "#696969" }}
-                          >
-                            <Clock size={10} />
-                            {shot.duration}s
-                          </span>
-                        </div>
+                          {shot.title}
+                        </span>
+                        <span
+                          className="flex items-center gap-1"
+                          style={{ fontSize: "12px", color: "#696969" }}
+                        >
+                          <Clock size={14} />
+                          {shot.duration}s
+                        </span>
                       </button>
                     )
                   })}
