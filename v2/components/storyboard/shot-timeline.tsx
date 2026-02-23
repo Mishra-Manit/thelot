@@ -289,6 +289,7 @@ export function ShotTimeline({
             fontWeight: 600,
             letterSpacing: "0.04em",
             cursor: "not-allowed",
+            transform: `translateY(${ZOOM_CONTROLS_Y_OFFSET}px)`,
           }}
           aria-disabled="true"
           onMouseEnter={(e) => {
@@ -310,7 +311,7 @@ export function ShotTimeline({
             background: "#1C1C1E",
             padding: "4px 14px",
             zIndex: 50,
-            transform: "translate(-50%, 0)" // Center horizontally, keep vertical flow
+            transform: `translate(-50%, ${ZOOM_CONTROLS_Y_OFFSET}px)`,
           }}
         >
           <span style={{ fontSize: "13px", color: "#FFFFFF", fontVariantNumeric: "tabular-nums", fontWeight: 400 }}>
@@ -465,16 +466,21 @@ export function ShotTimeline({
           {/* Scrollable Timeline Content */}
           <div 
             ref={scrollRef}
-            className="flex-1 min-w-0 overflow-x-auto relative"
+            className="flex-1 min-w-0 overflow-x-auto relative flex"
             style={{
               scrollbarWidth: "thin",
               scrollbarColor: "#404556 #000000",
-              paddingRight: `${TIMELINE_RIGHT_PADDING}px`,
             }}
             onClick={handleSeekClick}
           >
-            {/* Content wrapper with zoom width */}
-            <div style={{ width: `${zoom * 100}%`, minWidth: "100%", position: "relative" }}>
+            {/* Content wrapper with exact zoom width */}
+            <div 
+              className="shrink-0"
+              style={{ 
+                width: `${timelineViewportWidth * zoom}px`, 
+                position: "relative" 
+              }}
+            >
               {/* Ruler Row - Opus Clip style */}
               <div
                 className="relative flex items-center"
@@ -654,6 +660,12 @@ export function ShotTimeline({
                 />
               </div>
             </div>
+
+            {/* Spacer to preserve right padding */}
+            <div 
+              className="shrink-0" 
+              style={{ width: `${TIMELINE_RIGHT_PADDING}px` }} 
+            />
           </div>
         </div>
       )}

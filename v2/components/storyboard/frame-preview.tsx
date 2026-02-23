@@ -67,18 +67,6 @@ export const FramePreview = forwardRef<FramePreviewHandle, FramePreviewProps>(
         <div className="flex flex-col flex-1 min-h-0" style={{ padding: "12px 12px 4px 12px" }}>
           {/* AI Tools Section */}
           <div className="flex flex-col gap-4 mb-4">
-            <div className="flex items-center px-1">
-              <span
-                style={{
-                  fontSize: "14px",
-                  color: "#ffffff",
-                  fontWeight: 600,
-                  letterSpacing: "0.01em",
-                }}
-              >
-                Tools
-              </span>
-            </div>
             <div className="grid grid-cols-2 gap-4">
               {[
                 {
