@@ -24,6 +24,7 @@ import type {
 } from "@/lib/storyboard-types"
 
 const MIN_DURATION_SECONDS = 1
+const MAX_DURATION_SECONDS = 30
 const MIN_LEFT_PCT = 30
 const MAX_LEFT_PCT = 70
 const MIN_MOVIE_LEFT_PCT = 20
@@ -32,7 +33,6 @@ const MIN_TIMELINE_PCT = 16
 const MAX_TIMELINE_PCT = 42
 const SIMULATION_DELAY_MS = 3000
 const TIMELINE_UI_UPDATE_INTERVAL_MS = 1000 / 24
-const SIMULATION_STORAGE_KEY = "thelot-simulation-v1"
 const SIMULATION_SEED_PCT = 0.37
 
 type SimulationTimerKey = "frames" | "video" | "voice" | "lipsync"
@@ -63,6 +63,22 @@ function buildSeedSimulation(
   )
 }
 
+function buildSimulationFromShots(scenes: StoryboardScene[]): Record<string, ShotSimulationState> {
+  const allShots = scenes.flatMap((s) => s.shots)
+  return Object.fromEntries(
+    allShots.map((shot) => [
+      shot.id,
+      {
+        frames: shot.framesStatus ?? "idle",
+        video: shot.videoStatus ?? "idle",
+        approved: shot.approved ?? false,
+        voice: shot.voiceStatus ?? "idle",
+        lipsync: shot.lipsyncStatus ?? "idle",
+      },
+    ])
+  )
+}
+
 function createShotImagePath(sceneNumber: number, shotNumber: number, kind: "start" | "end") {
   return `/storyboard/shots/scene-${String(sceneNumber).padStart(2, "0")}-shot-${String(
     shotNumber
@@ -76,10 +92,9 @@ interface StoryboardEditorProps {
 export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
   const [scenes, setScenes] = useState(initialScenes)
   const [durationDisplayByShot, setDurationDisplayByShot] = useState<Record<string, number>>({})
-  const [fixedDurationByShot, setFixedDurationByShot] = useState<Record<string, number>>({})
   const [, startTransition] = useTransition()
   const [simulationByShot, setSimulationByShot] = useState<Record<string, ShotSimulationState>>(
-    () => buildSeedSimulation(initialScenes, SIMULATION_SEED_PCT)
+    () => buildSimulationFromShots(initialScenes)
   )
   const [frameVersionByShot, setFrameVersionByShot] = useState<Record<string, number>>({})
   const [activeStepByShot, setActiveStepByShot] = useState<Record<string, WorkflowStep>>({})
@@ -115,7 +130,7 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
   const activeScene = scenes.find((s) => s.id === selectedScene)
   const activeShot = activeScene?.shots.find((s) => s.id === selectedShot)
   const activeDurationDisplay = activeShot
-    ? durationDisplayByShot[activeShot.id] ?? fixedDurationByShot[activeShot.id] ?? activeShot.duration
+    ? durationDisplayByShot[activeShot.id] ?? activeShot.duration
     : MIN_DURATION_SECONDS
   const activeSimulation = selectedShot
     ? simulationByShot[selectedShot] ?? DEFAULT_SIMULATION_STATE
@@ -197,22 +212,30 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
     return () => clearAllSimulationTimers()
   }, [clearAllSimulationTimers])
 
-  // Restore simulation state from localStorage on mount (client-only).
-  // Falls back to the seeded 37% state if no entry exists.
   useEffect(() => {
-    const stored = localStorage.getItem(SIMULATION_STORAGE_KEY)
-    if (!stored) return
-    try {
-      setSimulationByShot(JSON.parse(stored) as Record<string, ShotSimulationState>)
-    } catch {
-      // Corrupt data — keep the seeded state
-    }
-  }, [])
+    setSimulationByShot(buildSimulationFromShots(scenes))
+  }, [scenes])
 
-  // Persist simulation state to localStorage on every change.
-  useEffect(() => {
-    localStorage.setItem(SIMULATION_STORAGE_KEY, JSON.stringify(simulationByShot))
-  }, [simulationByShot])
+  const applySimulationSeed = useCallback((seed: Record<string, ShotSimulationState>) => {
+    setSimulationByShot(seed)
+    setScenes((prev) =>
+      prev.map((scene) => ({
+        ...scene,
+        shots: scene.shots.map((shot) => {
+          const sim = seed[shot.id]
+          if (!sim) return shot
+          return {
+            ...shot,
+            framesStatus: sim.frames,
+            videoStatus: sim.video,
+            voiceStatus: sim.voice,
+            lipsyncStatus: sim.lipsync,
+            approved: sim.approved,
+          }
+        }),
+      }))
+    )
+  }, [])
 
   const updateSimulationState = useCallback(
     (shotId: string, patch: Partial<ShotSimulationState>) => {
@@ -223,8 +246,41 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
           ...patch,
         },
       }))
+
+      setScenes((prev) =>
+        prev.map((scene) => ({
+          ...scene,
+          shots: scene.shots.map((shot) => {
+            if (shot.id !== shotId) return shot
+            return {
+              ...shot,
+              framesStatus: patch.frames ?? shot.framesStatus,
+              videoStatus: patch.video ?? shot.videoStatus,
+              voiceStatus: patch.voice ?? shot.voiceStatus,
+              lipsyncStatus: patch.lipsync ?? shot.lipsyncStatus,
+              approved: patch.approved ?? shot.approved,
+            }
+          }),
+        }))
+      )
+
+      const dataPatch: StoryboardShotUpdateInput = {}
+      if (patch.frames !== undefined) dataPatch.framesStatus = patch.frames
+      if (patch.video !== undefined) dataPatch.videoStatus = patch.video
+      if (patch.voice !== undefined) dataPatch.voiceStatus = patch.voice
+      if (patch.lipsync !== undefined) dataPatch.lipsyncStatus = patch.lipsync
+      if (patch.approved !== undefined) dataPatch.approved = patch.approved
+      if (Object.keys(dataPatch).length === 0) return
+
+      startTransition(async () => {
+        try {
+          await updateShotAction({ shotId, ...dataPatch })
+        } catch (error) {
+          console.error("Failed to persist simulation update:", error)
+        }
+      })
     },
-    []
+    [startTransition]
   )
 
   const handleGenerateFrames = useCallback(
@@ -239,18 +295,11 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
       clearSimulationTimer(targetShotId, "video")
       updateSimulationState(targetShotId, { frames: "loading", video: "idle" })
 
-      const timerId = window.setTimeout(() => {
-        setFrameVersionByShot((prev) => ({ ...prev, [targetShotId]: Date.now() }))
-        setSimulationByShot((prev) => ({
-          ...prev,
-          [targetShotId]: {
-            ...(prev[targetShotId] ?? DEFAULT_SIMULATION_STATE),
-            frames: "ready",
-            video: "idle",
-          },
-        }))
-        delete simulationTimersRef.current[targetShotId]?.frames
-      }, SIMULATION_DELAY_MS)
+    const timerId = window.setTimeout(() => {
+      setFrameVersionByShot((prev) => ({ ...prev, [targetShotId]: Date.now() }))
+      updateSimulationState(targetShotId, { frames: "ready", video: "idle" })
+      delete simulationTimersRef.current[targetShotId]?.frames
+    }, SIMULATION_DELAY_MS)
 
       simulationTimersRef.current[targetShotId] = {
         ...(simulationTimersRef.current[targetShotId] ?? {}),
@@ -272,16 +321,10 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
       clearSimulationTimer(targetShotId, "video")
       updateSimulationState(targetShotId, { video: "loading" })
 
-      const timerId = window.setTimeout(() => {
-        setSimulationByShot((prev) => ({
-          ...prev,
-          [targetShotId]: {
-            ...(prev[targetShotId] ?? DEFAULT_SIMULATION_STATE),
-            video: "ready",
-          },
-        }))
-        delete simulationTimersRef.current[targetShotId]?.video
-      }, SIMULATION_DELAY_MS)
+    const timerId = window.setTimeout(() => {
+      updateSimulationState(targetShotId, { video: "ready" })
+      delete simulationTimersRef.current[targetShotId]?.video
+    }, SIMULATION_DELAY_MS)
 
       simulationTimersRef.current[targetShotId] = {
         ...(simulationTimersRef.current[targetShotId] ?? {}),
@@ -313,13 +356,7 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
 
     const targetShotId = selectedShot
     const timerId = window.setTimeout(() => {
-      setSimulationByShot((prev) => ({
-        ...prev,
-        [targetShotId]: {
-          ...(prev[targetShotId] ?? DEFAULT_SIMULATION_STATE),
-          voice: "ready",
-        },
-      }))
+      updateSimulationState(targetShotId, { voice: "ready" })
       delete simulationTimersRef.current[targetShotId]?.voice
     }, SIMULATION_DELAY_MS)
 
@@ -339,13 +376,7 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
 
     const targetShotId = selectedShot
     const timerId = window.setTimeout(() => {
-      setSimulationByShot((prev) => ({
-        ...prev,
-        [targetShotId]: {
-          ...(prev[targetShotId] ?? DEFAULT_SIMULATION_STATE),
-          lipsync: "ready",
-        },
-      }))
+      updateSimulationState(targetShotId, { lipsync: "ready" })
       delete simulationTimersRef.current[targetShotId]?.lipsync
     }, SIMULATION_DELAY_MS)
 
@@ -362,8 +393,27 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
     const seed = buildSeedSimulation(scenes, SIMULATION_SEED_PCT)
     setActiveStepByShot({})
     setFrameVersionByShot({})
-    setSimulationByShot(seed)
-  }, [clearAllSimulationTimers, scenes])
+    applySimulationSeed(seed)
+
+    startTransition(async () => {
+      try {
+        await Promise.all(
+          Object.entries(seed).map(([shotId, sim]) =>
+            updateShotAction({
+              shotId,
+              framesStatus: sim.frames,
+              videoStatus: sim.video,
+              voiceStatus: sim.voice,
+              lipsyncStatus: sim.lipsync,
+              approved: sim.approved,
+            })
+          )
+        )
+      } catch (error) {
+        console.error("Failed to persist rewind:", error)
+      }
+    })
+  }, [clearAllSimulationTimers, scenes, applySimulationSeed, startTransition])
 
   /* ── Drag to resize (horizontal split) ─── */
   const handleResizeStart = useCallback(
@@ -469,14 +519,24 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
       setScenes((prev) =>
         prev.map((scene) => ({
           ...scene,
-          shots: scene.shots.map((shot) =>
-            shot.id === currentShotId ? { ...shot, [field]: value } : shot
-          ),
+          shots: scene.shots.map((shot) => {
+            if (shot.id !== currentShotId) return shot
+            if (field === "duration") {
+              const nextDuration = Math.min(MAX_DURATION_SECONDS, Math.max(MIN_DURATION_SECONDS, Math.round(Number(value))))
+              return { ...shot, duration: nextDuration }
+            }
+            return { ...shot, [field]: value }
+          }),
         }))
       )
 
       startTransition(async () => {
         try {
+          if (field === "duration") {
+            const nextDuration = Math.min(MAX_DURATION_SECONDS, Math.max(MIN_DURATION_SECONDS, Math.round(Number(value))))
+            await updateShotAction({ shotId: currentShotId, duration: nextDuration })
+            return
+          }
           await updateShotAction({ shotId: currentShotId, [field]: value })
         } catch (error) {
           console.error("Failed to persist shot update:", error)
@@ -490,9 +550,25 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
     (nextValue: number) => {
       const currentShotId = selectedShot
       if (!currentShotId) return
-      setDurationDisplayByShot((prev) => ({ ...prev, [currentShotId]: nextValue }))
+      const safeValue = Math.min(MAX_DURATION_SECONDS, Math.max(MIN_DURATION_SECONDS, Math.round(nextValue)))
+      setDurationDisplayByShot((prev) => ({ ...prev, [currentShotId]: safeValue }))
+      setScenes((prev) =>
+        prev.map((scene) => ({
+          ...scene,
+          shots: scene.shots.map((shot) =>
+            shot.id === currentShotId ? { ...shot, duration: safeValue } : shot
+          ),
+        }))
+      )
+      startTransition(async () => {
+        try {
+          await updateShotAction({ shotId: currentShotId, duration: safeValue })
+        } catch (error) {
+          console.error("Failed to persist duration update:", error)
+        }
+      })
     },
-    [selectedShot]
+    [selectedShot, startTransition]
   )
 
   const handleTimelinePlayPause = useCallback(() => {
@@ -529,9 +605,9 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
       allShots.map((s) => ({
         id: s.id,
         videoUrl: s.videoUrl,
-        duration: fixedDurationByShot[s.id] ?? s.duration,
+        duration: s.duration,
       })),
-    [allShots, fixedDurationByShot]
+    [allShots]
   )
 
   const sceneShotInputs = useMemo(
@@ -539,15 +615,29 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
       (activeScene?.shots ?? []).map((s) => ({
         id: s.id,
         videoUrl: s.videoUrl,
-        duration: fixedDurationByShot[s.id] ?? s.duration,
+        duration: s.duration,
       })),
-    [activeScene, fixedDurationByShot]
+    [activeScene]
   )
 
   const setFixedDuration = useCallback((shotId: string, duration: number | null) => {
     if (duration === null || !Number.isFinite(duration)) return
-    setFixedDurationByShot((prev) => (prev[shotId] ? prev : { ...prev, [shotId]: duration }))
-  }, [])
+    setScenes((prev) =>
+      prev.map((scene) => ({
+        ...scene,
+        shots: scene.shots.map((shot) =>
+          shot.id === shotId ? { ...shot, duration } : shot
+        ),
+      }))
+    )
+    startTransition(async () => {
+      try {
+        await updateShotAction({ shotId, duration })
+      } catch (error) {
+        console.error("Failed to persist duration update:", error)
+      }
+    })
+  }, [startTransition])
 
   // Auto-load actual video durations from metadata
   useEffect(() => {
@@ -556,7 +646,6 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
 
     allShots.forEach((shot) => {
       if (!shot.videoUrl) return
-      if (fixedDurationByShot[shot.id]) return
 
       const video = document.createElement("video")
       video.preload = "metadata"
@@ -565,9 +654,11 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
       const handleLoaded = () => {
         if (cancelled) { cleanup(); return }
         const duration = Number.isFinite(video.duration)
-          ? Math.max(1, Math.round(video.duration))
+          ? Math.min(MAX_DURATION_SECONDS, Math.max(1, Math.round(video.duration)))
           : null
-        setFixedDuration(shot.id, duration)
+        if (duration !== null && duration !== shot.duration) {
+          setFixedDuration(shot.id, duration)
+        }
         cleanup()
       }
 
@@ -588,7 +679,7 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
       cancelled = true
       cleanups.forEach((cleanup) => cleanup())
     }
-  }, [allShots, fixedDurationByShot, setFixedDuration])
+  }, [allShots, setFixedDuration])
 
   // Auto-advance workflow step when generation completes
   useEffect(() => {
@@ -749,7 +840,7 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
                 <SceneOverview
                   scene={activeScene}
                   simulationByShot={simulationByShot}
-                  durationByShot={fixedDurationByShot}
+                  durationByShot={Object.fromEntries((activeScene?.shots ?? []).map((shot) => [shot.id, shot.duration]))}
                   onShotSelect={handleShotSelect}
                   onBackToMovie={handleBackToMovie}
                 />
@@ -913,18 +1004,18 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
             className="min-h-0"
             style={{ flex: `0 0 ${timelinePct}%`, padding: "0" }}
           >
-            <ShotTimeline
-              shots={timelineShots}
-              selectedShot={selectedShot}
-              sceneNumber={activeScene?.number ?? 0}
-              durationByShot={fixedDurationByShot}
-              onSelectShot={handleShotSelect}
-              currentTime={videoCurrentTime}
-              totalDuration={videoTotalDuration}
-              isPlaying={isVideoPlaying}
-              onPlayPause={handleTimelinePlayPause}
-              onSeek={handleTimelineSeek}
-            />
+              <ShotTimeline
+                shots={timelineShots}
+                selectedShot={selectedShot}
+                sceneNumber={activeScene?.number ?? 0}
+                durationByShot={Object.fromEntries(timelineShots.map((shot) => [shot.id, shot.duration]))}
+                onSelectShot={handleShotSelect}
+                currentTime={videoCurrentTime}
+                totalDuration={videoTotalDuration}
+                isPlaying={isVideoPlaying}
+                onPlayPause={handleTimelinePlayPause}
+                onSeek={handleTimelineSeek}
+              />
           </div>
         )}
       </div>

@@ -19,6 +19,11 @@ export interface StoryboardShot {
   number: number
   title: string
   duration: number
+  framesStatus: SimulationPhase
+  videoStatus: SimulationPhase
+  voiceStatus: SimulationPhase
+  lipsyncStatus: SimulationPhase
+  approved: boolean
   action: string
   internalMonologue: string
   cameraNotes: string
@@ -43,6 +48,11 @@ export interface StoryboardScene {
 export type StoryboardShotUpdateInput = Partial<{
   title: string
   duration: number
+  framesStatus: SimulationPhase
+  videoStatus: SimulationPhase
+  voiceStatus: SimulationPhase
+  lipsyncStatus: SimulationPhase
+  approved: boolean
   action: string
   internalMonologue: string
   cameraNotes: string

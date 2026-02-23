@@ -80,7 +80,7 @@ export function SceneOverview({
         </span>
 
         {scene.shots.map((shot) => {
-          const sim = simulationByShot[shot.id] ?? { frames: "idle", video: "idle" }
+          const sim = simulationByShot[shot.id] ?? { frames: "idle", video: "idle", approved: false, voice: "idle", lipsync: "idle" }
           const status = deriveShotStatus(sim)
           const duration = durationByShot[shot.id] ?? shot.duration
           const previewText = shot.action.slice(0, 60) + (shot.action.length > 60 ? "…" : "")

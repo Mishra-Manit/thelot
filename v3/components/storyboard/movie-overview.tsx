@@ -101,7 +101,7 @@ export function MovieOverview({ scenes, simulationByShot, onSceneSelect, widthPc
       </div>
 
       {/* How It Works */}
-      <div className="px-4 pb-4">
+      <div className="px-4 pb-4 pt-3" style={{ borderTop: "1px solid #232323" }}>
         <button
           className="flex items-center justify-between w-full mb-3"
           onClick={() => setHowItWorksOpen((o) => !o)}

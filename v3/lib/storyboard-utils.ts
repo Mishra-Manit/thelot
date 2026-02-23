@@ -41,7 +41,7 @@ export function deriveSceneProgress(
   if (shots.length === 0) return 0
   const ready = shots.filter((s) => {
     const sim = simulationByShot[s.id] ?? DEFAULT_SIM
-    return sim.video === "ready"
+    return sim.video === "ready" || sim.approved
   })
   return ready.length / shots.length
 }

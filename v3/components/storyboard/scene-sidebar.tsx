@@ -389,7 +389,7 @@ function ShotList({
       <div className="flex-1 overflow-y-auto px-3 flex flex-col gap-1.5 pb-2">
         {scene.shots.map((shot) => {
           const isSelected = selectedShotId === shot.id
-          const sim = simulationByShot[shot.id] ?? { frames: "idle", video: "idle" }
+          const sim = simulationByShot[shot.id] ?? { frames: "idle", video: "idle", approved: false, voice: "idle", lipsync: "idle" }
           const status = deriveShotStatus(sim)
           return (
             <button
