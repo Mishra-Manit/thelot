@@ -5,6 +5,9 @@ import { Plus, Play, Pause, Minus, Maximize2 } from "lucide-react"
 import type { StoryboardShot, ShotLayout } from "@/lib/storyboard-types"
 import type { VideoSource as VideoSourceType } from "@diffusionstudio/core"
 
+// Sidebar width constant
+const SIDEBAR_WIDTH = 60
+
 // Format time as M:SS
 function formatTime(seconds: number): string {
   const m = Math.floor(seconds / 60)
@@ -27,54 +30,23 @@ function computeLayout(shots: StoryboardShot[], totalDuration: number): ShotLayo
   })
 }
 
-// Draw ruler tick marks on canvas
-function drawRuler(
-  canvas: HTMLCanvasElement,
-  totalDuration: number,
-  zoom: number,
-  containerWidth: number
-): void {
-  const ctx = canvas.getContext("2d")
-  if (!ctx || totalDuration <= 0) return
-
-  const dpr = window.devicePixelRatio ?? 1
-  const w = containerWidth * zoom
-  const h = 24
-
-  canvas.width = w * dpr
-  canvas.height = h * dpr
-  canvas.style.width = `${w}px`
-  canvas.style.height = `${h}px`
-  ctx.scale(dpr, dpr)
-  ctx.clearRect(0, 0, w, h)
-
-  // Background
-  ctx.fillStyle = "#000000"
-  ctx.fillRect(0, 0, w, h)
-
-  // Adaptive tick interval based on pixel density
-  const pxPerSec = w / totalDuration
-  const majorInterval = pxPerSec >= 80 ? 1 : pxPerSec >= 40 ? 2 : pxPerSec >= 20 ? 5 : 10
-  const minorInterval = majorInterval >= 5 ? 1 : 0.5
-
-  // Draw ticks
-  for (let t = 0; t <= totalDuration; t += minorInterval) {
-    const x = (t / totalDuration) * w
-    const isMajor = t % majorInterval === 0
-
-    ctx.beginPath()
-    ctx.moveTo(x, h)
-    ctx.lineTo(x, isMajor ? h - 10 : h - 5)
-    ctx.strokeStyle = isMajor ? "#777076" : "#404556"
-    ctx.lineWidth = 1
-    ctx.stroke()
-
-    if (isMajor && t < totalDuration) {
-      ctx.fillStyle = "#777076"
-      ctx.font = "9px system-ui, sans-serif"
-      ctx.fillText(formatTime(t), x + 3, 10)
-    }
+// Generate ruler marks (Opus Clip style: numbers with dots between)
+function generateRulerMarks(totalDuration: number, containerWidth: number, zoom: number): { time: number; isNumber: boolean }[] {
+  if (totalDuration <= 0) return []
+  
+  const totalWidth = containerWidth * zoom
+  const pxPerSec = totalWidth / totalDuration
+  
+  // Determine major interval (where numbers appear) based on pixel density
+  const majorInterval = pxPerSec >= 80 ? 5 : pxPerSec >= 40 ? 10 : pxPerSec >= 20 ? 15 : 30
+  // Dots appear at 1/5 intervals between numbers
+  const dotInterval = majorInterval / 5
+  
+  const marks: { time: number; isNumber: boolean }[] = []
+  for (let t = 0; t <= totalDuration; t += dotInterval) {
+    marks.push({ time: t, isNumber: t % majorInterval === 0 })
   }
+  return marks
 }
 
 // Extract a single thumbnail frame from a video URL
@@ -96,12 +68,6 @@ async function extractThumbnail(videoUrl: string, duration: number): Promise<str
   } catch {
     return null
   }
-}
-
-// Generate pseudo-random waveform bars based on shot ID
-function generateWaveformBars(shotId: string): number[] {
-  const seed = shotId.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0)
-  return Array.from({ length: 24 }, (_, i) => 25 + ((seed * (i + 1) * 7) % 50))
 }
 
 interface ShotTimelineProps {
@@ -141,42 +107,53 @@ export function ShotTimeline({
 
   // State
   const [zoom, setZoom] = useState(1)
+  const [containerWidth, setContainerWidth] = useState(0)
 
   // Refs
   const containerRef = useRef<HTMLDivElement>(null)
-  const rulerCanvasRef = useRef<HTMLCanvasElement>(null)
-  const trackRef = useRef<HTMLDivElement>(null)
+  const scrollRef = useRef<HTMLDivElement>(null)
   const playheadRef = useRef<HTMLDivElement>(null)
   const thumbnailCache = useRef<Map<string, string>>(new Map())
   const pillRefs = useRef<Map<string, HTMLButtonElement>>(new Map())
 
   const canControlPlayback = effectiveDuration > 0
 
+  // Ruler marks (Opus Clip style)
+  const rulerMarks = useMemo(
+    () => generateRulerMarks(effectiveDuration, containerWidth - SIDEBAR_WIDTH, zoom),
+    [effectiveDuration, containerWidth, zoom]
+  )
+
   // Zoom handlers
   const handleZoomOut = useCallback(() => setZoom((z) => Math.max(1, z - 0.25)), [])
   const handleZoomIn = useCallback(() => setZoom((z) => Math.min(4, z + 0.25)), [])
   const handleFit = useCallback(() => setZoom(1), [])
 
-  // Draw ruler on mount and when zoom/duration changes
+  // Measure container width
   useEffect(() => {
-    const canvas = rulerCanvasRef.current
     const container = containerRef.current
-    if (!canvas || !container || effectiveDuration <= 0) return
+    if (!container) return
 
-    const containerWidth = container.clientWidth - 12 // Account for gutter
-    drawRuler(canvas, effectiveDuration, zoom, containerWidth)
-  }, [effectiveDuration, zoom])
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setContainerWidth(entry.contentRect.width)
+      }
+    })
+    observer.observe(container)
+    return () => observer.disconnect()
+  }, [])
 
   // Update playhead position via direct DOM mutation
   useEffect(() => {
     const playhead = playheadRef.current
-    const track = trackRef.current
-    if (!playhead || !track || effectiveDuration <= 0) return
+    const scroll = scrollRef.current
+    if (!playhead || !scroll || effectiveDuration <= 0) return
 
+    const contentWidth = (containerWidth - SIDEBAR_WIDTH) * zoom
     const clampedTime = Math.max(0, Math.min(currentTime, effectiveDuration))
-    const offset = (clampedTime / effectiveDuration) * track.scrollWidth
+    const offset = (clampedTime / effectiveDuration) * contentWidth
     playhead.style.transform = `translateX(${offset}px)`
-  }, [currentTime, effectiveDuration, zoom])
+  }, [currentTime, effectiveDuration, zoom, containerWidth])
 
   // Extract thumbnails for shots with video URLs
   useEffect(() => {
@@ -206,16 +183,18 @@ export function ShotTimeline({
   const handlePlayheadDrag = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault()
-      const track = trackRef.current
-      if (!track || effectiveDuration <= 0) return
+      e.stopPropagation()
+      const scroll = scrollRef.current
+      if (!scroll || effectiveDuration <= 0) return
+
+      const contentWidth = (containerWidth - SIDEBAR_WIDTH) * zoom
 
       const seekFromEvent = (ev: MouseEvent) => {
-        const rect = track.getBoundingClientRect()
-        const x = ev.clientX - rect.left + track.scrollLeft
-        const clamped = Math.max(0, Math.min(x, track.scrollWidth))
-        const seekTime = (clamped / track.scrollWidth) * effectiveDuration
+        const rect = scroll.getBoundingClientRect()
+        const x = ev.clientX - rect.left + scroll.scrollLeft
+        const clamped = Math.max(0, Math.min(x, contentWidth))
+        const seekTime = (clamped / contentWidth) * effectiveDuration
         
-        // Update playhead immediately for smoothness
         if (playheadRef.current) {
           playheadRef.current.style.transform = `translateX(${clamped}px)`
         }
@@ -231,25 +210,29 @@ export function ShotTimeline({
       window.addEventListener("mousemove", onMove)
       window.addEventListener("mouseup", onUp)
     },
-    [effectiveDuration, onSeek]
+    [effectiveDuration, onSeek, containerWidth, zoom]
   )
 
-  // Click-to-seek on ruler or empty track areas
+  // Click-to-seek on timeline
   const handleSeekClick = useCallback(
     (e: React.MouseEvent) => {
-      const track = trackRef.current
-      if (!track || effectiveDuration <= 0) return
-      if ((e.target as HTMLElement).closest("button")) return
+      const scroll = scrollRef.current
+      if (!scroll || effectiveDuration <= 0) return
+      
+      // Ignore clicks on buttons and playhead
+      const target = e.target as HTMLElement
+      if (target.closest("button") || target.closest(".playhead-head")) return
 
-      const rect = track.getBoundingClientRect()
-      const x = e.clientX - rect.left + track.scrollLeft
-      const seekTime = (x / track.scrollWidth) * effectiveDuration
+      const contentWidth = (containerWidth - SIDEBAR_WIDTH) * zoom
+      const rect = scroll.getBoundingClientRect()
+      const x = e.clientX - rect.left + scroll.scrollLeft
+      const seekTime = (x / contentWidth) * effectiveDuration
       onSeek(Math.max(0, Math.min(seekTime, effectiveDuration)))
     },
-    [effectiveDuration, onSeek]
+    [effectiveDuration, onSeek, containerWidth, zoom]
   )
 
-  // Pill click handler - selects and seeks
+  // Pill click handler
   const handlePillClick = useCallback(
     (shotId: string, startSec: number) => {
       onSelectShot(shotId)
@@ -258,6 +241,9 @@ export function ShotTimeline({
     [onSelectShot, onSeek]
   )
 
+  // Track content width for positioning
+  const contentWidth = (containerWidth - SIDEBAR_WIDTH) * zoom
+
   return (
     <div
       ref={containerRef}
@@ -265,16 +251,17 @@ export function ShotTimeline({
       style={{ background: "#000000" }}
     >
       {/* Control Bar */}
-      <div className="flex items-center gap-4 h-10 border-b border-[#252933] bg-black px-4 shrink-0">
-        {/* Left: SPLIT button placeholder */}
+      <div className="flex items-center gap-4 h-10 px-4 shrink-0" style={{ background: "#000000" }}>
+        {/* Left: SPLIT button */}
         <button
           className="shrink-0 transition-colors duration-150"
           style={{
-            padding: "4px 10px",
-            borderRadius: "4px",
-            background: "#1A1C25",
-            border: "1px solid #252933",
-            color: "#404556",
+            padding: "4px 16px",
+            minWidth: "72px",
+            borderRadius: "6px",
+            background: "#3A3A3A",
+            border: "1px solid #4A4A4A",
+            color: "#D4D4D4",
             fontSize: "10px",
             fontWeight: 600,
             letterSpacing: "0.04em",
@@ -285,18 +272,15 @@ export function ShotTimeline({
           SPLIT
         </button>
 
-        {/* Center: Time + Play/Pause */}
+        {/* Center: Play/Pause + Combined Timecode */}
         <div className="flex-1 flex items-center justify-center gap-3">
-          <span style={{ fontSize: "12px", color: "#777076", fontVariantNumeric: "tabular-nums", fontWeight: 500 }}>
-            {formatTime(currentTime)}
-          </span>
-
           <button
-            className="flex items-center justify-center rounded-full transition-all duration-150 hover:bg-[#252933]"
+            className="flex items-center justify-center rounded-full transition-all duration-150"
             style={{
-              width: "28px",
-              height: "28px",
-              background: "transparent",
+              width: "32px",
+              height: "32px",
+              background: canControlPlayback ? "#1a1a1a" : "transparent",
+              border: canControlPlayback ? "1px solid #444" : "1px solid #333",
               cursor: canControlPlayback ? "pointer" : "not-allowed",
               color: canControlPlayback ? "#FFFFFF" : "#404556"
             }}
@@ -311,18 +295,18 @@ export function ShotTimeline({
           </button>
 
           <span style={{ fontSize: "12px", color: "#777076", fontVariantNumeric: "tabular-nums", fontWeight: 500 }}>
-            {formatTime(effectiveDuration)}
+            {formatTime(currentTime)} <span style={{ color: "#404556" }}>/</span> {formatTime(effectiveDuration)}
           </span>
         </div>
 
         {/* Right: Zoom controls */}
         <div className="flex items-center gap-2">
           <button
-            className="flex items-center justify-center transition-colors duration-150 hover:text-white"
+            className="flex items-center justify-center transition-colors duration-150"
             style={{
               width: "24px",
               height: "24px",
-              color: zoom > 1 ? "#777076" : "#252933",
+              color: zoom > 1 ? "#777076" : "#404556",
               cursor: zoom > 1 ? "pointer" : "not-allowed",
             }}
             onClick={zoom > 1 ? handleZoomOut : undefined}
@@ -343,11 +327,11 @@ export function ShotTimeline({
           />
 
           <button
-            className="flex items-center justify-center transition-colors duration-150 hover:text-white"
+            className="flex items-center justify-center transition-colors duration-150"
             style={{
               width: "24px",
               height: "24px",
-              color: zoom < 4 ? "#777076" : "#252933",
+              color: zoom < 4 ? "#777076" : "#404556",
               cursor: zoom < 4 ? "pointer" : "not-allowed",
             }}
             onClick={zoom < 4 ? handleZoomIn : undefined}
@@ -357,12 +341,13 @@ export function ShotTimeline({
           </button>
 
           <button
-            className="flex items-center gap-1 transition-colors duration-150 hover:bg-[#252933]"
+            className="flex items-center gap-1 transition-colors duration-150"
             style={{
               padding: "4px 8px",
-              borderRadius: "4px",
-              background: "transparent",
-              color: "#777076",
+              borderRadius: "6px",
+            background: "#3A3A3A",
+            border: "1px solid #4A4A4A",
+            color: "#D4D4D4",
               fontSize: "10px",
               fontWeight: 600,
               letterSpacing: "0.04em",
@@ -382,56 +367,103 @@ export function ShotTimeline({
           No shots in this scene
         </div>
       ) : (
-        <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
-          {/* Ruler Row */}
-          <div className="flex shrink-0 border-b border-[#252933]" style={{ height: "24px", background: "#000000" }}>
-            <div className="shrink-0" style={{ width: "12px" }} />
-            <div className="flex-1 relative overflow-x-auto" style={{ scrollbarWidth: "none" }}>
-              <canvas
-                ref={rulerCanvasRef}
-                style={{ display: "block", width: `${zoom * 100}%`, minWidth: "100%" }}
-              />
-              {/* Playhead diamond handle */}
-              <div
-                ref={playheadRef}
-                className="absolute top-0 bottom-0 pointer-events-none"
-                style={{ left: 0, width: "2px", willChange: "transform" }}
+        <div className="flex-1 min-h-0 flex overflow-hidden">
+          {/* Fixed Left Sidebar */}
+          <div 
+            className="shrink-0 flex flex-col"
+            style={{ width: `${SIDEBAR_WIDTH}px`, background: "#000000" }}
+          >
+            {/* Ruler gutter */}
+            <div style={{ height: "24px" }} />
+            
+            {/* Video track gutter - Add button */}
+            <div 
+              className="flex items-center justify-center"
+              style={{ height: "40px" }}
+            >
+              <button
+                className="flex items-center justify-center transition-colors duration-150"
+                style={{
+                  width: "28px",
+                  height: "28px",
+                  borderRadius: "6px",
+                  border: "1px dashed #444",
+                  background: "transparent",
+                  color: "#666",
+                  cursor: "pointer",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "#1a1a1a"
+                  e.currentTarget.style.borderStyle = "solid"
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "transparent"
+                  e.currentTarget.style.borderStyle = "dashed"
+                }}
               >
-                <div
-                  className="absolute cursor-ew-resize pointer-events-auto"
-                  style={{
-                    top: "12px",
-                    left: "50%",
-                    transform: "translateX(-50%) rotate(45deg)",
-                    width: "8px",
-                    height: "8px",
-                    background: "#386775",
-                    border: "1.5px solid #20504E",
-                  }}
-                  onMouseDown={handlePlayheadDrag}
-                />
-              </div>
+                <Plus size={14} />
+              </button>
             </div>
+            
+            {/* Audio track gutter */}
+            <div style={{ height: "28px" }} />
           </div>
 
-          {/* Tracks Container */}
-          <div
-            ref={trackRef}
-            className="flex-1 min-h-0 flex flex-col relative overflow-x-auto"
+          {/* Scrollable Timeline Content */}
+          <div 
+            ref={scrollRef}
+            className="flex-1 min-w-0 overflow-x-auto relative"
             style={{ scrollbarWidth: "thin", scrollbarColor: "#404556 #000000" }}
             onClick={handleSeekClick}
           >
-            {/* Video Track */}
-            <div className="flex shrink-0 border-b border-[#252933]" style={{ height: "64px", background: "#000000" }}>
-              <div
-                className="shrink-0 flex items-center justify-center border-r border-[#252933]"
-                style={{ width: "12px", fontSize: "8px", color: "#404556", fontWeight: 600 }}
+            {/* Content wrapper with zoom width */}
+            <div style={{ width: `${zoom * 100}%`, minWidth: "100%", position: "relative" }}>
+              {/* Ruler Row - Opus Clip style */}
+              <div 
+                className="relative flex items-center"
+                style={{ height: "24px", background: "#000000" }}
               >
-                V
+                {rulerMarks.map(({ time, isNumber }, i) => {
+                  const leftPct = effectiveDuration > 0 ? (time / effectiveDuration) * 100 : 0
+                  return (
+                    <div
+                      key={i}
+                      className="absolute"
+                      style={{ 
+                        left: `${leftPct}%`, 
+                        transform: "translateX(-50%)",
+                        top: "50%",
+                        marginTop: "-6px"
+                      }}
+                    >
+                      {isNumber ? (
+                        <span style={{ 
+                          fontSize: "11px", 
+                          color: "#777076", 
+                          fontWeight: 500,
+                          fontVariantNumeric: "tabular-nums"
+                        }}>
+                          {Math.floor(time)}
+                        </span>
+                      ) : (
+                        <div
+                          style={{
+                            width: "3px",
+                            height: "3px",
+                            borderRadius: "50%",
+                            background: "#404556",
+                          }}
+                        />
+                      )}
+                    </div>
+                  )
+                })}
               </div>
-              <div
-                className="flex-1 relative"
-                style={{ width: `${zoom * 100}%`, minWidth: "100%" }}
+
+              {/* Video Track */}
+              <div 
+                className="relative"
+                style={{ height: "40px", background: "#000000" }}
               >
                 {layouts.map((layout) => {
                   const isSelected = selectedShot === layout.shot.id
@@ -442,35 +474,38 @@ export function ShotTimeline({
                         if (el) pillRefs.current.set(layout.shot.id, el)
                         else pillRefs.current.delete(layout.shot.id)
                       }}
-                      className="absolute top-[2px] bottom-[2px] transition-all duration-150"
+                      className="absolute transition-all duration-150"
                       style={{
-                        left: `${layout.leftPct}%`,
-                        width: `calc(${layout.widthPct}% - 4px)`,
+                        top: "2px",
+                        bottom: "2px",
+                        left: `calc(${layout.leftPct}% + 1px)`,
+                        width: `calc(${layout.widthPct}% - 2px)`,
                         minWidth: "40px",
                         borderRadius: "4px",
                         backgroundSize: "cover",
                         backgroundPosition: "center",
-                        backgroundColor: "#1A1C25",
-                        border: isSelected ? "1px solid #60515C" : "1px solid #252933",
-                        opacity: isSelected ? 1 : 0.8,
+                        backgroundColor: "#1a1a1a",
+                        border: isSelected ? "2px solid #666" : "1px solid transparent",
+                        opacity: isSelected ? 1 : 0.9,
+                        overflow: "hidden",
                       }}
                       onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.opacity = "1" }}
-                      onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.opacity = "0.8" }}
+                      onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.opacity = "0.9" }}
                       onClick={(e) => {
                         e.stopPropagation()
                         handlePillClick(layout.shot.id, layout.startSec)
                       }}
                     >
-                      {/* Gradient overlay */}
+                      {/* Subtle gradient overlay */}
                       <div
                         className="absolute inset-0 pointer-events-none"
                         style={{
-                          background: "linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.2) 100%)",
+                          background: "linear-gradient(to top, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.1) 40%, transparent 100%)",
                           borderRadius: "3px",
                         }}
                       />
-                      {/* Metadata */}
-                      <div className="absolute bottom-1 left-2 right-2 flex justify-between pointer-events-none">
+                      {/* Metadata - compact */}
+                      <div className="absolute bottom-1 left-2 right-2 flex justify-between items-center pointer-events-none">
                         <span
                           className="truncate"
                           style={{ fontSize: "10px", fontWeight: 500, color: "#fff", maxWidth: "70%" }}
@@ -485,92 +520,93 @@ export function ShotTimeline({
                   )
                 })}
               </div>
-            </div>
 
-            {/* Audio Track */}
-            <div className="flex shrink-0 border-b border-[#252933]" style={{ height: "40px", background: "#000000" }}>
-              <div
-                className="shrink-0 flex items-center justify-center border-r border-[#252933]"
-                style={{ width: "12px", fontSize: "8px", color: "#404556", fontWeight: 600 }}
-              >
-                A
-              </div>
-              <div
-                className="flex-1 relative"
-                style={{ width: `${zoom * 100}%`, minWidth: "100%" }}
+              {/* Audio Track */}
+              <div 
+                className="relative"
+                style={{ height: "28px", background: "#000000" }}
               >
                 {layouts.map((layout) => {
                   const isSelected = selectedShot === layout.shot.id
-                  const bars = generateWaveformBars(layout.shot.id)
                   return (
                     <button
                       key={`audio-${layout.shot.id}`}
-                      className="absolute top-[2px] bottom-[2px] overflow-hidden transition-all duration-150"
+                      className="absolute transition-all duration-150"
                       style={{
-                        left: `${layout.leftPct}%`,
-                        width: `calc(${layout.widthPct}% - 4px)`,
+                        top: "2px",
+                        bottom: "2px",
+                        left: `calc(${layout.leftPct}% + 1px)`,
+                        width: `calc(${layout.widthPct}% - 2px)`,
                         minWidth: "40px",
                         borderRadius: "4px",
-                        backgroundColor: "#1A1C25",
-                        border: isSelected ? "1px solid #60515C" : "1px solid #252933",
-                        opacity: isSelected ? 1 : 0.8,
+                        backgroundColor: "#3A3A3A",
+                        border: isSelected ? "2px solid #666" : "1px solid transparent",
+                        opacity: isSelected ? 1 : 0.95,
                       }}
                       onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.opacity = "1" }}
-                      onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.opacity = "0.8" }}
+                      onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.opacity = "0.9" }}
                       onClick={(e) => {
                         e.stopPropagation()
                         handlePillClick(layout.shot.id, layout.startSec)
                       }}
-                    >
-                      {/* Fake waveform bars */}
-                      <div className="absolute inset-0 flex items-center justify-around px-2">
-                        {bars.map((h, i) => (
-                          <div
-                            key={i}
-                            style={{
-                              width: "2px",
-                              height: `${h}%`,
-                              backgroundColor: "#404556",
-                              opacity: 0.5,
-                              borderRadius: "1px",
-                            }}
-                          />
-                        ))}
-                      </div>
-                      {/* Title */}
-                      <span
-                        className="absolute left-2 top-1/2 -translate-y-1/2 truncate pointer-events-none"
-                        style={{ fontSize: "9px", color: "#777076", maxWidth: "60%" }}
-                      >
-                        {layout.shot.title || "Audio"}
-                      </span>
-                    </button>
+                    />
                   )
                 })}
               </div>
-            </div>
 
-            {/* Playhead line spanning both tracks */}
-            <div
-              className="absolute top-0 bottom-0 pointer-events-none"
-              style={{
-                left: "12px",
-                width: "1px",
-                background: "#597D7C",
-                transform: playheadRef.current?.style.transform ?? "translateX(0px)",
-                zIndex: 20,
-              }}
-            />
+              {/* Unified Playhead */}
+              <div
+                ref={playheadRef}
+                className="absolute pointer-events-none"
+                style={{
+                  top: 0,
+                  left: 0,
+                  width: "2px",
+                  height: "100%",
+                  zIndex: 30,
+                  willChange: "transform",
+                }}
+              >
+                {/* Playhead head - compact rounded rectangle */}
+                <div
+                  className="playhead-head absolute pointer-events-auto cursor-ew-resize"
+                  style={{
+                    top: "2px",
+                    left: "50%",
+                    transform: "translateX(-50%)",
+                    width: "10px",
+                    height: "18px",
+                    background: "transparent",
+                    border: "2px solid #FFFFFF",
+                    borderRadius: "3px 3px 2px 2px",
+                  }}
+                  onMouseDown={handlePlayheadDrag}
+                />
+                {/* Playhead line */}
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "20px",
+                    left: "50%",
+                    transform: "translateX(-50%)",
+                    width: "2px",
+                    height: "calc(100% - 20px)",
+                    background: "#FFFFFF",
+                    borderRadius: "1px",
+                  }}
+                />
+              </div>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Slider thumb styling */}
+      {/* Zoom slider styling */}
       <style>{`
         .zoom-slider {
           -webkit-appearance: none;
           appearance: none;
-          background: #252933;
+          background: #333;
           border-radius: 2px;
         }
         .zoom-slider::-webkit-slider-thumb {
@@ -578,7 +614,7 @@ export function ShotTimeline({
           width: 12px;
           height: 12px;
           border-radius: 50%;
-          background: #777076;
+          background: #666;
           cursor: pointer;
           border: none;
         }
@@ -586,7 +622,7 @@ export function ShotTimeline({
           width: 12px;
           height: 12px;
           border-radius: 50%;
-          background: #777076;
+          background: #666;
           cursor: pointer;
           border: none;
         }

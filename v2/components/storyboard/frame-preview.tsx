@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect, forwardRef, useImperativeHandle } from "react"
-import { ImageIcon, Sparkles } from "lucide-react"
+import { ImageIcon, Sparkles, List, Mic, Library, Smile } from "lucide-react"
 import { VideoPlayer, type VideoPlayerHandle } from "./video-player"
 import { SpongebobLoading } from "./loading/spongebob-loading"
 import { SimpsonLoading } from "./loading/simpson-loading"
@@ -66,38 +66,101 @@ export const FramePreview = forwardRef<FramePreviewHandle, FramePreviewProps>(
     >
       {hasShot ? (
         <div className="flex flex-col flex-1 min-h-0" style={{ padding: "12px 12px 4px 12px" }}>
-          {/* AI Tools Row */}
-          <div className="grid grid-cols-4 gap-2 mb-3">
-            {["Shot List", "Voice Generation", "Media Library", "Lip Sync"].map((label) => (
-              <div
-                key={label}
-                className="relative rounded-lg overflow-hidden transition-all duration-150 border border-[#232323] hover:border-[#696969] cursor-pointer"
+          {/* AI Tools Section */}
+          <div
+            className="flex flex-col gap-4 mb-4 rounded-xl border border-[#232323]"
+            style={{ padding: "16px", background: "#0A0A0A" }}
+          >
+            <div className="flex items-center px-1">
+              <span
                 style={{
-                  minHeight: "60px",
-                  background: "#111111",
+                  fontSize: "14px",
+                  color: "#ffffff",
+                  fontWeight: 600,
+                  letterSpacing: "0.01em",
                 }}
               >
+                Tools
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              {[
+                {
+                  label: "Scene List",
+                  description: "View and manage shots in this scene",
+                  icon: List,
+                },
+                {
+                  label: "Voice Generation",
+                  description: "Generate dialogue from text or your voice",
+                  icon: Mic,
+                },
+                {
+                  label: "Media Library",
+                  description: "Browse all videos and audio in this scene",
+                  icon: Library,
+                },
+                {
+                  label: "Lip Sync",
+                  description: "Sync video to audio with AI lip movement",
+                  icon: Smile,
+                },
+              ].map(({ label, description, icon: Icon }) => (
                 <div
-                  className="absolute inset-0"
+                  key={label}
+                  className="group relative rounded-xl transition-all duration-200 border border-[#232323] hover:border-[#696969] cursor-pointer overflow-hidden flex flex-col gap-3"
                   style={{
-                    background: "linear-gradient(135deg, #111111 0%, #232323 100%)",
+                    background: "#111111",
+                    padding: "16px",
                   }}
-                />
-                <div className="absolute inset-0 z-10 flex items-center justify-center">
-                  <span
+                >
+                  <div
+                    className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
                     style={{
-                      fontSize: "10px",
-                      color: "#ffffff",
-                      fontWeight: 600,
-                      letterSpacing: "0.03em",
-                      textTransform: "uppercase",
+                      background:
+                        "linear-gradient(135deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0) 100%)",
                     }}
-                  >
-                    {label}
-                  </span>
+                  />
+                  <div className="relative z-10 flex flex-col gap-3">
+                    <div
+                      className="flex items-center justify-center rounded-lg border border-[#2A2A2A] transition-colors group-hover:border-[#4A4A4A]"
+                      style={{
+                        width: "36px",
+                        height: "36px",
+                        background: "#1A1A1A",
+                      }}
+                    >
+                      <Icon
+                        size={16}
+                        style={{ color: "#D9D9D9" }}
+                        className="group-hover:text-white transition-colors"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <span
+                        style={{
+                          fontSize: "13px",
+                          color: "#ffffff",
+                          fontWeight: 500,
+                          letterSpacing: "0.01em",
+                        }}
+                      >
+                        {label}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: "12px",
+                          color: "#888888",
+                          lineHeight: "1.4",
+                        }}
+                      >
+                        {description}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
 
           {/* Video Preview */}
