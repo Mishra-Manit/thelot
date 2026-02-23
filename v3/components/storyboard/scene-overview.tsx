@@ -117,30 +117,31 @@ export function SceneOverview({
       </div>
 
       {/* Status legend */}
-      <div className="px-4 py-2 flex items-center gap-4" style={{ borderTop: "1px solid #232323" }}>
-        <LegendItem status="draft" label="No frames" />
-        <LegendItem status="frames_ready" label="Frames ready" />
-        <LegendItem status="video_ready" label="Video complete" />
-      </div>
-
-      {/* CTA card */}
       <div
-        className="mx-4 mt-2 mb-4 rounded-lg px-4 py-3"
-        style={{ border: "1px solid #464646", background: "#111111" }}
+        className="px-4 py-4 flex items-center gap-6"
+        style={{ borderTop: "1px solid #232323", borderBottom: "1px solid #232323" }}
       >
-        <span style={{ fontSize: "12px", color: "#D9D9D9" }}>
-          Select a shot to start editing
-        </span>
+        <LegendItem status="draft" label="No frames" size="md" />
+        <LegendItem status="frames_ready" label="Frames ready" size="md" />
+        <LegendItem status="video_ready" label="Video complete" size="md" />
       </div>
     </div>
   )
 }
 
-function LegendItem({ status, label }: { status: "draft" | "frames_ready" | "video_ready"; label: string }) {
+function LegendItem({
+  status,
+  label,
+  size,
+}: {
+  status: "draft" | "frames_ready" | "video_ready"
+  label: string
+  size: "sm" | "md"
+}) {
   return (
-    <div className="flex items-center gap-1.5">
-      <ShotStatusDot status={status} size="sm" />
-      <span style={{ fontSize: "10px", color: "#696969" }}>{label}</span>
+    <div className="flex items-center gap-2">
+      <ShotStatusDot status={status} size={size} />
+      <span style={{ fontSize: "12px", color: "#D9D9D9", fontWeight: 500 }}>{label}</span>
     </div>
   )
 }

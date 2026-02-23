@@ -1,5 +1,7 @@
 Always write with the cleanest code spec. I want to be able to understand all lines of code. There should be nothing unecessary. All the code should be appropriately, but not over commented. 
 
+Dont commit after making changes. Leave everything in the main branch. Ensure that subagents follow this rule.
+
 ## Color Palette
 
 **V3 uses a strictly monochrome color scheme:**

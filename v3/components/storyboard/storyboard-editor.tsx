@@ -14,6 +14,7 @@ import { MovieRightPanel } from "./movie-right-panel"
 import { SceneOverview } from "./scene-overview"
 import { SceneRightPanel } from "./scene-right-panel"
 import { updateShotAction } from "@/app/storyboard/actions"
+import { toast } from "sonner"
 import type {
   StoryboardScene,
   StoryboardShotUpdateInput,
@@ -31,6 +32,8 @@ const MIN_TIMELINE_PCT = 16
 const MAX_TIMELINE_PCT = 42
 const SIMULATION_DELAY_MS = 3000
 const TIMELINE_UI_UPDATE_INTERVAL_MS = 1000 / 24
+const SIMULATION_STORAGE_KEY = "thelot-simulation-v1"
+const SIMULATION_SEED_PCT = 0.37
 
 type SimulationTimerKey = "frames" | "video" | "voice" | "lipsync"
 
@@ -40,6 +43,24 @@ const DEFAULT_SIMULATION_STATE: ShotSimulationState = {
   approved: false,
   voice: "idle",
   lipsync: "idle",
+}
+
+// Marks the first targetPct of shots (in natural order) as video_ready.
+// Used to seed the demo so the UI shows some clips already generated.
+function buildSeedSimulation(
+  scenes: StoryboardScene[],
+  targetPct: number
+): Record<string, ShotSimulationState> {
+  const allShots = scenes.flatMap((s) => s.shots)
+  const numReady = Math.floor(allShots.length * targetPct)
+  return Object.fromEntries(
+    allShots.map((shot, i) => [
+      shot.id,
+      i < numReady
+        ? { frames: "ready" as const, video: "ready" as const, approved: false, voice: "idle" as const, lipsync: "idle" as const }
+        : { ...DEFAULT_SIMULATION_STATE },
+    ])
+  )
 }
 
 function createShotImagePath(sceneNumber: number, shotNumber: number, kind: "start" | "end") {
@@ -57,7 +78,9 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
   const [durationDisplayByShot, setDurationDisplayByShot] = useState<Record<string, number>>({})
   const [fixedDurationByShot, setFixedDurationByShot] = useState<Record<string, number>>({})
   const [, startTransition] = useTransition()
-  const [simulationByShot, setSimulationByShot] = useState<Record<string, ShotSimulationState>>({})
+  const [simulationByShot, setSimulationByShot] = useState<Record<string, ShotSimulationState>>(
+    () => buildSeedSimulation(initialScenes, SIMULATION_SEED_PCT)
+  )
   const [frameVersionByShot, setFrameVersionByShot] = useState<Record<string, number>>({})
   const [activeStepByShot, setActiveStepByShot] = useState<Record<string, WorkflowStep>>({})
 
@@ -174,6 +197,23 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
     return () => clearAllSimulationTimers()
   }, [clearAllSimulationTimers])
 
+  // Restore simulation state from localStorage on mount (client-only).
+  // Falls back to the seeded 37% state if no entry exists.
+  useEffect(() => {
+    const stored = localStorage.getItem(SIMULATION_STORAGE_KEY)
+    if (!stored) return
+    try {
+      setSimulationByShot(JSON.parse(stored) as Record<string, ShotSimulationState>)
+    } catch {
+      // Corrupt data — keep the seeded state
+    }
+  }, [])
+
+  // Persist simulation state to localStorage on every change.
+  useEffect(() => {
+    localStorage.setItem(SIMULATION_STORAGE_KEY, JSON.stringify(simulationByShot))
+  }, [simulationByShot])
+
   const updateSimulationState = useCallback(
     (shotId: string, patch: Partial<ShotSimulationState>) => {
       setSimulationByShot((prev) => ({
@@ -191,6 +231,8 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
     (shotId?: string) => {
       const targetShotId = shotId ?? selectedShot
       if (!targetShotId) return
+
+      toast("Generating frames...")
 
       setFrameVersionByShot((prev) => ({ ...prev, [targetShotId]: Date.now() }))
       clearSimulationTimer(targetShotId, "frames")
@@ -224,6 +266,8 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
       if (!targetShotId) return
       const shotSimulation = simulationByShot[targetShotId] ?? DEFAULT_SIMULATION_STATE
       if (shotSimulation.frames !== "ready") return
+
+      toast("Generating video...")
 
       clearSimulationTimer(targetShotId, "video")
       updateSimulationState(targetShotId, { video: "loading" })
@@ -311,21 +355,15 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
     }
   }, [selectedShot, simulationByShot, clearSimulationTimer, updateSimulationState])
 
-  const handleResetSimulation = useCallback(
-    (shotId?: string) => {
-      const targetShotId = shotId ?? selectedShot
-      if (!targetShotId) return
-      clearSimulationTimer(targetShotId, "frames")
-      clearSimulationTimer(targetShotId, "video")
-      clearSimulationTimer(targetShotId, "voice")
-      clearSimulationTimer(targetShotId, "lipsync")
-      setSimulationByShot((prev) => ({
-        ...prev,
-        [targetShotId]: DEFAULT_SIMULATION_STATE,
-      }))
-    },
-    [clearSimulationTimer, selectedShot]
-  )
+  // Rewinds the entire project simulation back to the 37% seed state.
+  // This is the only way to reset overall progress.
+  const handleRewindAll = useCallback(() => {
+    clearAllSimulationTimers()
+    const seed = buildSeedSimulation(scenes, SIMULATION_SEED_PCT)
+    setActiveStepByShot({})
+    setFrameVersionByShot({})
+    setSimulationByShot(seed)
+  }, [clearAllSimulationTimers, scenes])
 
   /* ── Drag to resize (horizontal split) ─── */
   const handleResizeStart = useCallback(
@@ -580,8 +618,7 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden" style={{ background: "#000000" }}>
       <HeaderBar
-        onRewindSimulation={() => handleResetSimulation(activeShot?.id)}
-        canRewindSimulation={Boolean(activeShot)}
+        onRewindSimulation={handleRewindAll}
       />
 
       {/* Body: panels row above, full-width timeline below */}

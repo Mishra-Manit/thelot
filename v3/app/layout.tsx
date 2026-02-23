@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { IBM_Plex_Mono, Inter, Outfit } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
+import { Toaster } from '@/components/ui/sonner'
 import './globals.css'
 
 const inter = Inter({
@@ -37,6 +38,7 @@ export default function RootLayout({
     <html lang="en" className="dark">
       <body className={`${inter.variable} ${outfit.variable} ${ibmPlexMono.variable} font-sans antialiased`}>
         {children}
+        <Toaster />
         <Analytics />
       </body>
     </html>
