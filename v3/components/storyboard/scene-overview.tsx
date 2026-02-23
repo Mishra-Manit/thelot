@@ -1,7 +1,7 @@
 "use client"
 
 import type { StoryboardScene, ShotSimulationState } from "@/lib/storyboard-types"
-import { deriveShotStatus, deriveSceneStatus } from "@/lib/storyboard-utils"
+import { deriveShotStatus } from "@/lib/storyboard-utils"
 import { ShotStatusDot } from "./shot-status-dot"
 
 interface SceneOverviewProps {
@@ -23,7 +23,6 @@ export function SceneOverview({
     (sum, s) => sum + (durationByShot[s.id] ?? s.duration),
     0
   )
-  const sceneStatus = deriveSceneStatus(scene.shots, simulationByShot)
 
   return (
     <div
@@ -53,8 +52,17 @@ export function SceneOverview({
           <span style={{ fontSize: "11px", color: "#696969" }}>
             {scene.shots.length} shots &middot; {totalDuration}s total
           </span>
-          <ShotStatusDot status={sceneStatus} size="sm" />
         </div>
+      </div>
+
+      {/* Status legend */}
+      <div
+        className="px-4 py-4 flex items-center justify-center gap-6 flex-wrap"
+        style={{ borderBottom: "1px solid #232323" }}
+      >
+        <LegendItem status="draft" label="No frames" size="md" />
+        <LegendItem status="frames_ready" label="Frames ready" size="md" />
+        <LegendItem status="video_ready" label="Video complete" size="md" />
       </div>
 
       {/* Shot breakdown */}
@@ -115,16 +123,6 @@ export function SceneOverview({
           )
         })}
       </div>
-
-      {/* Status legend */}
-      <div
-        className="px-4 py-4 flex items-center gap-6"
-        style={{ borderTop: "1px solid #232323", borderBottom: "1px solid #232323" }}
-      >
-        <LegendItem status="draft" label="No frames" size="md" />
-        <LegendItem status="frames_ready" label="Frames ready" size="md" />
-        <LegendItem status="video_ready" label="Video complete" size="md" />
-      </div>
     </div>
   )
 }
@@ -139,7 +137,7 @@ function LegendItem({
   size: "sm" | "md"
 }) {
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center justify-center gap-2 text-center">
       <ShotStatusDot status={status} size={size} />
       <span style={{ fontSize: "12px", color: "#D9D9D9", fontWeight: 500 }}>{label}</span>
     </div>

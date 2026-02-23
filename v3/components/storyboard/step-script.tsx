@@ -50,17 +50,13 @@ export function StepScript({ startFramePrompt, isFramesLoading, onUpdatePrompt, 
   return (
     <div className="flex flex-col flex-1 min-h-0" style={{ padding: "16px" }}>
 
-      {/* Frame placeholder / loading area */}
+      {/* Frame placeholder / loading area — position: relative so absolute-positioned loaders stay contained */}
       <div
         className="flex items-center justify-center rounded-lg mb-4"
-        style={{ background: "#111111", border: "1px solid #232323", height: "220px" }}
+        style={{ position: "relative", background: "#111111", border: "1px solid #232323", height: "220px" }}
       >
         {isFramesLoading ? (
-          <div className="flex flex-col items-center gap-3">
-            <SimpsonLoading />
-            <span style={{ fontSize: "12px", color: "#696969" }}>Generating start frame...</span>
-            <span style={{ fontSize: "11px", color: "#404040" }}>Usually takes ~15 seconds</span>
-          </div>
+          <SimpsonLoading label="Generating start frame..." />
         ) : (
           <div className="flex flex-col items-center gap-3">
             <div

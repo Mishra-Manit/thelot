@@ -308,7 +308,7 @@ export function ShotTimeline({
         <div 
           className="fixed left-1/2 flex items-center gap-3 rounded-full"
           style={{ 
-            background: "#1C1C1E",
+            background: "#111111",
             padding: "4px 14px",
             zIndex: 50,
             transform: `translate(-50%, ${ZOOM_CONTROLS_Y_OFFSET}px)`,
@@ -325,7 +325,7 @@ export function ShotTimeline({
               height: "30px",
               background: canControlPlayback ? "#F2F2F2" : "#333333",
               cursor: canControlPlayback ? "pointer" : "not-allowed",
-              color: canControlPlayback ? "#1C1C1E" : "#777076"
+              color: canControlPlayback ? "#111111" : "#696969"
             }}
             onClick={canControlPlayback ? onPlayPause : undefined}
             disabled={!canControlPlayback}
@@ -337,7 +337,7 @@ export function ShotTimeline({
             )}
           </button>
 
-          <span style={{ fontSize: "13px", color: "#6B7280", fontVariantNumeric: "tabular-nums", fontWeight: 400 }}>
+          <span style={{ fontSize: "13px", color: "#696969", fontVariantNumeric: "tabular-nums", fontWeight: 400 }}>
             {formatTime(effectiveDuration)}
           </span>
         </div>
@@ -352,7 +352,7 @@ export function ShotTimeline({
             style={{
               width: "24px",
               height: "24px",
-              color: zoom > 1 ? "#777076" : "#404556",
+              color: zoom > 1 ? "#696969" : "#404040",
               cursor: zoom > 1 ? "pointer" : "not-allowed",
             }}
             onClick={zoom > 1 ? handleZoomOut : undefined}
@@ -377,7 +377,7 @@ export function ShotTimeline({
             style={{
               width: "24px",
               height: "24px",
-              color: zoom < 4 ? "#777076" : "#404556",
+              color: zoom < 4 ? "#696969" : "#404040",
               cursor: zoom < 4 ? "pointer" : "not-allowed",
             }}
             onClick={zoom < 4 ? handleZoomIn : undefined}
@@ -417,7 +417,7 @@ export function ShotTimeline({
 
       {/* Timeline Area */}
       {shots.length === 0 ? (
-        <div className="flex-1 flex items-center justify-center" style={{ color: "#404556", fontSize: "12px" }}>
+        <div className="flex-1 flex items-center justify-center" style={{ color: "#404040", fontSize: "12px" }}>
           No shots in this scene
         </div>
       ) : (
@@ -469,7 +469,7 @@ export function ShotTimeline({
             className="flex-1 min-w-0 overflow-x-auto relative flex"
             style={{
               scrollbarWidth: "thin",
-              scrollbarColor: "#404556 #000000",
+              scrollbarColor: "#404040 #000000",
             }}
             onClick={handleSeekClick}
           >
@@ -505,7 +505,7 @@ export function ShotTimeline({
                       {isNumber ? (
                         <span style={{ 
                           fontSize: "11px", 
-                          color: "#777076", 
+                          color: "#696969", 
                           fontWeight: 500,
                           fontVariantNumeric: "tabular-nums",
                           lineHeight: 1,
@@ -518,7 +518,7 @@ export function ShotTimeline({
                             width: `${RULER_DOT_SIZE}px`,
                             height: `${RULER_DOT_SIZE}px`,
                             borderRadius: "50%",
-                            background: "#777076",
+                            background: "#696969",
                           }}
                         />
                       )}

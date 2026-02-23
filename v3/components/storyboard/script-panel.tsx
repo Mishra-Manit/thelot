@@ -190,7 +190,7 @@ export function ScriptPanel({
               >
                 <Minus size={10} />
               </button>
-              <span style={{ minWidth: "34px", textAlign: "center", fontSize: "11px", color: "#E6E8EE", fontVariantNumeric: "tabular-nums" }}>
+              <span style={{ minWidth: "34px", textAlign: "center", fontSize: "11px", color: "#D9D9D9", fontVariantNumeric: "tabular-nums" }}>
                 Clip Len: {clampedDuration}s
               </span>
               <button

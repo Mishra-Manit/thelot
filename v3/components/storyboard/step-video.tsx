@@ -22,10 +22,11 @@ export function StepVideo({
   return (
     <div className="flex flex-col flex-1 min-h-0" style={{ padding: "16px" }}>
 
-      {/* Video preview area */}
+      {/* Video preview area — position: relative so SpongebobLoading's absolute inset-0 stays contained */}
       <div
         className="flex items-center justify-center rounded-lg"
         style={{
+          position: "relative",
           background: "#111111",
           border: `1px solid ${isApproved ? "#696969" : "#232323"}`,
           borderRadius: "8px",

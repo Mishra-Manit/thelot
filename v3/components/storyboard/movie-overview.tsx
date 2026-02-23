@@ -31,27 +31,32 @@ export function MovieOverview({ scenes, simulationByShot, onSceneSelect, widthPc
     >
       {/* Header */}
       <div className="px-5 pt-5 pb-4" style={{ borderBottom: "1px solid #1a1a1a" }}>
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex flex-col justify-between" style={{ height: "42px" }}>
-            <h1 style={{ fontSize: "15px", fontWeight: 600, color: "#ffffff" }}>
-              Your Movie
-            </h1>
-            <span style={{ fontSize: "12px", color: "#696969" }}>
-              {scenes.length} scenes &middot; {totalShots} shots
+        {/* Title row */}
+        <div className="flex items-baseline justify-between mb-3">
+          <h1 style={{ fontSize: "15px", fontWeight: 600, color: "#ffffff" }}>
+            Your Movie
+          </h1>
+          <span style={{ fontSize: "11px", color: "#7A7A7A" }}>
+            {scenes.length} scenes &middot; {totalShots} shots
+          </span>
+        </div>
+
+        {/* Progress section */}
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-center justify-between">
+            <span style={{ fontSize: "11px", color: "#7A7A7A", letterSpacing: "0.02em" }}>
+              Overall progress
+            </span>
+            <span style={{ fontSize: "11px", color: "#D9D9D9", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
+              {movieProgress}%
             </span>
           </div>
-          <div className="flex flex-col justify-between" style={{ width: "240px", height: "42px" }}>
-            <div className="flex items-center justify-between">
-              <span style={{ fontSize: "12px", color: "#696969", letterSpacing: "0.02em" }}>Overall progress</span>
-              <span style={{ fontSize: "12px", color: "#F0F0F0", fontWeight: 700 }}>{movieProgress}%</span>
-            </div>
-            <Progress
-              value={movieProgress}
-              className="h-2"
-              style={{ background: "#111111", border: "1px solid #232323" }}
-              indicatorClassName="bg-[#D9D9D9]"
-            />
-          </div>
+          <Progress
+            value={movieProgress}
+            className="h-1.5"
+            style={{ background: "#1a1a1a", border: "1px solid #232323" }}
+            indicatorClassName="bg-[#D9D9D9]"
+          />
         </div>
       </div>
 

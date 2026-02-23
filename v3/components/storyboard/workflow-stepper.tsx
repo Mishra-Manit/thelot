@@ -41,7 +41,7 @@ export function WorkflowStepper({ currentStep, shotStatus, isLoading, onStepClic
         const isLoadingStep = isLoading && isActive
         const clickable = isStepClickable(step.key, shotStatus)
 
-        const textColor = isActive ? "#386775" : isComplete ? "#20504E" : "#696969"
+        const textColor = isActive ? "#ffffff" : isComplete ? "#696969" : "#575757"
 
         return (
           <div key={step.key} className="relative flex flex-col items-center gap-1">
@@ -66,7 +66,7 @@ export function WorkflowStepper({ currentStep, shotStatus, isLoading, onStepClic
               <span>{step.number}</span>
               <span>{step.label}</span>
               {isComplete && !isActive && (
-                <span style={{ color: "#20504E", fontSize: "10px" }}>✓</span>
+                <span style={{ color: "#696969", fontSize: "10px" }}>✓</span>
               )}
             </button>
 
@@ -82,8 +82,8 @@ export function WorkflowStepper({ currentStep, shotStatus, isLoading, onStepClic
                   }}
                   animate={
                     isLoadingStep
-                      ? { opacity: [0.3, 1, 0.3], background: "#386775" }
-                      : { opacity: 1, background: "#386775" }
+                      ? { opacity: [0.3, 1, 0.3], background: "#D9D9D9" }
+                      : { opacity: 1, background: "#D9D9D9" }
                   }
                   transition={
                     isLoadingStep

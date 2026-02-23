@@ -71,7 +71,8 @@ export function StepFrames({
       {/* Generated frame display */}
       <div style={{ height: "200px", marginBottom: "10px" }}>
         {isVideoLoading ? (
-          <div className="w-full h-full flex items-center justify-center rounded-lg" style={{ background: "#111111", border: "1px solid #232323" }}>
+          // position: relative so SpongebobLoading's absolute inset-0 stays within this container
+          <div className="w-full h-full flex items-center justify-center rounded-lg" style={{ position: "relative", background: "#111111", border: "1px solid #232323" }}>
             <SpongebobLoading compact />
           </div>
         ) : (

@@ -4,10 +4,9 @@ import { useRef, useImperativeHandle } from "react"
 import type { VideoPlayerHandle } from "./video-player"
 import type { FramePreviewHandle } from "./frame-preview"
 import { VideoPlayer } from "./video-player"
-import type { StoryboardScene, ShotInput } from "@/lib/storyboard-types"
+import type { ShotInput } from "@/lib/storyboard-types"
 
 interface SceneRightPanelProps {
-  scene: StoryboardScene
   shots: ShotInput[]
   videoPlayerRef: React.RefObject<FramePreviewHandle | null>
   onTimeUpdate: (time: number, duration: number) => void
@@ -15,7 +14,6 @@ interface SceneRightPanelProps {
 }
 
 export function SceneRightPanel({
-  scene,
   shots,
   videoPlayerRef,
   onTimeUpdate,
@@ -31,15 +29,8 @@ export function SceneRightPanel({
 
   return (
     <div className="flex flex-col flex-1 min-w-0" style={{ background: "#000000" }}>
-      {/* Scene label */}
-      <div className="px-4 pt-4 pb-1">
-        <span style={{ fontSize: "11px", color: "#696969" }}>
-          Scene {scene.number} — {scene.title}
-        </span>
-      </div>
-
       {/* Video preview */}
-      <div className="flex-1 min-h-0 relative" style={{ padding: "8px 16px 8px 16px" }}>
+      <div className="flex-1 min-h-0 relative" style={{ padding: "16px 16px 8px 16px" }}>
         <div
           className="relative w-full h-full rounded-lg overflow-hidden"
           style={{ background: "#111111", border: "1px solid #232323" }}
@@ -61,7 +52,7 @@ export function SceneRightPanel({
             disabled
             className="flex-1 rounded-md"
             style={{
-              padding: "8px 0",
+              padding: "13px 0",
               fontSize: "11px",
               color: "#ffffff",
               background: "#111111",
@@ -78,11 +69,11 @@ export function SceneRightPanel({
       {/* Footer */}
       <div className="px-4 pb-4 text-center">
         <span style={{ fontSize: "11px", color: "#696969" }}>
-          Select a shot below to drill into shot-level editing
+          Use these advanced tools to edit your movie
         </span>
       </div>
     </div>
   )
 }
 
-const SCENE_CONTROLS = ["Scene Audio Mix", "Adjust Timing", "Reorder Shots"]
+const SCENE_CONTROLS = ["Voice Generation", "Media Library", "Lip Sync"]

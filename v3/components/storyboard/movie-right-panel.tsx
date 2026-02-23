@@ -52,7 +52,7 @@ export function MovieRightPanel({
             disabled
             className="flex-1 rounded-md"
             style={{
-              padding: "8px 0",
+              padding: "13px 0",
               fontSize: "11px",
               color: "#ffffff",
               background: "#111111",
@@ -69,11 +69,11 @@ export function MovieRightPanel({
       {/* Footer */}
       <div className="px-4 pb-4 text-center">
         <span style={{ fontSize: "11px", color: "#696969" }}>
-          Select a scene below to drill into scene-level editing
+          Use these advanced tools to edit your movie
         </span>
       </div>
     </div>
   )
 }
 
-const MOVIE_CONTROLS = ["Add Soundtrack", "Color Grading", "Export Full Movie"]
+const MOVIE_CONTROLS = ["Voice Generation", "Media Library", "Lip Sync"]

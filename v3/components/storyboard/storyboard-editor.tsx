@@ -754,7 +754,6 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
                   onBackToMovie={handleBackToMovie}
                 />
                 <SceneRightPanel
-                  scene={activeScene}
                   shots={sceneShotInputs}
                   videoPlayerRef={framePreviewRef}
                   onTimeUpdate={handlePlayerTimeUpdate}
