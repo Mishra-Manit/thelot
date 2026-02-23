@@ -30,7 +30,7 @@ export function SceneRightPanel({
   return (
     <div className="flex flex-col flex-1 min-w-0" style={{ background: "#000000" }}>
       {/* Video preview */}
-      <div className="flex-1 min-h-0 relative" style={{ padding: "16px 16px 8px 16px" }}>
+      <div className="flex-1 min-h-0 relative" style={{ padding: "16px" }}>
         <div
           className="relative w-full h-full rounded-lg overflow-hidden"
           style={{ background: "#111111", border: "1px solid #232323" }}
