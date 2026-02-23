@@ -25,7 +25,7 @@ export function ShotStatusDot({ status, isLoading = false, size = "md" }: ShotSt
         transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
         aria-label="Loading"
       >
-        <circle cx="7" cy="7" r="6" fill="#386775" />
+        <circle cx="7" cy="7" r="6" fill="#D9D9D9" />
       </motion.svg>
     )
   }
@@ -46,8 +46,8 @@ export function ShotStatusDot({ status, isLoading = false, size = "md" }: ShotSt
             <rect x="0" y="0" width="7" height="14" />
           </clipPath>
         </defs>
-        <circle cx="7" cy="7" r="6" fill="none" stroke="#386775" strokeWidth="1.5" />
-        <circle cx="7" cy="7" r="6" fill="#386775" clipPath={`url(#${clipId})`} />
+        <circle cx="7" cy="7" r="6" fill="none" stroke="#D9D9D9" strokeWidth="1.5" />
+        <circle cx="7" cy="7" r="6" fill="#D9D9D9" clipPath={`url(#${clipId})`} />
       </svg>
     )
   }
@@ -55,7 +55,7 @@ export function ShotStatusDot({ status, isLoading = false, size = "md" }: ShotSt
   if (status === "video_ready") {
     return (
       <svg width={px} height={px} viewBox="0 0 14 14" aria-label="Video ready">
-        <circle cx="7" cy="7" r="6" fill="#20504E" />
+        <circle cx="7" cy="7" r="6" fill="#696969" />
       </svg>
     )
   }
@@ -63,10 +63,10 @@ export function ShotStatusDot({ status, isLoading = false, size = "md" }: ShotSt
   // approved
   return (
     <svg width={px} height={px} viewBox="0 0 14 14" aria-label="Approved">
-      <circle cx="7" cy="7" r="6" fill="#193D31" />
+      <circle cx="7" cy="7" r="6" fill="#F0F0F0" />
       <path
         d="M4.5 7 L6.5 9 L9.5 5.5"
-        stroke="white"
+        stroke="#000000"
         strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"

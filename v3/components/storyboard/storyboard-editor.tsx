@@ -603,8 +603,8 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
           className="flex min-h-0"
           style={{ flex: `0 0 ${showTimeline ? 100 - timelinePct : 100}%` }}
         >
-          {/* Scene sidebar - only show at scene/shot levels */}
-          {editingLevel !== "movie" && (
+          {/* Scene sidebar - only show at shot level */}
+          {editingLevel === "shot" && (
             <SceneSidebar
               scenes={scenes}
               editingLevel={editingLevel}

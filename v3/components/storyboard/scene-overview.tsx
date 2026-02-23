@@ -36,7 +36,7 @@ export function SceneOverview({
       }}
     >
       {/* Back + title */}
-      <div className="px-5 pt-4 pb-3" style={{ borderBottom: "1px solid #1a1a1a" }}>
+      <div className="px-5 pt-4 pb-3" style={{ borderBottom: "1px solid #232323" }}>
         <button
           className="transition-colors duration-150 mb-2"
           style={{ fontSize: "11px", color: "#696969", display: "block" }}
@@ -80,8 +80,8 @@ export function SceneOverview({
             <button
               key={shot.id}
               className="flex items-start gap-3 rounded-lg transition-colors duration-150 text-left px-3 py-2.5"
-              style={{ background: "#111111", border: "1px solid #1a1a1a" }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = "#111111AA")}
+              style={{ background: "#111111", border: "1px solid #232323" }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = "#232323")}
               onMouseLeave={(e) => (e.currentTarget.style.background = "#111111")}
               onClick={() => onShotSelect(shot.id)}
             >
@@ -117,7 +117,7 @@ export function SceneOverview({
       </div>
 
       {/* Status legend */}
-      <div className="px-4 py-2 flex items-center gap-4" style={{ borderTop: "1px solid #1a1a1a" }}>
+      <div className="px-4 py-2 flex items-center gap-4" style={{ borderTop: "1px solid #232323" }}>
         <LegendItem status="draft" label="No frames" />
         <LegendItem status="frames_ready" label="Frames ready" />
         <LegendItem status="video_ready" label="Video complete" />
@@ -126,9 +126,9 @@ export function SceneOverview({
       {/* CTA card */}
       <div
         className="mx-4 mt-2 mb-4 rounded-lg px-4 py-3"
-        style={{ border: "1px solid #386775", background: "#0d1e1e" }}
+        style={{ border: "1px solid #464646", background: "#111111" }}
       >
-        <span style={{ fontSize: "12px", color: "#597D7C" }}>
+        <span style={{ fontSize: "12px", color: "#D9D9D9" }}>
           Select a shot to start editing
         </span>
       </div>
