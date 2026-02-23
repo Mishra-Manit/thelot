@@ -394,6 +394,7 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
                   shot={activeShot}
                   sceneNumber={activeScene.number}
                   shotIndex={activeShot.number}
+                  startFrameImageUrl={startFrameImageUrl}
                   onUpdate={handleUpdateShot}
                   widthPct={leftPct}
                   onGenerateVideo={() => handleGenerateVideo(activeShot.id)}
@@ -479,7 +480,11 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
                   duration={activeShot.duration}
                   startFramePrompt={activeShot.startFramePrompt}
                   shotTitle={activeShot.title}
-                  videoUrl={activeSimulation.video === "ready" ? activeShot.videoUrl : ""}
+                  shots={
+                    activeSimulation.video === "ready"
+                      ? activeScene.shots
+                      : activeScene.shots.map((shot) => ({ ...shot, videoUrl: "" }))
+                  }
                   startFrameImageUrl={startFrameImageUrl}
                   endFrameImageUrl={endFrameImageUrl}
                   endFrameFallbackImageUrl={startFrameImageUrl}
@@ -568,7 +573,7 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
             className="min-h-0"
             style={{
               flex: `0 0 ${timelinePct}%`,
-              padding: "0 12px 12px",
+              padding: "0",
             }}
           >
             <ShotTimeline
