@@ -4,11 +4,18 @@ Dont commit after making changes. Leave everything in the main branch
 
 ## Color Palette
 
-Top row (dark neutrals): `#0D0E14`, `#252933`, `#404556`, `#60515C`, `#777076`  
-Bottom row (greens/teals): `#597D7C`, `#386775`, `#20504E`, `#193D31`, `#17292B`
+**V3 uses a strictly monochrome color scheme:**
+
+Backgrounds: `#000000` (base), `#111111` (surface), `#232323` (surface-hover)  
+Borders: `#232323` (default), `#696969` (hover)  
+Text: `#ffffff` (primary), `#D9D9D9` (secondary), `#696969` (tertiary), `#575757` (muted)  
+Accents: `#D9D9D9` (default), `#F0F0F0` (hover), `#464646` (deep)  
+Scrollbar: `#7A7A7A` (thumb), `#D9D9D9` (hover)
 
 Always use Bun for these projects
 
 The folder @v1 is the first inital messing around design to get the diffusion core package up and running. That also has the skeleton and the scheme to connect all the components to planetscale the database. 
 
-The folder @v2 is the new version of the frontend that I am building out. This version has an improved dark mode frontend where the new features need to get added in. Right now it is just a skeleton with the frontend. There is no actual functionality. 
+The folder @v2 is the new version of the frontend that I am building out. This version has an improved dark mode frontend where the new features need to get added in. Right now it is just a skeleton with the frontend. There is no actual functionality.
+
+The folder @v3 is the current active version with a strictly monochrome color scheme. All UI elements use grayscale colors only (black to white spectrum). This is the walkthrough approach for the frontend where the user is guided through the generation process.
