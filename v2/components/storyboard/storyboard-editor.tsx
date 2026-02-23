@@ -1,6 +1,8 @@
 "use client"
 
-import { useState, useCallback, useRef, useTransition, useEffect } from "react"
+import { useState, useCallback, useRef, useTransition, useEffect, useMemo } from "react"
+
+const MIN_DURATION_SECONDS = 1
 import { AnimatePresence, motion } from "framer-motion"
 import { HeaderBar } from "./header-bar"
 import { SceneList } from "./scene-list"
@@ -42,6 +44,8 @@ interface StoryboardEditorProps {
 
 export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
   const [scenes, setScenes] = useState(initialScenes)
+  const [durationDisplayByShot, setDurationDisplayByShot] = useState<Record<string, number>>({})
+  const [fixedDurationByShot, setFixedDurationByShot] = useState<Record<string, number>>({})
   const [, startTransition] = useTransition()
   const [simulationByShot, setSimulationByShot] = useState<Record<string, ShotSimulationState>>({})
   const [frameVersionByShot, setFrameVersionByShot] = useState<Record<string, number>>({})
@@ -72,6 +76,9 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
 
   const activeScene = scenes.find((s) => s.id === selectedScene)
   const activeShot = activeScene?.shots.find((s) => s.id === selectedShot)
+  const activeDurationDisplay = activeShot
+    ? durationDisplayByShot[activeShot.id] ?? fixedDurationByShot[activeShot.id] ?? activeShot.duration
+    : MIN_DURATION_SECONDS
   const activeSimulation = selectedShot
     ? simulationByShot[selectedShot] ?? DEFAULT_SIMULATION_STATE
     : DEFAULT_SIMULATION_STATE
@@ -311,6 +318,18 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
     [selectedShot, startTransition]
   )
 
+  const handleDurationDisplayChange = useCallback(
+    (nextValue: number) => {
+      const currentShotId = selectedShot
+      if (!currentShotId) return
+      setDurationDisplayByShot((prev) => ({
+        ...prev,
+        [currentShotId]: nextValue,
+      }))
+    },
+    [selectedShot]
+  )
+
   const handleTimelinePlayPause = useCallback(() => {
     if (isVideoPlaying) {
       framePreviewRef.current?.pause()
@@ -323,6 +342,59 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
     framePreviewRef.current?.seek(seconds)
     setVideoCurrentTime(seconds)
   }, [])
+
+  const allShots = useMemo(
+    () => scenes.flatMap((scene) => scene.shots),
+    [scenes]
+  )
+
+  const setFixedDuration = useCallback((shotId: string, duration: number | null) => {
+    if (duration === null || !Number.isFinite(duration)) return
+    setFixedDurationByShot((prev) => (prev[shotId] ? prev : { ...prev, [shotId]: duration }))
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    const cleanups: Array<() => void> = []
+
+    allShots.forEach((shot) => {
+      if (!shot.videoUrl) return
+      if (fixedDurationByShot[shot.id]) return
+
+      const video = document.createElement("video")
+      video.preload = "metadata"
+      video.src = shot.videoUrl
+
+      const handleLoaded = () => {
+        if (cancelled) {
+          cleanup()
+          return
+        }
+        const duration = Number.isFinite(video.duration)
+          ? Math.max(1, Math.round(video.duration))
+          : null
+        setFixedDuration(shot.id, duration)
+        cleanup()
+      }
+
+      const handleError = () => cleanup()
+
+      const cleanup = () => {
+        video.removeEventListener("loadedmetadata", handleLoaded)
+        video.removeEventListener("error", handleError)
+        video.src = ""
+      }
+
+      video.addEventListener("loadedmetadata", handleLoaded)
+      video.addEventListener("error", handleError)
+      cleanups.push(cleanup)
+    })
+
+    return () => {
+      cancelled = true
+      cleanups.forEach((cleanup) => cleanup())
+    }
+  }, [allShots, fixedDurationByShot, setFixedDuration])
 
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden" style={{ background: "#000000" }}>
@@ -351,17 +423,18 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
           style={{ flex: `0 0 ${activeScene ? 100 - timelinePct : 100}%` }}
         >
           {/* Scene list sidebar */}
-          <SceneList
-            scenes={scenes}
-            selectedScene={selectedScene}
-            selectedShot={selectedShot}
-            frameVersionByShot={frameVersionByShot}
-            collapsed={panelCollapsed}
-            onSelectScene={handleSelectScene}
-            onSelectShot={handleSelectShot}
-            onBack={handleBack}
-            onToggleCollapse={handleToggleCollapse}
-          />
+            <SceneList
+              scenes={scenes}
+              selectedScene={selectedScene}
+              selectedShot={selectedShot}
+              frameVersionByShot={frameVersionByShot}
+              durationByShot={fixedDurationByShot}
+              collapsed={panelCollapsed}
+              onSelectScene={handleSelectScene}
+              onSelectShot={handleSelectShot}
+              onBack={handleBack}
+              onToggleCollapse={handleToggleCollapse}
+            />
 
           {/* Shot Detail + Resize Handle + Frame Preview */}
           <div ref={contentRef} className="flex flex-1 min-w-0 relative">
@@ -387,6 +460,8 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
                   shotIndex={activeShot.number}
                   startFrameImageUrl={startFrameImageUrl}
                   onUpdate={handleUpdateShot}
+                  onDurationDisplayChange={handleDurationDisplayChange}
+                  durationDisplay={activeDurationDisplay}
                   widthPct={leftPct}
                   onGenerateVideo={() => handleGenerateVideo(activeShot.id)}
                   canGenerateVideo={activeSimulation.frames === "ready"}
@@ -468,7 +543,6 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
                   sceneNumber={activeScene.number}
                   shotNumber={activeShot.number}
                   totalShots={activeScene.shots.length}
-                  duration={activeShot.duration}
                   startFramePrompt={activeShot.startFramePrompt}
                   shotTitle={activeShot.title}
                   shots={
@@ -571,6 +645,7 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
               shots={activeScene.shots}
               selectedShot={selectedShot}
               sceneNumber={activeScene.number}
+              durationByShot={fixedDurationByShot}
               onSelectShot={handleSelectShot}
               currentTime={videoCurrentTime}
               totalDuration={videoTotalDuration}

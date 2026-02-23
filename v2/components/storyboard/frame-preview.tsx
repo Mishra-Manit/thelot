@@ -19,7 +19,6 @@ interface FramePreviewProps {
   sceneNumber: number | null
   shotNumber: number | null
   totalShots: number
-  duration: number
   startFramePrompt: string
   shotTitle: string
   shots: ShotInput[]
@@ -343,4 +342,3 @@ export function FrameCard({
     </div>
   )
 }
-

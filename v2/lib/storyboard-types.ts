@@ -45,6 +45,7 @@ export interface ShotInput {
 // Layout info for timeline pill positioning
 export interface ShotLayout {
   shot: StoryboardShot
+  duration: number
   startSec: number
   leftPct: number
   widthPct: number

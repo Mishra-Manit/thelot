@@ -17,6 +17,7 @@ interface SceneListProps {
   selectedScene: string | null
   selectedShot: string | null
   frameVersionByShot: Record<string, number>
+  durationByShot: Record<string, number>
   collapsed: boolean
   onSelectScene: (sceneId: string) => void
   onSelectShot: (shotId: string) => void
@@ -30,6 +31,7 @@ export function SceneList({
   selectedScene,
   selectedShot,
   frameVersionByShot,
+  durationByShot,
   collapsed,
   onSelectScene,
   onSelectShot,
@@ -257,7 +259,7 @@ export function SceneList({
                 <div className="flex-1 overflow-y-auto px-3 flex flex-col gap-2 pb-3">
                   {scenes.map((scene) => {
                     const totalDuration = scene.shots.reduce(
-                      (sum, s) => sum + s.duration,
+                      (sum, s) => sum + (durationByShot[s.id] ?? s.duration),
                       0
                     )
                     return (
@@ -344,7 +346,10 @@ export function SceneList({
                     <Film size={10} />
                     <span>
                       {activeScene.shots.length} shots &middot;{" "}
-                      {activeScene.shots.reduce((s, sh) => s + sh.duration, 0)}s total
+                      {activeScene.shots.reduce(
+                        (sum, sh) => sum + (durationByShot[sh.id] ?? sh.duration),
+                        0
+                      )}s total
                     </span>
                   </div>
                   <div style={{ borderTop: "1px solid #111111" }} />
@@ -392,7 +397,7 @@ export function SceneList({
                           style={{ fontSize: "12px", color: "#696969" }}
                         >
                           <Clock size={14} />
-                          {shot.duration}s
+                          {durationByShot[shot.id] ?? shot.duration}s
                         </span>
                       </button>
                     )

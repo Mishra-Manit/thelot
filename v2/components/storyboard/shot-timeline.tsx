@@ -20,13 +20,15 @@ function formatTime(seconds: number): string {
 function computeLayout(shots: StoryboardShot[], totalDuration: number): ShotLayout[] {
   let cursor = 0
   return shots.map((shot) => {
+    const duration = Math.max(1, Math.round(shot.duration))
     const layout: ShotLayout = {
       shot,
+      duration,
       startSec: cursor,
       leftPct: totalDuration > 0 ? (cursor / totalDuration) * 100 : 0,
-      widthPct: totalDuration > 0 ? (shot.duration / totalDuration) * 100 : 0,
+      widthPct: totalDuration > 0 ? (duration / totalDuration) * 100 : 0,
     }
-    cursor += shot.duration
+    cursor += duration
     return layout
   })
 }
@@ -75,6 +77,7 @@ interface ShotTimelineProps {
   shots: StoryboardShot[]
   selectedShot: string | null
   sceneNumber: number
+  durationByShot: Record<string, number>
   onSelectShot: (shotId: string) => void
   currentTime: number
   totalDuration: number
@@ -86,6 +89,7 @@ interface ShotTimelineProps {
 export function ShotTimeline({
   shots,
   selectedShot,
+  durationByShot,
   onSelectShot,
   currentTime,
   totalDuration,
@@ -93,17 +97,26 @@ export function ShotTimeline({
   onPlayPause,
   onSeek,
 }: ShotTimelineProps) {
+  const shotsWithDuration = useMemo(
+    () =>
+      shots.map((shot) => ({
+        ...shot,
+        duration: durationByShot[shot.id] ?? shot.duration,
+      })),
+    [shots, durationByShot]
+  )
+
   // Compute scene total from shot durations
   const sceneTotalDuration = useMemo(
-    () => shots.reduce((sum, shot) => sum + shot.duration, 0),
-    [shots]
+    () => shotsWithDuration.reduce((sum, shot) => sum + shot.duration, 0),
+    [shotsWithDuration]
   )
   const effectiveDuration = totalDuration > 0 ? totalDuration : sceneTotalDuration
 
   // Compute layout for all shots
   const layouts = useMemo(
-    () => computeLayout(shots, effectiveDuration),
-    [shots, effectiveDuration]
+    () => computeLayout(shotsWithDuration, effectiveDuration),
+    [shotsWithDuration, effectiveDuration]
   )
 
   // State
@@ -156,31 +169,32 @@ export function ShotTimeline({
     const clampedTime = Math.max(0, Math.min(currentTime, effectiveDuration))
     const offset = (clampedTime / effectiveDuration) * contentWidth
     playhead.style.transform = `translateX(${offset}px)`
-  }, [currentTime, effectiveDuration, zoom, containerWidth])
+  }, [currentTime, effectiveDuration, zoom, timelineViewportWidth])
 
   // Extract thumbnails for shots with video URLs
   useEffect(() => {
     let cancelled = false
 
-    shots.forEach(async (shot) => {
+    shotsWithDuration.forEach(async (shot) => {
       if (!shot.videoUrl) return
       if (thumbnailCache.current.has(shot.id)) {
         const cached = thumbnailCache.current.get(shot.id)
         const pill = pillRefs.current.get(shot.id)
-        if (pill && cached) pill.style.backgroundImage = `url(${cached})`
+        if (pill && cached) pill.style.backgroundImage = `linear-gradient(to top, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.1) 40%, transparent 100%), url(${cached})`
         return
       }
 
-      const thumbnail = await extractThumbnail(shot.videoUrl, shot.duration)
+      const layout = layouts.find((item) => item.shot.id === shot.id)
+      const thumbnail = await extractThumbnail(shot.videoUrl, layout?.duration ?? shot.duration)
       if (cancelled || !thumbnail) return
 
       thumbnailCache.current.set(shot.id, thumbnail)
       const pill = pillRefs.current.get(shot.id)
-      if (pill) pill.style.backgroundImage = `url(${thumbnail})`
+      if (pill) pill.style.backgroundImage = `linear-gradient(to top, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.1) 40%, transparent 100%), url(${thumbnail})`
     })
 
     return () => { cancelled = true }
-  }, [shots])
+  }, [shotsWithDuration, layouts])
 
   // Playhead drag handler
   const handlePlayheadDrag = useCallback(
@@ -213,7 +227,7 @@ export function ShotTimeline({
       window.addEventListener("mousemove", onMove)
       window.addEventListener("mouseup", onUp)
     },
-    [effectiveDuration, onSeek, containerWidth, zoom]
+    [effectiveDuration, onSeek, timelineViewportWidth, zoom]
   )
 
   // Click-to-seek on timeline
@@ -232,7 +246,7 @@ export function ShotTimeline({
       const seekTime = (x / contentWidth) * effectiveDuration
       onSeek(Math.max(0, Math.min(seekTime, effectiveDuration)))
     },
-    [effectiveDuration, onSeek, containerWidth, zoom]
+    [effectiveDuration, onSeek, timelineViewportWidth, zoom]
   )
 
   // Pill click handler
@@ -455,8 +469,11 @@ export function ShotTimeline({
                       style={{ 
                         left: `${leftPct}%`, 
                         transform: "translateX(-50%)",
-                        top: "50%",
-                        marginTop: "-6px"
+                        top: 0,
+                        bottom: 0,
+                        display: "flex",
+                        alignItems: "flex-start",
+                        paddingTop: isNumber ? "0px" : "3px",
                       }}
                     >
                       {isNumber ? (
@@ -464,7 +481,8 @@ export function ShotTimeline({
                           fontSize: "11px", 
                           color: "#777076", 
                           fontWeight: 500,
-                          fontVariantNumeric: "tabular-nums"
+                          fontVariantNumeric: "tabular-nums",
+                          lineHeight: 1,
                         }}>
                           {Math.floor(time)}
                         </span>
@@ -474,7 +492,7 @@ export function ShotTimeline({
                             width: "3px",
                             height: "3px",
                             borderRadius: "50%",
-                            background: "#404556",
+                            background: "#777076",
                           }}
                         />
                       )}
@@ -505,8 +523,11 @@ export function ShotTimeline({
                         width: `calc(${layout.widthPct}% - 2px)`,
                         minWidth: "40px",
                         borderRadius: "4px",
+                        backgroundImage: "linear-gradient(to top, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.1) 40%, transparent 100%)",
                         backgroundSize: "cover",
                         backgroundPosition: "center",
+                        backgroundRepeat: "no-repeat",
+                        backgroundClip: "border-box",
                         backgroundColor: "#1a1a1a",
                         border: isSelected ? "2px solid #666" : "1px solid transparent",
                         opacity: isSelected ? 1 : 0.9,
@@ -519,14 +540,6 @@ export function ShotTimeline({
                         handlePillClick(layout.shot.id, layout.startSec)
                       }}
                     >
-                      {/* Subtle gradient overlay */}
-                      <div
-                        className="absolute inset-0 pointer-events-none"
-                        style={{
-                          background: "linear-gradient(to top, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.1) 40%, transparent 100%)",
-                          borderRadius: "3px",
-                        }}
-                      />
                       {/* Metadata - compact */}
                       <div className="absolute bottom-1 left-2 right-2 flex justify-between items-center pointer-events-none">
                         <span
@@ -536,7 +549,7 @@ export function ShotTimeline({
                           {layout.shot.number} {layout.shot.title || "Untitled"}
                         </span>
                         <span style={{ fontSize: "9px", color: "#A3A3A3", flexShrink: 0, marginLeft: "4px" }}>
-                          {layout.shot.duration}s
+                          {layout.duration}s
                         </span>
                       </div>
                     </button>

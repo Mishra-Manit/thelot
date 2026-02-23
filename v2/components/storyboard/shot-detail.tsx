@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useEffect, useCallback, useState, useLayoutEffect } from "react"
+import { useRef, useEffect, useCallback, useState } from "react"
 import {
   Minus,
   Plus,
@@ -18,6 +18,8 @@ interface ShotDetailProps {
   shotIndex: number
   startFrameImageUrl: string
   onUpdate: (field: keyof StoryboardShotUpdateInput, value: string | number) => void
+  onDurationDisplayChange: (nextValue: number) => void
+  durationDisplay: number
   widthPct?: number
   onGenerateVideo: () => void
   canGenerateVideo: boolean
@@ -408,6 +410,8 @@ export function ShotDetail({
   shotIndex,
   startFrameImageUrl,
   onUpdate,
+  onDurationDisplayChange,
+  durationDisplay,
   widthPct = 50,
   onGenerateVideo,
   canGenerateVideo,
@@ -420,7 +424,7 @@ export function ShotDetail({
 }: ShotDetailProps) {
   const clampedDuration = Math.min(
     MAX_DURATION_SECONDS,
-    Math.max(MIN_DURATION_SECONDS, Math.round(shot.duration))
+    Math.max(MIN_DURATION_SECONDS, Math.round(durationDisplay))
   )
 
   const handleDurationChange = (nextValue: number) => {
@@ -428,7 +432,7 @@ export function ShotDetail({
       MAX_DURATION_SECONDS,
       Math.max(MIN_DURATION_SECONDS, Math.round(nextValue))
     )
-    onUpdate("duration", safeValue)
+    onDurationDisplayChange(safeValue)
   }
 
   return (
