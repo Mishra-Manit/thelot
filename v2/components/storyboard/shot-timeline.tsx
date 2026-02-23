@@ -8,6 +8,12 @@ import type { VideoSource as VideoSourceType } from "@diffusionstudio/core"
 // Sidebar width constant
 const SIDEBAR_WIDTH = 60
 const TIMELINE_RIGHT_PADDING = 12
+const RULER_HEIGHT = 24
+const RULER_DOT_SIZE = 3
+const RULER_DOT_OFFSET = 3
+const TIMELINE_RESIZE_HANDLE_HEIGHT = 24
+const ZOOM_CONTROLS_Y_OFFSET =
+  (RULER_DOT_OFFSET + RULER_DOT_SIZE / 2 - TIMELINE_RESIZE_HANDLE_HEIGHT / 2) / 2
 
 // Format time as M:SS
 function formatTime(seconds: number): string {
@@ -268,7 +274,7 @@ export function ShotTimeline({
       style={{ background: "#000000" }}
     >
       {/* Control Bar */}
-      <div className="flex items-center gap-4 h-10 px-4 shrink-0" style={{ background: "#000000" }}>
+      <div className="relative flex items-center justify-between h-10 px-4 shrink-0" style={{ background: "#000000" }}>
         {/* Left: SPLIT button */}
         <button
           className="shrink-0 transition-colors duration-150"
@@ -298,34 +304,48 @@ export function ShotTimeline({
         </button>
 
         {/* Center: Play/Pause + Combined Timecode */}
-        <div className="flex-1 flex items-center justify-center gap-3">
+        <div 
+          className="fixed left-1/2 flex items-center gap-3 rounded-full"
+          style={{ 
+            background: "#1C1C1E",
+            padding: "4px 14px",
+            zIndex: 50,
+            transform: "translate(-50%, 0)" // Center horizontally, keep vertical flow
+          }}
+        >
+          <span style={{ fontSize: "13px", color: "#FFFFFF", fontVariantNumeric: "tabular-nums", fontWeight: 400 }}>
+            {formatTime(currentTime)}
+          </span>
+
           <button
             className="flex items-center justify-center rounded-full transition-all duration-150"
             style={{
-              width: "32px",
-              height: "32px",
-              background: canControlPlayback ? "#1a1a1a" : "transparent",
-              border: canControlPlayback ? "1px solid #444" : "1px solid #333",
+              width: "30px",
+              height: "30px",
+              background: canControlPlayback ? "#F2F2F2" : "#333333",
               cursor: canControlPlayback ? "pointer" : "not-allowed",
-              color: canControlPlayback ? "#FFFFFF" : "#404556"
+              color: canControlPlayback ? "#1C1C1E" : "#777076"
             }}
             onClick={canControlPlayback ? onPlayPause : undefined}
             disabled={!canControlPlayback}
           >
             {isPlaying ? (
-              <Pause size={14} fill="currentColor" />
+              <Pause size={12} fill="currentColor" />
             ) : (
-              <Play size={14} fill="currentColor" className="ml-0.5" />
+              <Play size={12} fill="currentColor" className="ml-0.5" />
             )}
           </button>
 
-          <span style={{ fontSize: "12px", color: "#777076", fontVariantNumeric: "tabular-nums", fontWeight: 500 }}>
-            {formatTime(currentTime)} <span style={{ color: "#404556" }}>/</span> {formatTime(effectiveDuration)}
+          <span style={{ fontSize: "13px", color: "#6B7280", fontVariantNumeric: "tabular-nums", fontWeight: 400 }}>
+            {formatTime(effectiveDuration)}
           </span>
         </div>
 
         {/* Right: Zoom controls */}
-        <div className="flex items-center gap-2">
+        <div
+          className="flex items-center gap-2"
+          style={{ transform: `translateY(${ZOOM_CONTROLS_Y_OFFSET}px)` }}
+        >
           <button
             className="flex items-center justify-center transition-colors duration-150"
             style={{
@@ -407,7 +427,7 @@ export function ShotTimeline({
             style={{ width: `${SIDEBAR_WIDTH}px`, background: "#000000" }}
           >
             {/* Ruler gutter */}
-            <div style={{ height: "24px" }} />
+            <div style={{ height: `${RULER_HEIGHT}px` }} />
             
             {/* Video track gutter - Add button */}
             <div 
@@ -456,9 +476,9 @@ export function ShotTimeline({
             {/* Content wrapper with zoom width */}
             <div style={{ width: `${zoom * 100}%`, minWidth: "100%", position: "relative" }}>
               {/* Ruler Row - Opus Clip style */}
-              <div 
+              <div
                 className="relative flex items-center"
-                style={{ height: "24px", background: "#000000" }}
+                style={{ height: `${RULER_HEIGHT}px`, background: "#000000" }}
               >
                 {rulerMarks.map(({ time, isNumber }, i) => {
                   const leftPct = effectiveDuration > 0 ? (time / effectiveDuration) * 100 : 0
@@ -473,7 +493,7 @@ export function ShotTimeline({
                         bottom: 0,
                         display: "flex",
                         alignItems: "flex-start",
-                        paddingTop: isNumber ? "0px" : "3px",
+                        paddingTop: isNumber ? "0px" : `${RULER_DOT_OFFSET}px`,
                       }}
                     >
                       {isNumber ? (
@@ -489,8 +509,8 @@ export function ShotTimeline({
                       ) : (
                         <div
                           style={{
-                            width: "3px",
-                            height: "3px",
+                            width: `${RULER_DOT_SIZE}px`,
+                            height: `${RULER_DOT_SIZE}px`,
                             borderRadius: "50%",
                             background: "#777076",
                           }}
