@@ -3,11 +3,16 @@ export type SimulationPhase = "idle" | "loading" | "ready"
 export interface ShotSimulationState {
   frames: SimulationPhase
   video: SimulationPhase
+  approved: boolean
+  voice: SimulationPhase
+  lipsync: SimulationPhase
 }
 
 export type ShotStatus = "draft" | "frames_ready" | "video_ready" | "approved"
 
 export type EditingLevel = "movie" | "scene" | "shot"
+
+export type WorkflowStep = "script" | "frames" | "video" | "polish"
 
 export interface StoryboardShot {
   id: string
@@ -23,6 +28,9 @@ export interface StoryboardShot {
   startFramePrompt: string
   endFramePrompt: string
   videoPrompt: string
+  startFrameUrl: string
+  voiceUrl: string
+  lipsyncVideoUrl: string
 }
 
 export interface StoryboardScene {
@@ -44,6 +52,9 @@ export type StoryboardShotUpdateInput = Partial<{
   startFramePrompt: string
   endFramePrompt: string
   videoPrompt: string
+  startFrameUrl: string
+  voiceUrl: string
+  lipsyncVideoUrl: string
 }>
 
 // Input type for VideoPlayer multi-clip composition

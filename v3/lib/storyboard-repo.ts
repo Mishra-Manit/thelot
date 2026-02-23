@@ -33,6 +33,9 @@ export async function listStoryboard(): Promise<StoryboardScene[]> {
       startFramePrompt: shot.startFramePrompt ?? "",
       endFramePrompt: shot.endFramePrompt ?? "",
       videoPrompt: shot.videoPrompt ?? "",
+      startFrameUrl: shot.startFrameUrl ?? "",
+      voiceUrl: shot.voiceUrl ?? "",
+      lipsyncVideoUrl: shot.lipsyncVideoUrl ?? "",
     })),
   }))
 }

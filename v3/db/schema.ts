@@ -25,6 +25,9 @@ export const shots = pgTable('shots', {
   startFramePrompt: text('start_frame_prompt'),
   endFramePrompt: text('end_frame_prompt'),
   videoPrompt: text('video_prompt'),
+  startFrameUrl: varchar('start_frame_url', { length: 2048 }),
+  voiceUrl: varchar('voice_url', { length: 2048 }),
+  lipsyncVideoUrl: varchar('lipsync_video_url', { length: 2048 }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 })
 

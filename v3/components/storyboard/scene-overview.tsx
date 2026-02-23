@@ -27,11 +27,11 @@ export function SceneOverview({
 
   return (
     <div
-      className="flex flex-col h-full overflow-y-auto"
+      className="flex flex-col h-full overflow-y-auto font-sans"
       style={{
         background: "#000000",
         borderRight: "1px solid #232323",
-        width: "340px",
+        width: "420px",
         flexShrink: 0,
       }}
     >

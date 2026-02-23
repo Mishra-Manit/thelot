@@ -1,0 +1,1 @@
+ALTER TABLE "shots" ADD COLUMN "start_frame_url" varchar(2048);

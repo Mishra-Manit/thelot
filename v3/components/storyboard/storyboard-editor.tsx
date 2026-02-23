@@ -4,8 +4,10 @@ import { useState, useCallback, useRef, useTransition, useEffect, useMemo } from
 import { AnimatePresence, motion } from "framer-motion"
 import { HeaderBar } from "./header-bar"
 import { SceneSidebar } from "./scene-sidebar"
-import { ShotDetail } from "./shot-detail"
-import { FramePreview, type FramePreviewHandle } from "./frame-preview"
+import { ScriptPanel } from "./script-panel"
+import { ProductionPanel } from "./production-panel"
+import type { FramePreviewHandle } from "./frame-preview"
+import type { WorkflowStep } from "@/lib/storyboard-types"
 import { ShotTimeline } from "./shot-timeline"
 import { MovieOverview } from "./movie-overview"
 import { MovieRightPanel } from "./movie-right-panel"
@@ -23,15 +25,21 @@ import type {
 const MIN_DURATION_SECONDS = 1
 const MIN_LEFT_PCT = 30
 const MAX_LEFT_PCT = 70
+const MIN_MOVIE_LEFT_PCT = 20
+const MAX_MOVIE_LEFT_PCT = 50
 const MIN_TIMELINE_PCT = 16
 const MAX_TIMELINE_PCT = 42
 const SIMULATION_DELAY_MS = 3000
+const TIMELINE_UI_UPDATE_INTERVAL_MS = 1000 / 24
 
-type SimulationTimerKey = "frames" | "video"
+type SimulationTimerKey = "frames" | "video" | "voice" | "lipsync"
 
 const DEFAULT_SIMULATION_STATE: ShotSimulationState = {
   frames: "idle",
   video: "idle",
+  approved: false,
+  voice: "idle",
+  lipsync: "idle",
 }
 
 function createShotImagePath(sceneNumber: number, shotNumber: number, kind: "start" | "end") {
@@ -51,6 +59,7 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
   const [, startTransition] = useTransition()
   const [simulationByShot, setSimulationByShot] = useState<Record<string, ShotSimulationState>>({})
   const [frameVersionByShot, setFrameVersionByShot] = useState<Record<string, number>>({})
+  const [activeStepByShot, setActiveStepByShot] = useState<Record<string, WorkflowStep>>({})
 
   // Navigation state
   const [editingLevel, setEditingLevel] = useState<EditingLevel>("movie")
@@ -62,6 +71,9 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
   const [leftPct, setLeftPct] = useState(50)
   const [isDragging, setIsDragging] = useState(false)
   const [isResizeHandleHovered, setIsResizeHandleHovered] = useState(false)
+  const [movieLeftPct, setMovieLeftPct] = useState(28)
+  const [isMovieDragging, setIsMovieDragging] = useState(false)
+  const [isMovieHandleHovered, setIsMovieHandleHovered] = useState(false)
   const [timelinePct, setTimelinePct] = useState(20)
   const [isTimelineDragging, setIsTimelineDragging] = useState(false)
   const [isTimelineHandleHovered, setIsTimelineHandleHovered] = useState(false)
@@ -72,6 +84,7 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
   const [videoCurrentTime, setVideoCurrentTime] = useState(0)
   const [videoTotalDuration, setVideoTotalDuration] = useState(0)
   const [isVideoPlaying, setIsVideoPlaying] = useState(false)
+  const lastTimelineUiUpdateMsRef = useRef(0)
   const simulationTimersRef = useRef<Record<string, Partial<Record<SimulationTimerKey, number>>>>(
     {}
   )
@@ -84,14 +97,11 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
   const activeSimulation = selectedShot
     ? simulationByShot[selectedShot] ?? DEFAULT_SIMULATION_STATE
     : DEFAULT_SIMULATION_STATE
+  const activeStep: WorkflowStep = (selectedShot ? activeStepByShot[selectedShot] : undefined) ?? "script"
   const activeFrameVersion = activeShot ? frameVersionByShot[activeShot.id] : undefined
   const startFrameImageUrl =
     activeScene && activeShot
       ? `${createShotImagePath(activeScene.number, activeShot.number, "start")}${activeFrameVersion ? `?v=${activeFrameVersion}` : ""}`
-      : ""
-  const endFrameImageUrl =
-    activeScene && activeShot
-      ? `${createShotImagePath(activeScene.number, activeShot.number, "end")}${activeFrameVersion ? `?v=${activeFrameVersion}` : ""}`
       : ""
 
   /* ── Navigation handlers ─── */
@@ -105,7 +115,6 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
 
   const handleShotSelect = useCallback(
     (shotId: string) => {
-      // Determine which scene contains this shot
       const owningScene = scenes.find((s) => s.shots.some((sh) => sh.id === shotId))
       if (owningScene) setSelectedScene(owningScene.id)
       setSelectedShot(shotId)
@@ -132,13 +141,21 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
     setPanelCollapsed(collapsed)
   }, [])
 
+  const handleStepChange = useCallback((step: WorkflowStep) => {
+    if (!selectedShot) return
+    setActiveStepByShot((prev) => ({ ...prev, [selectedShot]: step }))
+  }, [selectedShot])
+
   const clearSimulationTimer = useCallback((shotId: string, key: SimulationTimerKey) => {
     const shotTimers = simulationTimersRef.current[shotId]
     const timerId = shotTimers?.[key]
     if (timerId === undefined) return
     window.clearTimeout(timerId)
     delete shotTimers[key]
-    if (shotTimers.frames === undefined && shotTimers.video === undefined) {
+    const hasRemaining = (["frames", "video", "voice", "lipsync"] as SimulationTimerKey[]).some(
+      (k) => shotTimers[k] !== undefined
+    )
+    if (!hasRemaining) {
       delete simulationTimersRef.current[shotId]
     }
   }, [])
@@ -147,6 +164,8 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
     Object.entries(simulationTimersRef.current).forEach(([, timers]) => {
       if (timers.frames !== undefined) window.clearTimeout(timers.frames)
       if (timers.video !== undefined) window.clearTimeout(timers.video)
+      if (timers.voice !== undefined) window.clearTimeout(timers.voice)
+      if (timers.lipsync !== undefined) window.clearTimeout(timers.lipsync)
     })
     simulationTimersRef.current = {}
   }, [])
@@ -228,12 +247,78 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
     [clearSimulationTimer, selectedShot, simulationByShot, updateSimulationState]
   )
 
+  const handleApproveShot = useCallback(() => {
+    if (!selectedShot) return
+    updateSimulationState(selectedShot, { approved: true })
+  }, [selectedShot, updateSimulationState])
+
+  const handleRegenerateVideo = useCallback(() => {
+    if (!selectedShot) return
+    clearSimulationTimer(selectedShot, "video")
+    updateSimulationState(selectedShot, { video: "idle", approved: false })
+    setActiveStepByShot((prev) => ({ ...prev, [selectedShot]: "frames" }))
+  }, [selectedShot, clearSimulationTimer, updateSimulationState])
+
+  const handleGenerateVoice = useCallback(() => {
+    if (!selectedShot) return
+    const sim = simulationByShot[selectedShot] ?? DEFAULT_SIMULATION_STATE
+    if (sim.voice === "loading" || sim.voice === "ready") return
+
+    clearSimulationTimer(selectedShot, "voice")
+    updateSimulationState(selectedShot, { voice: "loading" })
+
+    const targetShotId = selectedShot
+    const timerId = window.setTimeout(() => {
+      setSimulationByShot((prev) => ({
+        ...prev,
+        [targetShotId]: {
+          ...(prev[targetShotId] ?? DEFAULT_SIMULATION_STATE),
+          voice: "ready",
+        },
+      }))
+      delete simulationTimersRef.current[targetShotId]?.voice
+    }, SIMULATION_DELAY_MS)
+
+    simulationTimersRef.current[targetShotId] = {
+      ...(simulationTimersRef.current[targetShotId] ?? {}),
+      voice: timerId,
+    }
+  }, [selectedShot, simulationByShot, clearSimulationTimer, updateSimulationState])
+
+  const handleApplyLipsync = useCallback(() => {
+    if (!selectedShot) return
+    const sim = simulationByShot[selectedShot] ?? DEFAULT_SIMULATION_STATE
+    if (sim.voice !== "ready" || sim.lipsync === "loading" || sim.lipsync === "ready") return
+
+    clearSimulationTimer(selectedShot, "lipsync")
+    updateSimulationState(selectedShot, { lipsync: "loading" })
+
+    const targetShotId = selectedShot
+    const timerId = window.setTimeout(() => {
+      setSimulationByShot((prev) => ({
+        ...prev,
+        [targetShotId]: {
+          ...(prev[targetShotId] ?? DEFAULT_SIMULATION_STATE),
+          lipsync: "ready",
+        },
+      }))
+      delete simulationTimersRef.current[targetShotId]?.lipsync
+    }, SIMULATION_DELAY_MS)
+
+    simulationTimersRef.current[targetShotId] = {
+      ...(simulationTimersRef.current[targetShotId] ?? {}),
+      lipsync: timerId,
+    }
+  }, [selectedShot, simulationByShot, clearSimulationTimer, updateSimulationState])
+
   const handleResetSimulation = useCallback(
     (shotId?: string) => {
       const targetShotId = shotId ?? selectedShot
       if (!targetShotId) return
       clearSimulationTimer(targetShotId, "frames")
       clearSimulationTimer(targetShotId, "video")
+      clearSimulationTimer(targetShotId, "voice")
+      clearSimulationTimer(targetShotId, "lipsync")
       setSimulationByShot((prev) => ({
         ...prev,
         [targetShotId]: DEFAULT_SIMULATION_STATE,
@@ -272,6 +357,38 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
       window.addEventListener("mouseup", onUp)
     },
     [leftPct]
+  )
+
+  /* ── Drag to resize (movie-level horizontal split) ─── */
+  const handleMovieResizeStart = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault()
+      setIsMovieDragging(true)
+      const startX = e.clientX
+      const startPct = movieLeftPct
+      const container = contentRef.current
+      if (!container) return
+
+      const containerRect = container.getBoundingClientRect()
+      const containerWidth = containerRect.width
+
+      const onMove = (ev: MouseEvent) => {
+        const delta = ev.clientX - startX
+        const deltaPct = (delta / containerWidth) * 100
+        const next = Math.min(MAX_MOVIE_LEFT_PCT, Math.max(MIN_MOVIE_LEFT_PCT, startPct + deltaPct))
+        setMovieLeftPct(next)
+      }
+
+      const onUp = () => {
+        setIsMovieDragging(false)
+        window.removeEventListener("mousemove", onMove)
+        window.removeEventListener("mouseup", onUp)
+      }
+
+      window.addEventListener("mousemove", onMove)
+      window.addEventListener("mouseup", onUp)
+    },
+    [movieLeftPct]
   )
 
   /* ── Drag to resize (timeline height) ─── */
@@ -353,15 +470,22 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
     setVideoCurrentTime(seconds)
   }, [])
 
+  const handlePlayerTimeUpdate = useCallback((time: number, duration: number) => {
+    const now = performance.now()
+    if (now - lastTimelineUiUpdateMsRef.current < TIMELINE_UI_UPDATE_INTERVAL_MS) return
+    lastTimelineUiUpdateMsRef.current = now
+
+    setVideoCurrentTime((prev) => (Math.abs(prev - time) >= 0.04 ? time : prev))
+    setVideoTotalDuration((prev) => (prev !== duration ? duration : prev))
+  }, [])
+
   const allShots = useMemo(() => scenes.flatMap((scene) => scene.shots), [scenes])
 
-  // Shots shown in the timeline (all shots for movie level, scene shots otherwise)
   const timelineShots = useMemo(() => {
     if (editingLevel === "movie") return allShots
     return scenes.find((s) => s.id === selectedScene)?.shots ?? []
   }, [editingLevel, selectedScene, allShots, scenes])
 
-  // ShotInput array for VideoPlayer (all shots)
   const allShotInputs = useMemo(
     (): ShotInput[] =>
       allShots.map((s) => ({
@@ -372,7 +496,6 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
     [allShots, fixedDurationByShot]
   )
 
-  // ShotInput array for scene-level VideoPlayer
   const sceneShotInputs = useMemo(
     (): ShotInput[] =>
       (activeScene?.shots ?? []).map((s) => ({
@@ -429,6 +552,29 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
     }
   }, [allShots, fixedDurationByShot, setFixedDuration])
 
+  // Auto-advance workflow step when generation completes
+  useEffect(() => {
+    Object.entries(simulationByShot).forEach(([shotId, sim]) => {
+      if (sim.frames === "ready") {
+        setActiveStepByShot((prev) => {
+          if (!prev[shotId] || prev[shotId] === "script") {
+            return { ...prev, [shotId]: "frames" }
+          }
+          return prev
+        })
+      }
+      if (sim.video === "ready") {
+        setActiveStepByShot((prev) => {
+          if (!prev[shotId] || prev[shotId] === "frames") {
+            return { ...prev, [shotId]: "video" }
+          }
+          return prev
+        })
+      }
+      // approved, voice, and lipsync do not auto-advance
+    })
+  }, [simulationByShot])
+
   const showTimeline = timelineShots.length > 0
 
   return (
@@ -457,26 +603,28 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
           className="flex min-h-0"
           style={{ flex: `0 0 ${showTimeline ? 100 - timelinePct : 100}%` }}
         >
-          {/* Scene sidebar */}
-          <SceneSidebar
-            scenes={scenes}
-            editingLevel={editingLevel}
-            selectedSceneId={selectedScene}
-            selectedShotId={selectedShot}
-            simulationByShot={simulationByShot}
-            isCollapsed={panelCollapsed}
-            onCollapsedChange={handleToggleCollapse}
-            onSceneSelect={handleSceneSelect}
-            onShotSelect={handleShotSelect}
-            onBackToMovie={handleBackToMovie}
-            onBackToScene={handleBackToScene}
-          />
+          {/* Scene sidebar - only show at scene/shot levels */}
+          {editingLevel !== "movie" && (
+            <SceneSidebar
+              scenes={scenes}
+              editingLevel={editingLevel}
+              selectedSceneId={selectedScene}
+              selectedShotId={selectedShot}
+              simulationByShot={simulationByShot}
+              isCollapsed={panelCollapsed}
+              onCollapsedChange={handleToggleCollapse}
+              onSceneSelect={handleSceneSelect}
+              onShotSelect={handleShotSelect}
+              onBackToMovie={handleBackToMovie}
+              onBackToScene={handleBackToScene}
+            />
+          )}
 
           {/* Main content area */}
           <div ref={contentRef} className="flex flex-1 min-w-0 relative">
             {/* Prevent text selection while dragging */}
             <AnimatePresence>
-              {isDragging && (
+              {(isDragging || isMovieDragging) && (
                 <motion.div
                   className="fixed inset-0 z-50"
                   style={{ cursor: "col-resize" }}
@@ -495,14 +643,64 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
                   scenes={scenes}
                   simulationByShot={simulationByShot}
                   onSceneSelect={handleSceneSelect}
+                  widthPct={movieLeftPct}
                 />
+
+                {/* ── Movie Drag Handle ─────────────── */}
+                <motion.div
+                  onMouseDown={handleMovieResizeStart}
+                  role="separator"
+                  aria-orientation="vertical"
+                  aria-label="Resize movie panels"
+                  aria-valuenow={Math.round(movieLeftPct)}
+                  aria-valuemin={MIN_MOVIE_LEFT_PCT}
+                  aria-valuemax={MAX_MOVIE_LEFT_PCT}
+                  tabIndex={0}
+                  className="resize-handle relative shrink-0"
+                  style={{ width: "7px", cursor: "col-resize", zIndex: 10 }}
+                  onHoverStart={() => setIsMovieHandleHovered(true)}
+                  onHoverEnd={() => setIsMovieHandleHovered(false)}
+                  animate={{ scale: isMovieDragging ? 1.03 : 1 }}
+                  transition={{ duration: 0.12, ease: "easeOut" }}
+                  onKeyDown={(e) => {
+                    if (e.key === "ArrowLeft")
+                      setMovieLeftPct((p) => Math.max(MIN_MOVIE_LEFT_PCT, p - 1))
+                    else if (e.key === "ArrowRight")
+                      setMovieLeftPct((p) => Math.min(MAX_MOVIE_LEFT_PCT, p + 1))
+                  }}
+                >
+                  <motion.div
+                    className="absolute inset-y-0 left-1/2 -translate-x-1/2"
+                    animate={{
+                      width: isMovieDragging ? 3 : isMovieHandleHovered ? 2 : 1,
+                      backgroundColor: isMovieDragging
+                        ? "#7A7A7A"
+                        : isMovieHandleHovered
+                          ? "#696969"
+                          : "#232323",
+                    }}
+                    transition={{ duration: 0.12, ease: "easeOut" }}
+                  />
+                  <motion.div
+                    className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+                    animate={{
+                      opacity: isMovieDragging ? 1 : isMovieHandleHovered ? 0.6 : 0,
+                      scaleY: isMovieDragging ? 1 : 0.92,
+                    }}
+                    transition={{ duration: 0.12, ease: "easeOut" }}
+                  >
+                    <div
+                      className="rounded-full"
+                      style={{ width: "5px", height: "32px", background: "#7A7A7A" }}
+                    />
+                  </motion.div>
+                  <div className="absolute inset-y-0 -left-2 -right-2" />
+                </motion.div>
+
                 <MovieRightPanel
                   shots={allShotInputs}
                   videoPlayerRef={framePreviewRef}
-                  onTimeUpdate={(time, dur) => {
-                    setVideoCurrentTime(time)
-                    setVideoTotalDuration(dur)
-                  }}
+                  onTimeUpdate={handlePlayerTimeUpdate}
                   onPlayStateChange={setIsVideoPlaying}
                 />
               </>
@@ -522,35 +720,23 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
                   scene={activeScene}
                   shots={sceneShotInputs}
                   videoPlayerRef={framePreviewRef}
-                  onTimeUpdate={(time, dur) => {
-                    setVideoCurrentTime(time)
-                    setVideoTotalDuration(dur)
-                  }}
+                  onTimeUpdate={handlePlayerTimeUpdate}
                   onPlayStateChange={setIsVideoPlaying}
                 />
               </>
             )}
 
-            {/* Shot editing (State 3–6) */}
+            {/* Shot editing (States 3–6) */}
             {editingLevel === "shot" && activeShot && activeScene ? (
               <>
-                <ShotDetail
+                <ScriptPanel
                   shot={activeShot}
                   sceneNumber={activeScene.number}
                   shotIndex={activeShot.number}
-                  startFrameImageUrl={startFrameImageUrl}
-                  onUpdate={handleUpdateShot}
-                  onDurationDisplayChange={handleDurationDisplayChange}
                   durationDisplay={activeDurationDisplay}
                   widthPct={leftPct}
-                  onGenerateVideo={() => handleGenerateVideo(activeShot.id)}
-                  canGenerateVideo={activeSimulation.frames === "ready"}
-                  isVideoLoading={activeSimulation.video === "loading"}
-                  isVideoReady={activeSimulation.video === "ready"}
-                  onGenerateFrames={() => handleGenerateFrames(activeShot.id)}
-                  canGenerateFrames={true}
-                  isFramesLoading={activeSimulation.frames === "loading"}
-                  areFramesReady={activeSimulation.frames === "ready"}
+                  onUpdate={handleUpdateShot}
+                  onDurationDisplayChange={handleDurationDisplayChange}
                 />
 
                 {/* ── Drag Handle ───────────────────── */}
@@ -602,30 +788,22 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
                   <div className="absolute inset-y-0 -left-2 -right-2" />
                 </motion.div>
 
-                <FramePreview
-                  ref={framePreviewRef}
+                <ProductionPanel
+                  shot={activeShot}
                   sceneNumber={activeScene.number}
                   shotNumber={activeShot.number}
-                  totalShots={activeScene.shots.length}
-                  startFramePrompt={activeShot.startFramePrompt}
-                  shotTitle={activeShot.title}
-                  shots={
-                    activeSimulation.video === "ready"
-                      ? activeScene.shots
-                      : activeScene.shots.map((shot) => ({ ...shot, videoUrl: "" }))
-                  }
+                  simulation={activeSimulation}
+                  currentStep={activeStep}
                   startFrameImageUrl={startFrameImageUrl}
-                  endFrameImageUrl={endFrameImageUrl}
-                  endFrameFallbackImageUrl={startFrameImageUrl}
-                  isFramesLoading={activeSimulation.frames === "loading"}
-                  areFramesReady={activeSimulation.frames === "ready"}
-                  isVideoLoading={activeSimulation.video === "loading"}
+                  widthPct={100 - leftPct}
+                  onStepChange={handleStepChange}
+                  onUpdate={handleUpdateShot}
                   onGenerateFrames={() => handleGenerateFrames(activeShot.id)}
-                  onVideoTimeUpdate={(time, dur) => {
-                    setVideoCurrentTime(time)
-                    setVideoTotalDuration(dur)
-                  }}
-                  onVideoPlayStateChange={setIsVideoPlaying}
+                  onGenerateVideo={() => handleGenerateVideo(activeShot.id)}
+                  onApproveShot={handleApproveShot}
+                  onRegenerateVideo={handleRegenerateVideo}
+                  onGenerateVoice={handleGenerateVoice}
+                  onApplyLipsync={handleApplyLipsync}
                 />
               </>
             ) : null}

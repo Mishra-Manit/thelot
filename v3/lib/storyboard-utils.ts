@@ -5,9 +5,16 @@ import type {
   ShotSimulationState,
 } from "./storyboard-types"
 
-const DEFAULT_SIM: ShotSimulationState = { frames: "idle", video: "idle" }
+const DEFAULT_SIM: ShotSimulationState = {
+  frames: "idle",
+  video: "idle",
+  approved: false,
+  voice: "idle",
+  lipsync: "idle",
+}
 
 export function deriveShotStatus(sim: ShotSimulationState): ShotStatus {
+  if (sim.approved) return "approved"
   if (sim.video === "ready") return "video_ready"
   if (sim.frames === "ready") return "frames_ready"
   return "draft"

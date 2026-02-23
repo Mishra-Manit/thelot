@@ -11,9 +11,10 @@ interface MovieOverviewProps {
   scenes: StoryboardScene[]
   simulationByShot: Record<string, ShotSimulationState>
   onSceneSelect: (sceneId: string) => void
+  widthPct?: number
 }
 
-export function MovieOverview({ scenes, simulationByShot, onSceneSelect }: MovieOverviewProps) {
+export function MovieOverview({ scenes, simulationByShot, onSceneSelect, widthPct = 28 }: MovieOverviewProps) {
   const [howItWorksOpen, setHowItWorksOpen] = useState(true)
 
   const totalShots = scenes.reduce((sum, s) => sum + s.shots.length, 0)
@@ -21,22 +22,37 @@ export function MovieOverview({ scenes, simulationByShot, onSceneSelect }: Movie
 
   return (
     <div
-      className="flex flex-col h-full overflow-y-auto"
+      className="flex flex-col h-full overflow-y-auto scrollbar-hide font-sans"
       style={{
         background: "#000000",
-        borderRight: "1px solid #232323",
-        width: "340px",
+        width: `${widthPct}%`,
         flexShrink: 0,
       }}
     >
       {/* Header */}
       <div className="px-5 pt-5 pb-4" style={{ borderBottom: "1px solid #1a1a1a" }}>
-        <h1 style={{ fontSize: "15px", fontWeight: 600, color: "#ffffff", marginBottom: "4px" }}>
-          Your Movie
-        </h1>
-        <span style={{ fontSize: "12px", color: "#696969" }}>
-          {scenes.length} scenes &middot; {totalShots} shots
-        </span>
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-col justify-between" style={{ height: "42px" }}>
+            <h1 style={{ fontSize: "15px", fontWeight: 600, color: "#ffffff" }}>
+              Your Movie
+            </h1>
+            <span style={{ fontSize: "12px", color: "#696969" }}>
+              {scenes.length} scenes &middot; {totalShots} shots
+            </span>
+          </div>
+          <div className="flex flex-col justify-between" style={{ width: "240px", height: "42px" }}>
+            <div className="flex items-center justify-between">
+              <span style={{ fontSize: "12px", color: "#696969", letterSpacing: "0.02em" }}>Overall progress</span>
+              <span style={{ fontSize: "12px", color: "#F0F0F0", fontWeight: 700 }}>{movieProgress}%</span>
+            </div>
+            <Progress
+              value={movieProgress}
+              className="h-2"
+              style={{ background: "#111111", border: "1px solid #232323" }}
+              indicatorClassName="bg-[#D9D9D9]"
+            />
+          </div>
+        </div>
       </div>
 
       {/* Scene Breakdown */}
@@ -50,7 +66,7 @@ export function MovieOverview({ scenes, simulationByShot, onSceneSelect }: Movie
             textTransform: "uppercase",
           }}
         >
-          Scenes
+          Edit your specific scenes below
         </span>
 
         {scenes.map((scene) => {
@@ -60,47 +76,23 @@ export function MovieOverview({ scenes, simulationByShot, onSceneSelect }: Movie
             <button
               key={scene.id}
               className="flex items-center gap-3 rounded-lg transition-colors duration-150 text-left px-3 py-2.5"
-              style={{ background: "#111111", border: "1px solid #1a1a1a" }}
-              onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#386775")}
-              onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#1a1a1a")}
+              style={{ background: "#111111", border: "1px solid #232323" }}
+              onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#696969")}
+              onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#232323")}
               onClick={() => onSceneSelect(scene.id)}
             >
               <ShotStatusDot status={status} size="md" />
-              <div className="flex flex-col flex-1 min-w-0">
-                <span style={{ fontSize: "12px", color: "#D9D9D9", fontWeight: 500 }}>
-                  {scene.number}. {scene.title}
+              <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                <span style={{ fontSize: "12px", color: "#D9D9D9", fontWeight: 500 }} className="truncate">
+                  {scene.title}
                 </span>
-                <span style={{ fontSize: "11px", color: "#696969" }}>
-                  {scene.shots.length} shots
-                  {progress > 0 ? ` · ${progress}% complete` : ""}
+                <span style={{ fontSize: "11px", color: "#696969", flexShrink: 0 }}>
+                  · {scene.shots.length} shots{progress > 0 ? ` · ${progress}% complete` : ""}
                 </span>
               </div>
             </button>
           )
         })}
-      </div>
-
-      {/* Overall Progress */}
-      <div className="px-4 py-3" style={{ borderTop: "1px solid #1a1a1a" }}>
-        <div className="flex items-center justify-between mb-2">
-          <span style={{ fontSize: "11px", color: "#696969" }}>Overall progress</span>
-          <span style={{ fontSize: "11px", color: "#D9D9D9" }}>{movieProgress}%</span>
-        </div>
-        <Progress
-          value={movieProgress}
-          className="h-1"
-          style={{ background: "#1a1a1a" }}
-        />
-      </div>
-
-      {/* CTA card */}
-      <div
-        className="mx-4 mb-3 rounded-lg px-4 py-3"
-        style={{ border: "1px solid #386775", background: "#0d1e1e" }}
-      >
-        <span style={{ fontSize: "12px", color: "#597D7C" }}>
-          Click any scene above or in the timeline to begin editing
-        </span>
       </div>
 
       {/* How It Works */}
@@ -128,15 +120,14 @@ export function MovieOverview({ scenes, simulationByShot, onSceneSelect }: Movie
         </button>
 
         {howItWorksOpen && (
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-3 pl-1">
             {STEPS.map((step) => (
               <div key={step.number} className="flex items-start gap-3">
                 <span
                   style={{
-                    fontFamily: "var(--font-mono, monospace)",
                     fontSize: "11px",
                     fontWeight: 700,
-                    color: "#386775",
+                    color: "#7A7A7A",
                     width: "16px",
                     flexShrink: 0,
                     paddingTop: "1px",

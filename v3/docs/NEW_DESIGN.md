@@ -324,7 +324,7 @@ The UI supports three distinct editing levels, each with its own context and con
 
 ---
 
-### State 4: Shot-Level Editing — Step 2: Frames Generated
+### State 4: Shot-Level Editing — Step 2: Frame Generated
 
 **Editing Level:** Shot (individual shot with workflow steps)
 
@@ -335,20 +335,20 @@ The UI supports three distinct editing levels, each with its own context and con
 │    │ S3, Shot 1  · 8s  [−+] │  ① Script  ② Frame  ③ Video  ④ Polish│
 │ ←  │                         │             ━━━━━━━                   │
 │    │                         │                                       │
-│ ◐1 │ EXT. Cinematic Dunes   │  ┌─ START FRAME ──┐ ┌─ END FRAME ──┐│
-│ ◐2 │                         │  │ ░░░░░░░░░░░░░░ │ │ ░░░░░░░░░░░░ ││
-│ ●3 │ A sweeping wide shot    │  │ ░░  🏜️ image ░░ │ │ ░░  🌅 img ░░ ││
-│ ○4 │ establishes the endless │  │ ░░░░░░░░░░░░░░ │ │ ░░░░░░░░░░░░ ││
-│    │ desert dunes of Arrakis.│  │  [🔄 Regen]    │ │  [🔄 Regen]  ││
-│    │                         │  └────────────────┘ └──────────────┘│
-│    │    CHARACTER (V.O.)     │                                       │
-│    │    "This world feels    │  Start Frame Prompt:                  │
-│    │     ancient..."         │  ┌─────────────────────────────────┐ │
-│    │                         │  │ Endless sand dunes at golden hr │ │
-│    │ [CAMERA] Ultra-wide     │  └─────────────────────────────────┘ │
-│    │ lens, low angle, slow   │  End Frame Prompt:                    │
-│    │ push-in, heat haze      │  ┌─────────────────────────────────┐ │
-│    │                         │  │ Sun descending behind dune ridge│ │
+│ ◐1 │ EXT. Cinematic Dunes   │  ┌─ START FRAME ──────────────────┐  │
+│ ◐2 │                         │  │                                │  │
+│ ●3 │ A sweeping wide shot    │  │      ░░░░░░░░░░░░░░░░░░░░      │  │
+│ ○4 │ establishes the endless │  │      ░░  🏜️ image ░░          │  │
+│    │ desert dunes of Arrakis.│  │      ░░░░░░░░░░░░░░░░░░░░      │  │
+│    │                         │  │                                │  │
+│    │    CHARACTER (V.O.)     │  │       [🔄 Regenerate Frame]    │  │
+│    │    "This world feels    │  └────────────────────────────────┘  │
+│    │     ancient..."         │                                       │
+│    │                         │  Start Frame Prompt:                  │
+│    │ [CAMERA] Ultra-wide     │  ┌─────────────────────────────────┐ │
+│    │ lens, low angle, slow   │  │ Endless sand dunes at golden hr │ │
+│    │ push-in, heat haze      │  │ cinematic scale, atmospheric    │ │
+│    │                         │  │ haze, ultra-wide lens           │ │
 │    │                         │  └─────────────────────────────────┘ │
 │    │                         │                                       │
 │    │                         │  ┌═══════════════════════════════════┐│
@@ -362,11 +362,11 @@ The UI supports three distinct editing levels, each with its own context and con
 **Right panel component:** `production-panel.tsx` → renders `step-frames.tsx`
 
 **Behavior:**
-- Stepper auto-advances to Step 2 when frames finish generating
-- Start and end frames shown side-by-side with individual "Regenerate" buttons
-- Each frame card shows its prompt below it (editable)
-- Regenerate button on each frame lets user re-roll individual frames
-- Primary CTA at bottom: "Generate Video" — only enabled when both frames exist
+- Stepper auto-advances to Step 2 when frame finishes generating
+- Start frame shown with "Regenerate Frame" button
+- Frame prompt shown below and is editable
+- Regenerate button lets user re-roll the frame with the current prompt
+- Primary CTA at bottom: "Generate Video" — only enabled when frame exists
 - Sidebar dot for this shot changes from `○` to `◐`
 
 ---
@@ -772,7 +772,7 @@ Movie Level (State 1)
 7. User edits the start frame prompt → clicks "Generate Start Frame"
 8. Loading animation plays → stepper pulses → sidebar dot becomes `◌`
 9. Frame generates → stepper auto-advances to **State 4: Step 2** → sidebar dot becomes `◐`
-10. User sees start + end frames side-by-side → clicks "Generate Video"
+10. User sees start frame with regenerate option → clicks "Generate Video"
 11. Loading animation → video generates → stepper auto-advances to **State 5: Step 3**
 12. User watches video in right panel → clicks "Approve Shot" → sidebar dot becomes `●`
 13. User clicks "←" back button → **drills up to State 2: Scene Overview**
@@ -787,7 +787,7 @@ Movie Level (State 1)
 2. Clicks Scene 3 → **State 2: Scene Overview** → sees mix of `○`, `◐`, `●` shots
 3. Clicks Shot 2 (status `●` complete) → **State 3-6: Shot-Level Editing**
 4. Stepper shows all steps complete, video plays in right panel
-5. User clicks Step 2 (Frame) in stepper → sees frames with "Regenerate" buttons
+5. User clicks Step 2 (Frame) in stepper → sees frame with "Regenerate Frame" button
 6. User regenerates start frame → video status resets to `◐` → needs to re-generate video
 7. User clicks Step 1 (Script) → edits the action text → no visual output changes (script is independent)
 8. User navigates back to scene level to see updated status

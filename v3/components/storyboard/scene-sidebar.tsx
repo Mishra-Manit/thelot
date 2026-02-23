@@ -37,10 +37,10 @@ export function SceneSidebar({
 
   return (
     <motion.aside
-      className="flex flex-col shrink-0 overflow-hidden"
+      className="flex flex-col shrink-0 overflow-hidden font-sans"
       style={{ background: "#000000", borderRight: "1px solid #232323" }}
       initial={false}
-      animate={{ width: isCollapsed ? 44 : 200 }}
+      animate={{ width: isCollapsed ? 44 : 280 }}
       transition={{ type: "spring", stiffness: 360, damping: 34, mass: 0.7 }}
       role="navigation"
       aria-label={isCollapsed ? "Scene panel (collapsed)" : "Scene panel"}
@@ -330,12 +330,12 @@ function MovieSceneList({
               onClick={() => onSceneSelect(scene.id)}
             >
               <ShotStatusDot status={status} size="sm" />
-              <div className="flex flex-col min-w-0">
-                <span style={{ fontSize: "11px", color: "#D9D9D9" }}>
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span style={{ fontSize: "11px", color: "#D9D9D9" }} className="truncate">
                   {scene.number}. {scene.title}
                 </span>
-                <span style={{ fontSize: "11px", color: "#696969" }}>
-                  {scene.shots.length} shots
+                <span style={{ fontSize: "11px", color: "#696969", flexShrink: 0 }}>
+                  · {scene.shots.length} shots
                 </span>
               </div>
             </button>

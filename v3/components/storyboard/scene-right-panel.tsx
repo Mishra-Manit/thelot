@@ -63,10 +63,10 @@ export function SceneRightPanel({
             style={{
               padding: "8px 0",
               fontSize: "11px",
-              color: "#D9D9D9",
-              background: "#1a1a1a",
-              border: "1px solid #232323",
-              opacity: 0.4,
+              color: "#ffffff",
+              background: "#111111",
+              border: "1px solid #464646",
+              opacity: 0.8,
               cursor: "not-allowed",
             }}
           >

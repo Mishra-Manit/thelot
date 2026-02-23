@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useImperativeHandle } from "react"
+import { useEffect, useRef, useImperativeHandle, useMemo } from "react"
 import { Play } from "lucide-react"
 import type { Composition as CompositionType, VideoSource as VideoSourceType } from "@diffusionstudio/core"
 import type { ShotInput } from "@/lib/storyboard-types"
@@ -30,6 +30,13 @@ export function VideoPlayer({
   const containerRef = useRef<HTMLDivElement>(null)
   const mountRef = useRef<HTMLDivElement>(null)
   const compositionRef = useRef<CompositionType | null>(null)
+  const sourcePromiseByUrlRef = useRef(new Map<string, Promise<VideoSourceType>>())
+
+  const playableVideoUrls = useMemo(
+    () => shots.map((shot) => shot.videoUrl?.trim() ?? "").filter((url) => url.length > 0),
+    [shots]
+  )
+  const playableVideoUrlsKey = useMemo(() => playableVideoUrls.join("\n"), [playableVideoUrls])
 
   // Store callbacks in refs for stable access
   const onTimeUpdateRef = useRef(onTimeUpdate)
@@ -75,8 +82,7 @@ export function VideoPlayer({
 
   // Build composition with all playable shots
   useEffect(() => {
-    const playableShots = shots.filter((s) => s.videoUrl)
-    if (playableShots.length === 0 || !mountRef.current) return
+    if (playableVideoUrls.length === 0 || !mountRef.current) return
 
     let cancelled = false
 
@@ -96,18 +102,24 @@ export function VideoPlayer({
       await composition.add(layer)
 
       // Load and add all video clips
-      for (const shot of playableShots) {
+      for (const videoUrl of playableVideoUrls) {
         if (cancelled) {
           composition.unmount()
           return
         }
 
         try {
-          const source = await Source.from<VideoSourceType>(shot.videoUrl)
+          let sourcePromise = sourcePromiseByUrlRef.current.get(videoUrl)
+          if (!sourcePromise) {
+            sourcePromise = Source.from<VideoSourceType>(videoUrl)
+            sourcePromiseByUrlRef.current.set(videoUrl, sourcePromise)
+          }
+
+          const source = await sourcePromise
           const clip = new VideoClip(source, { position: "center", width: "100%" })
           await layer.add(clip)
         } catch (error) {
-          console.error(`Failed to load video for shot ${shot.id}:`, error)
+          console.error(`Failed to load video source: ${videoUrl}`, error)
         }
       }
 
@@ -133,9 +145,9 @@ export function VideoPlayer({
       compositionRef.current?.unmount()
       compositionRef.current = null
     }
-  }, [shots])
+  }, [playableVideoUrls, playableVideoUrlsKey])
 
-  const hasPlayableShots = shots.some((s) => s.videoUrl)
+  const hasPlayableShots = playableVideoUrls.length > 0
 
   return (
     <div
