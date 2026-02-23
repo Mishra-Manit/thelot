@@ -7,6 +7,7 @@ import type { VideoSource as VideoSourceType } from "@diffusionstudio/core"
 
 // Sidebar width constant
 const SIDEBAR_WIDTH = 60
+const TIMELINE_RIGHT_PADDING = 12
 
 // Format time as M:SS
 function formatTime(seconds: number): string {
@@ -118,10 +119,12 @@ export function ShotTimeline({
 
   const canControlPlayback = effectiveDuration > 0
 
+  const timelineViewportWidth = Math.max(0, containerWidth - SIDEBAR_WIDTH - TIMELINE_RIGHT_PADDING)
+
   // Ruler marks (Opus Clip style)
   const rulerMarks = useMemo(
-    () => generateRulerMarks(effectiveDuration, containerWidth - SIDEBAR_WIDTH, zoom),
-    [effectiveDuration, containerWidth, zoom]
+    () => generateRulerMarks(effectiveDuration, timelineViewportWidth, zoom),
+    [effectiveDuration, timelineViewportWidth, zoom]
   )
 
   // Zoom handlers
@@ -149,7 +152,7 @@ export function ShotTimeline({
     const scroll = scrollRef.current
     if (!playhead || !scroll || effectiveDuration <= 0) return
 
-    const contentWidth = (containerWidth - SIDEBAR_WIDTH) * zoom
+    const contentWidth = timelineViewportWidth * zoom
     const clampedTime = Math.max(0, Math.min(currentTime, effectiveDuration))
     const offset = (clampedTime / effectiveDuration) * contentWidth
     playhead.style.transform = `translateX(${offset}px)`
@@ -187,7 +190,7 @@ export function ShotTimeline({
       const scroll = scrollRef.current
       if (!scroll || effectiveDuration <= 0) return
 
-      const contentWidth = (containerWidth - SIDEBAR_WIDTH) * zoom
+      const contentWidth = timelineViewportWidth * zoom
 
       const seekFromEvent = (ev: MouseEvent) => {
         const rect = scroll.getBoundingClientRect()
@@ -223,7 +226,7 @@ export function ShotTimeline({
       const target = e.target as HTMLElement
       if (target.closest("button") || target.closest(".playhead-head")) return
 
-      const contentWidth = (containerWidth - SIDEBAR_WIDTH) * zoom
+      const contentWidth = timelineViewportWidth * zoom
       const rect = scroll.getBoundingClientRect()
       const x = e.clientX - rect.left + scroll.scrollLeft
       const seekTime = (x / contentWidth) * effectiveDuration
@@ -242,7 +245,7 @@ export function ShotTimeline({
   )
 
   // Track content width for positioning
-  const contentWidth = (containerWidth - SIDEBAR_WIDTH) * zoom
+  const contentWidth = timelineViewportWidth * zoom
 
   return (
     <div
@@ -259,15 +262,23 @@ export function ShotTimeline({
             padding: "4px 16px",
             minWidth: "72px",
             borderRadius: "6px",
-            background: "#3A3A3A",
-            border: "1px solid #4A4A4A",
+            background: "transparent",
+            border: "1px solid transparent",
             color: "#D4D4D4",
             fontSize: "10px",
             fontWeight: 600,
             letterSpacing: "0.04em",
             cursor: "not-allowed",
           }}
-          disabled
+          aria-disabled="true"
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "#3A3A3A"
+            e.currentTarget.style.borderColor = "#4A4A4A"
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "transparent"
+            e.currentTarget.style.borderColor = "transparent"
+          }}
         >
           SPLIT
         </button>
@@ -345,14 +356,22 @@ export function ShotTimeline({
             style={{
               padding: "4px 8px",
               borderRadius: "6px",
-            background: "#3A3A3A",
-            border: "1px solid #4A4A4A",
+            background: "transparent",
+            border: "1px solid transparent",
             color: "#D4D4D4",
               fontSize: "10px",
               fontWeight: 600,
               letterSpacing: "0.04em",
               cursor: "pointer",
             }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "#3A3A3A"
+            e.currentTarget.style.borderColor = "#4A4A4A"
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "transparent"
+            e.currentTarget.style.borderColor = "transparent"
+          }}
             onClick={handleFit}
           >
             <Maximize2 size={12} />
@@ -413,7 +432,11 @@ export function ShotTimeline({
           <div 
             ref={scrollRef}
             className="flex-1 min-w-0 overflow-x-auto relative"
-            style={{ scrollbarWidth: "thin", scrollbarColor: "#404556 #000000" }}
+            style={{
+              scrollbarWidth: "thin",
+              scrollbarColor: "#404556 #000000",
+              paddingRight: `${TIMELINE_RIGHT_PADDING}px`,
+            }}
             onClick={handleSeekClick}
           >
             {/* Content wrapper with zoom width */}
@@ -563,7 +586,7 @@ export function ShotTimeline({
                   left: 0,
                   width: "2px",
                   height: "100%",
-                  zIndex: 30,
+                  zIndex: 60,
                   willChange: "transform",
                 }}
               >
@@ -577,8 +600,9 @@ export function ShotTimeline({
                     width: "10px",
                     height: "18px",
                     background: "transparent",
-                    border: "2px solid #FFFFFF",
+                    border: "1px solid #FFFFFF",
                     borderRadius: "3px 3px 2px 2px",
+                    zIndex: 1,
                   }}
                   onMouseDown={handlePlayheadDrag}
                 />

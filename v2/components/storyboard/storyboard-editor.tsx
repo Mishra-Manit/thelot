@@ -49,18 +49,14 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
     if (initialScenes.length === 0) return null
     return initialScenes[2]?.id ?? initialScenes[0].id
   })
-  const [selectedShot, setSelectedShot] = useState<string | null>(() => {
-    if (initialScenes.length === 0) return null
-    const defaultScene = initialScenes[2] ?? initialScenes[0]
-    return defaultScene.shots[0]?.id ?? null
-  })
+  const [selectedShot, setSelectedShot] = useState<string | null>(null)
   const [panelCollapsed, setPanelCollapsed] = useState(false)
 
   /* ── Resizable split ─── */
   const [leftPct, setLeftPct] = useState(50)
   const [isDragging, setIsDragging] = useState(false)
   const [isResizeHandleHovered, setIsResizeHandleHovered] = useState(false)
-  const [timelinePct, setTimelinePct] = useState(24)
+  const [timelinePct, setTimelinePct] = useState(20)
   const [isTimelineDragging, setIsTimelineDragging] = useState(false)
   const [isTimelineHandleHovered, setIsTimelineHandleHovered] = useState(false)
   const bodyRef = useRef<HTMLDivElement>(null)
@@ -89,26 +85,21 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
       ? `${createShotImagePath(activeScene.number, activeShot.number, "end")}${activeFrameVersion ? `?v=${activeFrameVersion}` : ""}`
       : ""
 
-  const handleSelectScene = useCallback(
-    (sceneId: string) => {
-      setSelectedScene(sceneId)
-      const scene = scenes.find((s) => s.id === sceneId)
-      if (scene && scene.shots.length > 0) {
-        setSelectedShot(scene.shots[0].id)
-      } else {
-        setSelectedShot(null)
-      }
-    },
-    [scenes]
-  )
+  const handleSelectScene = useCallback((sceneId: string) => {
+    setSelectedScene(sceneId)
+    setSelectedShot(null)
+    setPanelCollapsed(false)
+  }, [])
 
   const handleSelectShot = useCallback((shotId: string) => {
     setSelectedShot(shotId)
+    setPanelCollapsed(true)
   }, [])
 
   const handleBack = useCallback(() => {
     setSelectedScene(null)
     setSelectedShot(null)
+    setPanelCollapsed(false)
   }, [])
 
   const handleToggleCollapse = useCallback(() => {

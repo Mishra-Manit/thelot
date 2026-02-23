@@ -159,8 +159,8 @@ function ShotDetailHeader({
               color: "#E6E8EE",
               fontVariantNumeric: "tabular-nums",
             }}
-          >
-            {duration}s
+          > 
+            Clip Len: {duration}s
           </span>
           <button
             type="button"

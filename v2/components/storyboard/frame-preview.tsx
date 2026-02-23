@@ -67,10 +67,7 @@ export const FramePreview = forwardRef<FramePreviewHandle, FramePreviewProps>(
       {hasShot ? (
         <div className="flex flex-col flex-1 min-h-0" style={{ padding: "12px 12px 4px 12px" }}>
           {/* AI Tools Section */}
-          <div
-            className="flex flex-col gap-4 mb-4 rounded-xl border border-[#232323]"
-            style={{ padding: "16px", background: "#0A0A0A" }}
-          >
+          <div className="flex flex-col gap-4 mb-4">
             <div className="flex items-center px-1">
               <span
                 style={{
@@ -108,7 +105,7 @@ export const FramePreview = forwardRef<FramePreviewHandle, FramePreviewProps>(
               ].map(({ label, description, icon: Icon }) => (
                 <div
                   key={label}
-                  className="group relative rounded-xl transition-all duration-200 border border-[#232323] hover:border-[#696969] cursor-pointer overflow-hidden flex flex-col gap-3"
+                  className="group relative rounded-xl transition-all duration-200 border border-[#232323] hover:border-[#696969] cursor-pointer overflow-hidden"
                   style={{
                     background: "#111111",
                     padding: "16px",
@@ -121,9 +118,9 @@ export const FramePreview = forwardRef<FramePreviewHandle, FramePreviewProps>(
                         "linear-gradient(135deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0) 100%)",
                     }}
                   />
-                  <div className="relative z-10 flex flex-col gap-3">
+                  <div className="relative z-10 flex items-start gap-3">
                     <div
-                      className="flex items-center justify-center rounded-lg border border-[#2A2A2A] transition-colors group-hover:border-[#4A4A4A]"
+                      className="flex shrink-0 items-center justify-center rounded-lg border border-[#2A2A2A] transition-colors group-hover:border-[#4A4A4A]"
                       style={{
                         width: "36px",
                         height: "36px",
@@ -136,7 +133,7 @@ export const FramePreview = forwardRef<FramePreviewHandle, FramePreviewProps>(
                         className="group-hover:text-white transition-colors"
                       />
                     </div>
-                    <div className="flex flex-col gap-1.5">
+                    <div className="flex min-w-0 flex-col gap-1.5">
                       <span
                         style={{
                           fontSize: "13px",
