@@ -73,8 +73,10 @@ function PrimaryButton({
         borderRadius: "6px",
         padding: "8px 14px",
         color: disabled ? "#404040" : "#D9D9D9",
-        fontSize: "12px",
-        fontWeight: 500,
+        fontSize: "11px",
+        textTransform: "uppercase",
+        fontWeight: 600,
+        letterSpacing: "0.05em",
         cursor: disabled ? "not-allowed" : "pointer",
         flex: "0 0 auto",
       }}
@@ -117,8 +119,10 @@ function SecondaryButton({
         borderRadius: "6px",
         padding: "8px 14px",
         color: disabled ? "#404040" : "#696969",
-        fontSize: "12px",
-        fontWeight: 500,
+        fontSize: "11px",
+        textTransform: "uppercase",
+        fontWeight: 600,
+        letterSpacing: "0.05em",
         cursor: disabled ? "not-allowed" : "pointer",
         flex: "0 0 auto",
       }}
@@ -200,11 +204,11 @@ export function StepPolish({
             disabled={isVoiceLoading || isVoiceReady}
           >
             <Mic size={12} />
-            {isVoiceLoading ? "Generating..." : isVoiceReady ? "V.O. Ready" : "Generate V.O."}
+            {isVoiceLoading ? "GENERATING..." : isVoiceReady ? "V.O. READY" : "GENERATE V.O."}
           </PrimaryButton>
 
           <SecondaryButton disabled={isVoiceLoading}>
-            Upload Audio
+            UPLOAD AUDIO
           </SecondaryButton>
         </div>
       </Card>
@@ -229,8 +233,10 @@ export function StepPolish({
               borderRadius: "6px",
               padding: "8px 14px",
               color: lipsyncDisabled ? "#404040" : "#D9D9D9",
-              fontSize: "12px",
-              fontWeight: 500,
+              fontSize: "11px",
+              textTransform: "uppercase",
+              fontWeight: 600,
+              letterSpacing: "0.05em",
               cursor: lipsyncDisabled ? "not-allowed" : "pointer",
             }}
             onMouseEnter={(e) => {
@@ -246,7 +252,7 @@ export function StepPolish({
               e.currentTarget.style.color = "#D9D9D9"
             }}
           >
-            {isLipsyncLoading ? "Applying..." : isLipsyncReady ? "Lip Sync Applied" : "Apply Lip Sync"}
+            {isLipsyncLoading ? "APPLYING..." : isLipsyncReady ? "LIP SYNC APPLIED" : "APPLY LIP SYNC"}
           </button>
         </Card>
       </div>

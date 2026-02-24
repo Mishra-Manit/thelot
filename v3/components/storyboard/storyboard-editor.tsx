@@ -176,7 +176,7 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
   }, [])
 
   const handleShotSelect = useCallback(
-    (shotId: string) => {
+    (shotId: string, autoCollapse: boolean = true) => {
       const owningScene = scenes.find((s) => s.shots.some((sh) => sh.id === shotId))
       if (owningScene) {
         setSelectedScene(owningScene.id)
@@ -187,7 +187,11 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
       }
       setSelectedShot(shotId)
       setEditingLevel("shot")
-      setPanelCollapsed(true)
+      if (autoCollapse) {
+        setPanelCollapsed(true)
+      } else {
+        setPanelCollapsed(false)
+      }
     },
     [scenes]
   )
@@ -349,12 +353,10 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
         
         // Slight delay to let sidebar open animation start before switching content
         setTimeout(() => {
-          handleShotSelect(nextShot.id)
-          // Ensure sidebar stays open after shot selection (which normally collapses it)
-          setPanelCollapsed(false)
+          handleShotSelect(nextShot.id, false)
           setActiveStepByShot((prev) => ({ ...prev, [nextShot.id]: "script" }))
           toast(`Shot ${currentShot?.number ?? "?"} rendering — let's script Shot ${nextShot.number}`, { duration: 5000 })
-        }, 150)
+        }, 300)
       } else {
         toast("Generating frames...")
       }
@@ -392,9 +394,17 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
       const currentShot = scenes.flatMap((s) => s.shots).find((s) => s.id === targetShotId)
       const nextShot = findNextShot(scenes, targetShotId)
       if (nextShot) {
-        handleShotSelect(nextShot.id)
-        setActiveStepByShot((prev) => ({ ...prev, [nextShot.id]: "script" }))
-        toast(`Shot ${currentShot?.number ?? "?"} video rendering — let's script Shot ${nextShot.number}`, { duration: 5000 })
+        toast("Video will take a few minutes, work on next shot in the meantime", { duration: 5000 })
+        
+        // Wait a second before opening sidebar and transitioning
+        setTimeout(() => {
+          setPanelCollapsed(false)
+          
+          setTimeout(() => {
+            handleShotSelect(nextShot.id, false)
+            setActiveStepByShot((prev) => ({ ...prev, [nextShot.id]: "script" }))
+          }, 300)
+        }, 1000)
       } else {
         toast("Generating video...")
       }

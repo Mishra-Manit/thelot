@@ -75,8 +75,10 @@ export function StepVideo({
             borderRadius: "8px",
             padding: "11px 16px",
             color: isDisabled ? "#404040" : "#696969",
-            fontSize: "13px",
-            fontWeight: 500,
+            fontSize: "11px",
+            textTransform: "uppercase",
+            fontWeight: 600,
+            letterSpacing: "0.05em",
             cursor: isDisabled ? "not-allowed" : "pointer",
             flex: "0 0 auto",
           }}
@@ -92,7 +94,7 @@ export function StepVideo({
           }}
         >
           <RefreshCw size={13} />
-          Regenerate
+          REGENERATE
         </button>
 
         {/* Approve Shot — primary */}
@@ -107,9 +109,10 @@ export function StepVideo({
             borderRadius: "8px",
             padding: "11px 16px",
             color: isApproved ? "#696969" : isDisabled ? "#404040" : "#D9D9D9",
-            fontSize: "13px",
+            fontSize: "11px",
+            textTransform: "uppercase",
             fontWeight: 600,
-            letterSpacing: "0.04em",
+            letterSpacing: "0.05em",
             cursor: isDisabled || isApproved ? "not-allowed" : "pointer",
           }}
           onMouseEnter={(e) => {
@@ -126,7 +129,7 @@ export function StepVideo({
           }}
         >
           {isApproved && <Check size={13} />}
-          {isApproved ? "Shot Approved" : "Approve Shot"}
+          {isApproved ? "SHOT APPROVED" : "APPROVE SHOT"}
         </button>
       </div>
     </div>

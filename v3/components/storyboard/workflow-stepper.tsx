@@ -31,7 +31,7 @@ function isStepComplete(step: WorkflowStep, shotStatus: ShotStatus): boolean {
 
 export function WorkflowStepper({ currentStep, shotStatus, isLoading, onStepClick }: WorkflowStepperProps) {
   return (
-    <div className="flex items-center gap-4" style={{ padding: "0 0 12px 0", borderBottom: "1px solid #232323" }}>
+    <div className="flex items-center gap-8" style={{ padding: "0 0 12px 0", borderBottom: "1px solid #232323" }}>
       {STEPS.map((step, index) => {
         const isActive = currentStep === step.key
         const isLoadingStep = isLoading && isActive
@@ -40,7 +40,7 @@ export function WorkflowStepper({ currentStep, shotStatus, isLoading, onStepClic
         const textColor = isActive ? "#ffffff" : "#696969"
 
         return (
-          <div key={step.key} className="flex items-center gap-5">
+          <div key={step.key} className="flex items-center gap-8">
             <button
               type="button"
               onClick={() => clickable && onStepClick(step.key)}

@@ -64,7 +64,7 @@ export function StepScript({
       {/* Frame placeholder / loading area — position: relative so absolute-positioned loaders stay contained */}
       <div
         className="flex items-center justify-center rounded-lg mb-4 overflow-hidden"
-        style={{ position: "relative", background: "#111111", border: "1px solid #232323", height: "220px", flexShrink: 0 }}
+        style={{ position: "relative", background: "#111111", border: "1px solid #232323", height: "300px", flexShrink: 0 }}
       >
         {isFramesLoading ? (
           <SimpsonLoading label="Generating start frame..." />
@@ -104,14 +104,14 @@ export function StepScript({
       </div>
 
       {/* Prompt label + textarea */}
-      <div style={{ marginBottom: "12px", flexShrink: 0 }}>
+      <div style={{ flexShrink: 0 }}>
         <span style={{ fontSize: "11px", color: "#696969", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 600, display: "block", marginBottom: "6px" }}>
           Start Frame Prompt
         </span>
         <PromptTextarea value={startFramePrompt} onChange={onUpdatePrompt} />
       </div>
 
-      <div className="flex flex-col gap-2 mt-auto pt-4" style={{ flexShrink: 0 }}>
+      <div className="flex flex-col gap-2 pt-2" style={{ flexShrink: 0 }}>
         {/* Generate CTA */}
         <button
           type="button"
@@ -119,33 +119,46 @@ export function StepScript({
           disabled={isFramesLoading}
           className="w-full flex items-center justify-center gap-2 transition-all duration-150"
           style={{
-            background: isFramesLoading ? "transparent" : "#ffffff",
-            border: `1px solid ${isFramesLoading ? "#232323" : "#ffffff"}`,
+            background: isFramesLoading || isFramesReady ? "transparent" : "#ffffff",
+            border: `1px solid ${isFramesLoading || isFramesReady ? "#232323" : "#ffffff"}`,
             borderRadius: "8px",
             padding: "12px 20px",
-            color: isFramesLoading ? "#696969" : "#000000",
-            fontSize: "13px",
+            color: isFramesLoading ? "#696969" : isFramesReady ? "#D9D9D9" : "#000000",
+            fontSize: "11px",
+            textTransform: "uppercase",
             fontWeight: 600,
-            letterSpacing: "0.01em",
+            letterSpacing: "0.05em",
             cursor: isFramesLoading ? "not-allowed" : "pointer",
           }}
           onMouseEnter={(e) => {
             if (isFramesLoading) return
-            e.currentTarget.style.background = "#D9D9D9"
-            e.currentTarget.style.borderColor = "#D9D9D9"
+            if (isFramesReady) {
+              e.currentTarget.style.borderColor = "#464646"
+              e.currentTarget.style.color = "#ffffff"
+            } else {
+              e.currentTarget.style.background = "#D9D9D9"
+              e.currentTarget.style.borderColor = "#D9D9D9"
+            }
           }}
           onMouseLeave={(e) => {
             if (isFramesLoading) return
-            e.currentTarget.style.background = "#ffffff"
-            e.currentTarget.style.borderColor = "#ffffff"
+            if (isFramesReady) {
+              e.currentTarget.style.background = "transparent"
+              e.currentTarget.style.borderColor = "#232323"
+              e.currentTarget.style.color = "#D9D9D9"
+            } else {
+              e.currentTarget.style.background = "#ffffff"
+              e.currentTarget.style.borderColor = "#ffffff"
+              e.currentTarget.style.color = "#000000"
+            }
           }}
         >
           <Sparkles size={14} />
           {isFramesLoading 
-            ? "Generating..." 
+            ? "GENERATING..." 
             : isFramesReady 
-              ? "Change the prompt and regenerate?" 
-              : "Generate Start Frame"}
+              ? "CHANGE THE PROMPT AND REGENERATE?" 
+              : "GENERATE START FRAME"}
         </button>
 
         {/* Move to Video CTA */}
@@ -155,26 +168,27 @@ export function StepScript({
             onClick={onMoveToVideo}
             className="w-full flex items-center justify-center gap-2 transition-all duration-150"
             style={{
-              background: "transparent",
-              border: "1px solid #232323",
+              background: "#ffffff",
+              border: "1px solid #ffffff",
               borderRadius: "8px",
               padding: "12px 20px",
-              color: "#D9D9D9",
-              fontSize: "13px",
+              color: "#000000",
+              fontSize: "11px",
+              textTransform: "uppercase",
               fontWeight: 600,
-              letterSpacing: "0.01em",
+              letterSpacing: "0.05em",
               cursor: "pointer",
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = "#464646"
-              e.currentTarget.style.color = "#ffffff"
+              e.currentTarget.style.background = "#D9D9D9"
+              e.currentTarget.style.borderColor = "#D9D9D9"
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = "#232323"
-              e.currentTarget.style.color = "#D9D9D9"
+              e.currentTarget.style.background = "#ffffff"
+              e.currentTarget.style.borderColor = "#ffffff"
             }}
           >
-            Move to Video Generation
+            MOVE TO VIDEO GENERATION
             <ArrowRight size={14} />
           </button>
         )}

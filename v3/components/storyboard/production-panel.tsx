@@ -82,7 +82,10 @@ export function ProductionPanel({
               startFrameImageUrl={startFrameImageUrl}
               onUpdatePrompt={(v) => onUpdate("startFramePrompt", v)}
               onGenerateFrames={onGenerateFrames}
-              onMoveToVideo={() => onStepChange("video")}
+              onMoveToVideo={() => {
+                onStepChange("video")
+                onGenerateVideo()
+              }}
             />
           </motion.div>
         )}
