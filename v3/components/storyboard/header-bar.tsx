@@ -38,23 +38,26 @@ export function HeaderBar({ onRewindSimulation, renderingShots }: HeaderBarProps
         </span>
       </div>
 
-      {/* Center: render queue pills — shown while shots are generating */}
-      <div className="flex-1 flex items-center justify-center gap-1.5 overflow-x-auto px-4 min-w-0">
-        <AnimatePresence>
-          {renderingShots.map((r) => (
-            <RenderPill
-              key={`${r.shotId}-${r.type}`}
-              shotNumber={r.shotNumber}
-              type={r.type}
-              startedAt={r.startedAt}
-              durationMs={r.durationMs}
-            />
-          ))}
-        </AnimatePresence>
-      </div>
+      {/* Spacer */}
+      <div className="flex-1" />
 
       {/* Right group */}
       <div className="flex items-center gap-1 pr-4">
+        {/* Render queue pills — grow left from the Coins icon */}
+        <div className="flex flex-row-reverse items-center gap-1.5 overflow-hidden max-w-[480px]">
+          <AnimatePresence>
+            {renderingShots.map((r) => (
+              <RenderPill
+                key={`${r.shotId}-${r.type}`}
+                shotNumber={r.shotNumber}
+                type={r.type}
+                startedAt={r.startedAt}
+                durationMs={r.durationMs}
+              />
+            ))}
+          </AnimatePresence>
+        </div>
+
         {/* Credits */}
         <button
           className="flex items-center gap-1 px-2 py-1 rounded-md transition-colors duration-150"

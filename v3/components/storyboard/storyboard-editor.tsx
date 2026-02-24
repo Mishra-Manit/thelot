@@ -15,6 +15,7 @@ import { SceneOverview } from "./scene-overview"
 import { SceneRightPanel } from "./scene-right-panel"
 import { updateShotAction } from "@/app/storyboard/actions"
 import { toast } from "sonner"
+import { GeneratingToast } from "./generating-toast"
 import type {
   StoryboardScene,
   StoryboardShotUpdateInput,
@@ -110,6 +111,9 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
   const [selectedScene, setSelectedScene] = useState<string | null>(null)
   const [selectedShot, setSelectedShot] = useState<string | null>(null)
   const [panelCollapsed, setPanelCollapsed] = useState(false)
+
+  // Generating toast: tracks next shot to navigate to after frame generation kicks off
+  const [generatingToastShot, setGeneratingToastShot] = useState<{ id: string; number: number } | null>(null)
 
   /* ── Resizable split ─── */
   const [leftPct, setLeftPct] = useState(50)
@@ -344,24 +348,15 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
         frames: timerId,
       }
 
-      // Auto-advance to next shot so the writer can script the next beat while this one renders
-      const currentShot = scenes.flatMap((s) => s.shots).find((s) => s.id === targetShotId)
+      // Show toast guiding the user to the next shot while this frame generates
       const nextShot = findNextShot(scenes, targetShotId)
       if (nextShot) {
-        // Open sidebar before transitioning
-        setPanelCollapsed(false)
-        
-        // Slight delay to let sidebar open animation start before switching content
-        setTimeout(() => {
-          handleShotSelect(nextShot.id, false)
-          setActiveStepByShot((prev) => ({ ...prev, [nextShot.id]: "script" }))
-          toast(`Shot ${currentShot?.number ?? "?"} rendering — let's script Shot ${nextShot.number}`, { duration: 5000 })
-        }, 300)
+        setGeneratingToastShot({ id: nextShot.id, number: nextShot.number })
       } else {
         toast("Generating frames...")
       }
     },
-    [clearSimulationTimer, selectedShot, updateSimulationState, scenes, handleShotSelect]
+    [clearSimulationTimer, selectedShot, updateSimulationState, scenes]
   )
 
   const handleGenerateVideo = useCallback(
@@ -390,26 +385,9 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
         video: timerId,
       }
 
-      // Auto-advance to next shot so the writer can script the next beat while this one renders
-      const currentShot = scenes.flatMap((s) => s.shots).find((s) => s.id === targetShotId)
-      const nextShot = findNextShot(scenes, targetShotId)
-      if (nextShot) {
-        toast("Video will take a few minutes, work on next shot in the meantime", { duration: 5000 })
-        
-        // Wait a second before opening sidebar and transitioning
-        setTimeout(() => {
-          setPanelCollapsed(false)
-          
-          setTimeout(() => {
-            handleShotSelect(nextShot.id, false)
-            setActiveStepByShot((prev) => ({ ...prev, [nextShot.id]: "script" }))
-          }, 300)
-        }, 1000)
-      } else {
-        toast("Generating video...")
-      }
+      toast("Video generation started — this takes a few minutes.", { duration: 4000 })
     },
-    [clearSimulationTimer, selectedShot, simulationByShot, updateSimulationState, scenes, handleShotSelect]
+    [clearSimulationTimer, selectedShot, simulationByShot, updateSimulationState]
   )
 
   const handleApproveShot = useCallback(() => {
@@ -463,6 +441,16 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
       lipsync: timerId,
     }
   }, [selectedShot, simulationByShot, clearSimulationTimer, updateSimulationState])
+
+  const handleGeneratingToastNavigate = useCallback(() => {
+    if (!generatingToastShot) return
+    handleShotSelect(generatingToastShot.id, false)
+    setActiveStepByShot((prev) => ({ ...prev, [generatingToastShot.id]: "script" }))
+  }, [generatingToastShot, handleShotSelect])
+
+  const handleGeneratingToastDismiss = useCallback(() => {
+    setGeneratingToastShot(null)
+  }, [])
 
   // Rewinds the entire project simulation back to the 37% seed state.
   // This is the only way to reset overall progress.
@@ -629,24 +617,10 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
       const currentShotId = selectedShot
       if (!currentShotId) return
       const safeValue = Math.min(MAX_DURATION_SECONDS, Math.max(MIN_DURATION_SECONDS, Math.round(nextValue)))
+      // Visual-only: update display state without persisting or affecting the timeline
       setDurationDisplayByShot((prev) => ({ ...prev, [currentShotId]: safeValue }))
-      setScenes((prev) =>
-        prev.map((scene) => ({
-          ...scene,
-          shots: scene.shots.map((shot) =>
-            shot.id === currentShotId ? { ...shot, duration: safeValue } : shot
-          ),
-        }))
-      )
-      startTransition(async () => {
-        try {
-          await updateShotAction({ shotId: currentShotId, duration: safeValue })
-        } catch (error) {
-          console.error("Failed to persist duration update:", error)
-        }
-      })
     },
-    [selectedShot, startTransition]
+    [selectedShot]
   )
 
   const handleTimelinePlayPause = useCallback(() => {
@@ -759,17 +733,9 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
     }
   }, [allShots, setFixedDuration])
 
-  // Auto-advance workflow step when generation completes
+  // Auto-advance to polish step when video generation completes
   useEffect(() => {
     Object.entries(simulationByShot).forEach(([shotId, sim]) => {
-      if (sim.frames === "ready") {
-        setActiveStepByShot((prev) => {
-          if (!prev[shotId] || prev[shotId] === "script") {
-            return { ...prev, [shotId]: "video" }
-          }
-          return prev
-        })
-      }
       if (sim.video === "ready") {
         setActiveStepByShot((prev) => {
           if (!prev[shotId] || prev[shotId] === "video") {
@@ -778,7 +744,6 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
           return prev
         })
       }
-      // approved, voice, and lipsync do not auto-advance
     })
   }, [simulationByShot])
 
@@ -786,6 +751,11 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
 
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden" style={{ background: "#000000" }}>
+      <GeneratingToast
+        nextShotNumber={generatingToastShot?.number ?? null}
+        onNavigate={handleGeneratingToastNavigate}
+        onDismiss={handleGeneratingToastDismiss}
+      />
       <HeaderBar
         onRewindSimulation={handleRewindAll}
         renderingShots={renderingShots}

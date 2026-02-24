@@ -18,19 +18,19 @@ export function RenderPill({ shotNumber, type, startedAt, durationMs }: RenderPi
       transition={{ duration: 0.15 }}
       style={{
         background: "#111111",
-        border: "1px solid #232323",
+        border: "1px solid #464646",
         borderRadius: "4px",
         padding: "4px 8px 4px",
         display: "flex",
         flexDirection: "column",
         gap: "4px",
         overflow: "hidden",
-        minWidth: "72px",
+        minWidth: "96px",
       }}
     >
       <span
         style={{
-          color: "#696969",
+          color: "#D9D9D9",
           fontSize: "10px",
           lineHeight: "1",
           letterSpacing: "0.04em",
@@ -40,12 +40,12 @@ export function RenderPill({ shotNumber, type, startedAt, durationMs }: RenderPi
         {label}
       </span>
       {/* Progress track */}
-      <div style={{ height: "2px", background: "#232323", borderRadius: "1px" }}>
+      <div style={{ height: "3px", background: "#464646", borderRadius: "2px" }}>
         <div
           style={{
             height: "100%",
-            background: "#464646",
-            borderRadius: "1px",
+            background: "#D9D9D9",
+            borderRadius: "2px",
             animationName: "render-progress",
             animationDuration: `${durationMs}ms`,
             animationTimingFunction: "linear",

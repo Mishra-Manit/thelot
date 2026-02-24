@@ -3,7 +3,6 @@
 import { AnimatePresence, motion } from "framer-motion"
 import { WorkflowStepper } from "./workflow-stepper"
 import { StepScript } from "./step-script"
-import { StepFrames } from "./step-frames"
 import { StepVideo } from "./step-video"
 import { StepPolish } from "./step-polish"
 import { deriveShotStatus } from "@/lib/storyboard-utils"
