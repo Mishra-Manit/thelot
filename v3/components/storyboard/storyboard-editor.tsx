@@ -35,7 +35,8 @@ const MAX_MOVIE_LEFT_PCT = 50
 const MIN_TIMELINE_PCT = 16
 const MAX_TIMELINE_PCT = 42
 const FRAMES_GENERATION_MS = 20_000
-const VIDEO_GENERATION_MS = 90_000
+const VIDEO_GENERATION_MS = 22_500
+const RENDER_PILL_COMPLETE_HOLD_MS = 450
 const TIMELINE_UI_UPDATE_INTERVAL_MS = 1000 / 24
 const SIMULATION_SEED_PCT = 0.37
 
@@ -106,6 +107,7 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
   const [renderStartTimes, setRenderStartTimes] = useState<
     Record<string, { frames?: RenderJobMetadata; video?: RenderJobMetadata }>
   >({})
+  const [completedRenderPillUntil, setCompletedRenderPillUntil] = useState<Record<string, number>>({})
 
   // Navigation state
   const [editingLevel, setEditingLevel] = useState<EditingLevel>("movie")
@@ -136,6 +138,8 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
   const simulationTimersRef = useRef<Record<string, Partial<Record<SimulationTimerKey, number>>>>(
     {}
   )
+  const completedRenderPillTimersRef = useRef<Record<string, number>>({})
+  const previousSimulationByShotRef = useRef(simulationByShot)
 
   const activeScene = scenes.find((s) => s.id === selectedScene)
   const activeShot = activeScene?.shots.find((s) => s.id === selectedShot)
@@ -169,12 +173,16 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
 
   // Shots currently being generated, used to populate nav bar render queue pills
   const renderingShots = useMemo<RenderingShot[]>(() => {
+    const now = Date.now()
     const result: RenderingShot[] = []
     for (const [shotId, sim] of Object.entries(simulationByShot)) {
       const shot = shotById.get(shotId)
       if (!shot) continue
       const times = renderStartTimes[shotId]
-      if (sim.frames === "loading" && times?.frames) {
+      const framesKey = `${shotId}:frames`
+      const holdFramesUntil = completedRenderPillUntil[framesKey] ?? 0
+      const shouldShowFrames = sim.frames === "loading" || holdFramesUntil > now
+      if (shouldShowFrames && times?.frames) {
         result.push({
           shotId,
           shotNumber: shot.number,
@@ -182,9 +190,13 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
           originStep: times.frames.originStep,
           startedAt: times.frames.startedAt,
           durationMs: FRAMES_GENERATION_MS,
+          isComplete: sim.frames !== "loading",
         })
       }
-      if (sim.video === "loading" && times?.video) {
+      const videoKey = `${shotId}:video`
+      const holdVideoUntil = completedRenderPillUntil[videoKey] ?? 0
+      const shouldShowVideo = sim.video === "loading" || holdVideoUntil > now
+      if (shouldShowVideo && times?.video) {
         result.push({
           shotId,
           shotNumber: shot.number,
@@ -192,11 +204,34 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
           originStep: times.video.originStep,
           startedAt: times.video.startedAt,
           durationMs: VIDEO_GENERATION_MS,
+          isComplete: sim.video !== "loading",
         })
       }
     }
     return result
-  }, [simulationByShot, renderStartTimes, shotById])
+  }, [simulationByShot, renderStartTimes, shotById, completedRenderPillUntil])
+
+  const markRenderPillComplete = useCallback((shotId: string, type: "frames" | "video") => {
+    const key = `${shotId}:${type}`
+    const until = Date.now() + RENDER_PILL_COMPLETE_HOLD_MS
+
+    const existingTimer = completedRenderPillTimersRef.current[key]
+    if (existingTimer !== undefined) {
+      window.clearTimeout(existingTimer)
+    }
+
+    setCompletedRenderPillUntil((prev) => ({ ...prev, [key]: until }))
+
+    completedRenderPillTimersRef.current[key] = window.setTimeout(() => {
+      setCompletedRenderPillUntil((prev) => {
+        if (!(key in prev)) return prev
+        const next = { ...prev }
+        delete next[key]
+        return next
+      })
+      delete completedRenderPillTimersRef.current[key]
+    }, RENDER_PILL_COMPLETE_HOLD_MS)
+  }, [])
 
   const startFrameImageUrl =
     activeScene && activeShot
@@ -286,6 +321,34 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
   useEffect(() => {
     return () => clearAllSimulationTimers()
   }, [clearAllSimulationTimers])
+
+  useEffect(() => {
+    return () => {
+      Object.values(completedRenderPillTimersRef.current).forEach((timerId) => {
+        window.clearTimeout(timerId)
+      })
+      completedRenderPillTimersRef.current = {}
+    }
+  }, [])
+
+  useEffect(() => {
+    const previous = previousSimulationByShotRef.current
+
+    Object.entries(simulationByShot).forEach(([shotId, current]) => {
+      const previousShot = previous[shotId]
+      if (!previousShot) return
+
+      if (previousShot.frames === "loading" && current.frames !== "loading") {
+        markRenderPillComplete(shotId, "frames")
+      }
+
+      if (previousShot.video === "loading" && current.video !== "loading") {
+        markRenderPillComplete(shotId, "video")
+      }
+    })
+
+    previousSimulationByShotRef.current = simulationByShot
+  }, [simulationByShot, markRenderPillComplete])
 
 
   const applySimulationSeed = useCallback((seed: Record<string, ShotSimulationState>) => {
@@ -378,7 +441,7 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
         setGeneratingToastShot({
           id: nextShot.id,
           number: nextShot.number,
-          message: "Your video is generating, estimated 1 minute 30 seconds.",
+          message: "Your video is generating, estimated 22 seconds.",
         })
       } else {
         toast("Generating video...")
@@ -431,6 +494,7 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
   const handleApproveShot = useCallback(() => {
     if (!selectedShot) return
     updateSimulationState(selectedShot, { approved: true })
+    setActiveStepByShot((prev) => ({ ...prev, [selectedShot]: "polish" }))
   }, [selectedShot, updateSimulationState])
 
   const handleRegenerateVideo = useCallback(() => {
@@ -802,26 +866,6 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
       cleanups.forEach((cleanup) => cleanup())
     }
   }, [allShots, setFixedDuration])
-
-  // Auto-advance to polish step when video generation completes
-  useEffect(() => {
-    setActiveStepByShot((prev) => {
-      let next = prev
-
-      Object.entries(simulationByShot).forEach(([shotId, sim]) => {
-        const currentStep = prev[shotId]
-        const shouldAutoAdvance = sim.video === "ready" && (!currentStep || currentStep === "video")
-        if (!shouldAutoAdvance) return
-
-        if (next === prev) {
-          next = { ...prev }
-        }
-        next[shotId] = "polish"
-      })
-
-      return next
-    })
-  }, [simulationByShot])
 
   const showTimeline = timelineShots.length > 0
 

@@ -82,6 +82,7 @@ export interface RenderingShot {
   originStep: WorkflowStep
   startedAt: number   // Date.now() when generation began
   durationMs: number  // total expected duration in ms
+  isComplete: boolean
 }
 
 // Layout info for timeline pill positioning

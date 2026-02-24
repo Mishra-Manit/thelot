@@ -97,7 +97,7 @@ export function StepVideo({
         }}
       >
         {isVideoLoading ? (
-          <SpongebobLoading compact />
+          <SpongebobLoading />
         ) : videoUrl ? (
           <video
             ref={videoRef}
@@ -145,7 +145,7 @@ export function StepVideo({
             border: `1px solid ${isDisabled ? "#404040" : "#232323"}`,
             borderRadius: "8px",
             padding: "11px 16px",
-            color: isDisabled ? "#404040" : "#696969",
+            color: isDisabled ? "#404040" : "#ffffff",
             fontSize: "11px",
             textTransform: "uppercase",
             fontWeight: 600,
@@ -156,12 +156,12 @@ export function StepVideo({
           onMouseEnter={(e) => {
             if (isDisabled) return
             e.currentTarget.style.borderColor = "#696969"
-            e.currentTarget.style.color = "#D9D9D9"
+            e.currentTarget.style.color = "#ffffff"
           }}
           onMouseLeave={(e) => {
             if (isDisabled) return
             e.currentTarget.style.borderColor = "#232323"
-            e.currentTarget.style.color = "#696969"
+            e.currentTarget.style.color = "#ffffff"
           }}
         >
           <RefreshCw size={13} />

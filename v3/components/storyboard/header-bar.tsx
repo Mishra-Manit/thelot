@@ -54,6 +54,7 @@ export function HeaderBar({ onRewindSimulation, renderingShots, onRenderingShotC
                 type={r.type}
                 startedAt={r.startedAt}
                 durationMs={r.durationMs}
+                isComplete={r.isComplete}
                 onClick={() => onRenderingShotClick(r)}
               />
             ))}
