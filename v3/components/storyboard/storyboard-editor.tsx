@@ -21,7 +21,9 @@ import type {
   ShotSimulationState,
   EditingLevel,
   ShotInput,
+  RenderingShot,
 } from "@/lib/storyboard-types"
+import { findNextShot } from "@/lib/storyboard-utils"
 
 const MIN_DURATION_SECONDS = 1
 const MAX_DURATION_SECONDS = 30
@@ -31,7 +33,8 @@ const MIN_MOVIE_LEFT_PCT = 20
 const MAX_MOVIE_LEFT_PCT = 50
 const MIN_TIMELINE_PCT = 16
 const MAX_TIMELINE_PCT = 42
-const SIMULATION_DELAY_MS = 3000
+const FRAMES_GENERATION_MS = 20_000
+const VIDEO_GENERATION_MS = 180_000
 const TIMELINE_UI_UPDATE_INTERVAL_MS = 1000 / 24
 const SIMULATION_SEED_PCT = 0.37
 
@@ -98,6 +101,9 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
   )
   const [frameVersionByShot, setFrameVersionByShot] = useState<Record<string, number>>({})
   const [activeStepByShot, setActiveStepByShot] = useState<Record<string, WorkflowStep>>({})
+  const [renderStartTimes, setRenderStartTimes] = useState<
+    Record<string, { frames?: number; video?: number }>
+  >({})
 
   // Navigation state
   const [editingLevel, setEditingLevel] = useState<EditingLevel>("movie")
@@ -137,6 +143,24 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
     : DEFAULT_SIMULATION_STATE
   const activeStep: WorkflowStep = (selectedShot ? activeStepByShot[selectedShot] : undefined) ?? "script"
   const activeFrameVersion = activeShot ? frameVersionByShot[activeShot.id] : undefined
+
+  // Shots currently being generated, used to populate nav bar render queue pills
+  const renderingShots = useMemo<RenderingShot[]>(() => {
+    const result: RenderingShot[] = []
+    for (const [shotId, sim] of Object.entries(simulationByShot)) {
+      const shot = scenes.flatMap((s) => s.shots).find((s) => s.id === shotId)
+      if (!shot) continue
+      const times = renderStartTimes[shotId]
+      if (sim.frames === "loading" && times?.frames !== undefined) {
+        result.push({ shotId, shotNumber: shot.number, type: "frames", startedAt: times.frames, durationMs: FRAMES_GENERATION_MS })
+      }
+      if (sim.video === "loading" && times?.video !== undefined) {
+        result.push({ shotId, shotNumber: shot.number, type: "video", startedAt: times.video, durationMs: VIDEO_GENERATION_MS })
+      }
+    }
+    return result
+  }, [simulationByShot, renderStartTimes, scenes])
+
   const startFrameImageUrl =
     activeScene && activeShot
       ? `${createShotImagePath(activeScene.number, activeShot.number, "start")}${activeFrameVersion ? `?v=${activeFrameVersion}` : ""}`
@@ -154,7 +178,13 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
   const handleShotSelect = useCallback(
     (shotId: string) => {
       const owningScene = scenes.find((s) => s.shots.some((sh) => sh.id === shotId))
-      if (owningScene) setSelectedScene(owningScene.id)
+      if (owningScene) {
+        setSelectedScene(owningScene.id)
+        const shotIndex = owningScene.shots.findIndex((sh) => sh.id === shotId)
+        const startSec = owningScene.shots.slice(0, shotIndex).reduce((sum, sh) => sum + sh.duration, 0)
+        framePreviewRef.current?.seek(startSec)
+        setVideoCurrentTime(startSec)
+      }
       setSelectedShot(shotId)
       setEditingLevel("shot")
       setPanelCollapsed(true)
@@ -288,25 +318,48 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
       const targetShotId = shotId ?? selectedShot
       if (!targetShotId) return
 
-      toast("Generating frames...")
+      const now = Date.now()
+      setRenderStartTimes((prev) => ({
+        ...prev,
+        [targetShotId]: { ...prev[targetShotId], frames: now },
+      }))
 
-      setFrameVersionByShot((prev) => ({ ...prev, [targetShotId]: Date.now() }))
+      setFrameVersionByShot((prev) => ({ ...prev, [targetShotId]: now }))
       clearSimulationTimer(targetShotId, "frames")
       clearSimulationTimer(targetShotId, "video")
       updateSimulationState(targetShotId, { frames: "loading", video: "idle" })
 
-    const timerId = window.setTimeout(() => {
-      setFrameVersionByShot((prev) => ({ ...prev, [targetShotId]: Date.now() }))
-      updateSimulationState(targetShotId, { frames: "ready", video: "idle" })
-      delete simulationTimersRef.current[targetShotId]?.frames
-    }, SIMULATION_DELAY_MS)
+      const timerId = window.setTimeout(() => {
+        setFrameVersionByShot((prev) => ({ ...prev, [targetShotId]: Date.now() }))
+        updateSimulationState(targetShotId, { frames: "ready", video: "idle" })
+        delete simulationTimersRef.current[targetShotId]?.frames
+      }, FRAMES_GENERATION_MS)
 
       simulationTimersRef.current[targetShotId] = {
         ...(simulationTimersRef.current[targetShotId] ?? {}),
         frames: timerId,
       }
+
+      // Auto-advance to next shot so the writer can script the next beat while this one renders
+      const currentShot = scenes.flatMap((s) => s.shots).find((s) => s.id === targetShotId)
+      const nextShot = findNextShot(scenes, targetShotId)
+      if (nextShot) {
+        // Open sidebar before transitioning
+        setPanelCollapsed(false)
+        
+        // Slight delay to let sidebar open animation start before switching content
+        setTimeout(() => {
+          handleShotSelect(nextShot.id)
+          // Ensure sidebar stays open after shot selection (which normally collapses it)
+          setPanelCollapsed(false)
+          setActiveStepByShot((prev) => ({ ...prev, [nextShot.id]: "script" }))
+          toast(`Shot ${currentShot?.number ?? "?"} rendering — let's script Shot ${nextShot.number}`, { duration: 5000 })
+        }, 150)
+      } else {
+        toast("Generating frames...")
+      }
     },
-    [clearSimulationTimer, selectedShot, updateSimulationState]
+    [clearSimulationTimer, selectedShot, updateSimulationState, scenes, handleShotSelect]
   )
 
   const handleGenerateVideo = useCallback(
@@ -316,22 +369,37 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
       const shotSimulation = simulationByShot[targetShotId] ?? DEFAULT_SIMULATION_STATE
       if (shotSimulation.frames !== "ready") return
 
-      toast("Generating video...")
+      const now = Date.now()
+      setRenderStartTimes((prev) => ({
+        ...prev,
+        [targetShotId]: { ...prev[targetShotId], video: now },
+      }))
 
       clearSimulationTimer(targetShotId, "video")
       updateSimulationState(targetShotId, { video: "loading" })
 
-    const timerId = window.setTimeout(() => {
-      updateSimulationState(targetShotId, { video: "ready" })
-      delete simulationTimersRef.current[targetShotId]?.video
-    }, SIMULATION_DELAY_MS)
+      const timerId = window.setTimeout(() => {
+        updateSimulationState(targetShotId, { video: "ready" })
+        delete simulationTimersRef.current[targetShotId]?.video
+      }, VIDEO_GENERATION_MS)
 
       simulationTimersRef.current[targetShotId] = {
         ...(simulationTimersRef.current[targetShotId] ?? {}),
         video: timerId,
       }
+
+      // Auto-advance to next shot so the writer can script the next beat while this one renders
+      const currentShot = scenes.flatMap((s) => s.shots).find((s) => s.id === targetShotId)
+      const nextShot = findNextShot(scenes, targetShotId)
+      if (nextShot) {
+        handleShotSelect(nextShot.id)
+        setActiveStepByShot((prev) => ({ ...prev, [nextShot.id]: "script" }))
+        toast(`Shot ${currentShot?.number ?? "?"} video rendering — let's script Shot ${nextShot.number}`, { duration: 5000 })
+      } else {
+        toast("Generating video...")
+      }
     },
-    [clearSimulationTimer, selectedShot, simulationByShot, updateSimulationState]
+    [clearSimulationTimer, selectedShot, simulationByShot, updateSimulationState, scenes, handleShotSelect]
   )
 
   const handleApproveShot = useCallback(() => {
@@ -343,7 +411,7 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
     if (!selectedShot) return
     clearSimulationTimer(selectedShot, "video")
     updateSimulationState(selectedShot, { video: "idle", approved: false })
-    setActiveStepByShot((prev) => ({ ...prev, [selectedShot]: "frames" }))
+    setActiveStepByShot((prev) => ({ ...prev, [selectedShot]: "video" }))
   }, [selectedShot, clearSimulationTimer, updateSimulationState])
 
   const handleGenerateVoice = useCallback(() => {
@@ -358,7 +426,7 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
     const timerId = window.setTimeout(() => {
       updateSimulationState(targetShotId, { voice: "ready" })
       delete simulationTimersRef.current[targetShotId]?.voice
-    }, SIMULATION_DELAY_MS)
+    }, 3000)
 
     simulationTimersRef.current[targetShotId] = {
       ...(simulationTimersRef.current[targetShotId] ?? {}),
@@ -378,7 +446,7 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
     const timerId = window.setTimeout(() => {
       updateSimulationState(targetShotId, { lipsync: "ready" })
       delete simulationTimersRef.current[targetShotId]?.lipsync
-    }, SIMULATION_DELAY_MS)
+    }, 3000)
 
     simulationTimersRef.current[targetShotId] = {
       ...(simulationTimersRef.current[targetShotId] ?? {}),
@@ -687,15 +755,15 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
       if (sim.frames === "ready") {
         setActiveStepByShot((prev) => {
           if (!prev[shotId] || prev[shotId] === "script") {
-            return { ...prev, [shotId]: "frames" }
+            return { ...prev, [shotId]: "video" }
           }
           return prev
         })
       }
       if (sim.video === "ready") {
         setActiveStepByShot((prev) => {
-          if (!prev[shotId] || prev[shotId] === "frames") {
-            return { ...prev, [shotId]: "video" }
+          if (!prev[shotId] || prev[shotId] === "video") {
+            return { ...prev, [shotId]: "polish" }
           }
           return prev
         })
@@ -710,6 +778,7 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
     <div className="flex flex-col h-screen w-screen overflow-hidden" style={{ background: "#000000" }}>
       <HeaderBar
         onRewindSimulation={handleRewindAll}
+        renderingShots={renderingShots}
       />
 
       {/* Body: panels row above, full-width timeline below */}

@@ -68,3 +68,9 @@
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
+
+/* Nav bar render queue pill progress animation */
+@keyframes render-progress {
+  from { width: 0% }
+  to { width: 100% }
+}

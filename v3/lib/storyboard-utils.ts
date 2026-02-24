@@ -5,6 +5,16 @@ import type {
   ShotSimulationState,
 } from "./storyboard-types"
 
+// Returns the shot that comes immediately after currentShotId across all scenes, or null if it's the last shot.
+export function findNextShot(
+  scenes: StoryboardScene[],
+  currentShotId: string
+): StoryboardShot | null {
+  const all = scenes.flatMap((s) => s.shots)
+  const idx = all.findIndex((s) => s.id === currentShotId)
+  return idx >= 0 && idx < all.length - 1 ? all[idx + 1] : null
+}
+
 const DEFAULT_SIM: ShotSimulationState = {
   frames: "idle",
   video: "idle",

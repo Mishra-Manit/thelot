@@ -11,15 +11,13 @@ interface WorkflowStepperProps {
 }
 
 const STEPS: Array<{ key: WorkflowStep; label: string }> = [
-  { key: "script", label: "Script" },
-  { key: "frames", label: "Frame" },
+  { key: "script", label: "Frame" },
   { key: "video", label: "Video" },
   { key: "polish", label: "Polish" },
 ]
 
 function isStepClickable(step: WorkflowStep, shotStatus: ShotStatus): boolean {
   if (step === "script") return true
-  if (step === "frames") return true
   if (step === "video") return shotStatus === "frames_ready" || shotStatus === "video_ready" || shotStatus === "approved"
   if (step === "polish") return shotStatus === "video_ready" || shotStatus === "approved"
   return false
@@ -27,14 +25,13 @@ function isStepClickable(step: WorkflowStep, shotStatus: ShotStatus): boolean {
 
 function isStepComplete(step: WorkflowStep, shotStatus: ShotStatus): boolean {
   if (step === "script") return shotStatus !== "draft"
-  if (step === "frames") return shotStatus === "video_ready" || shotStatus === "approved"
   if (step === "video") return shotStatus === "approved"
   return false
 }
 
 export function WorkflowStepper({ currentStep, shotStatus, isLoading, onStepClick }: WorkflowStepperProps) {
   return (
-    <div className="flex items-center gap-3" style={{ padding: "0 0 12px 0", borderBottom: "1px solid #232323" }}>
+    <div className="flex items-center gap-4" style={{ padding: "0 0 12px 0", borderBottom: "1px solid #232323" }}>
       {STEPS.map((step, index) => {
         const isActive = currentStep === step.key
         const isLoadingStep = isLoading && isActive
@@ -43,7 +40,7 @@ export function WorkflowStepper({ currentStep, shotStatus, isLoading, onStepClic
         const textColor = isActive ? "#ffffff" : "#696969"
 
         return (
-          <div key={step.key} className="flex items-center gap-3">
+          <div key={step.key} className="flex items-center gap-5">
             <button
               type="button"
               onClick={() => clickable && onStepClick(step.key)}

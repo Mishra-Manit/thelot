@@ -1,12 +1,16 @@
 "use client"
 
+import { AnimatePresence } from "framer-motion"
 import { ArrowLeft, Coins, Download, FileText, Rewind, Settings, Share2 } from "lucide-react"
+import { RenderPill } from "./render-pill"
+import type { RenderingShot } from "@/lib/storyboard-types"
 
 interface HeaderBarProps {
   onRewindSimulation: () => void
+  renderingShots: RenderingShot[]
 }
 
-export function HeaderBar({ onRewindSimulation }: HeaderBarProps) {
+export function HeaderBar({ onRewindSimulation, renderingShots }: HeaderBarProps) {
   return (
     <header
       className="flex items-center h-[48px] w-full shrink-0"
@@ -34,8 +38,23 @@ export function HeaderBar({ onRewindSimulation }: HeaderBarProps) {
         </span>
       </div>
 
+      {/* Center: render queue pills — shown while shots are generating */}
+      <div className="flex-1 flex items-center justify-center gap-1.5 overflow-x-auto px-4 min-w-0">
+        <AnimatePresence>
+          {renderingShots.map((r) => (
+            <RenderPill
+              key={`${r.shotId}-${r.type}`}
+              shotNumber={r.shotNumber}
+              type={r.type}
+              startedAt={r.startedAt}
+              durationMs={r.durationMs}
+            />
+          ))}
+        </AnimatePresence>
+      </div>
+
       {/* Right group */}
-      <div className="ml-auto flex items-center gap-1 pr-4">
+      <div className="flex items-center gap-1 pr-4">
         {/* Credits */}
         <button
           className="flex items-center gap-1 px-2 py-1 rounded-md transition-colors duration-150"

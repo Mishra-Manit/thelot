@@ -12,7 +12,7 @@ export type ShotStatus = "draft" | "frames_ready" | "video_ready" | "approved"
 
 export type EditingLevel = "movie" | "scene" | "shot"
 
-export type WorkflowStep = "script" | "frames" | "video" | "polish"
+export type WorkflowStep = "script" | "video" | "polish"
 
 export interface StoryboardShot {
   id: string
@@ -72,6 +72,15 @@ export interface ShotInput {
   id: string
   videoUrl: string
   duration: number
+}
+
+// Represents a shot asset currently being generated (for nav bar render queue)
+export interface RenderingShot {
+  shotId: string
+  shotNumber: number
+  type: "frames" | "video"
+  startedAt: number   // Date.now() when generation began
+  durationMs: number  // total expected duration in ms
 }
 
 // Layout info for timeline pill positioning

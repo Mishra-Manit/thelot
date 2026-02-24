@@ -78,31 +78,11 @@ export function ProductionPanel({
             <StepScript
               startFramePrompt={shot.startFramePrompt}
               isFramesLoading={simulation.frames === "loading"}
+              isFramesReady={simulation.frames === "ready"}
+              startFrameImageUrl={startFrameImageUrl}
               onUpdatePrompt={(v) => onUpdate("startFramePrompt", v)}
               onGenerateFrames={onGenerateFrames}
-            />
-          </motion.div>
-        )}
-
-        {currentStep === "frames" && (
-          <motion.div
-            key="step-frames"
-            className="flex flex-col flex-1 min-h-0"
-            initial={{ opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -4 }}
-            transition={{ duration: 0.15, ease: "easeOut" }}
-          >
-            <StepFrames
-              startFrameImageUrl={startFrameImageUrl}
-              startFramePrompt={shot.startFramePrompt}
-              sceneNumber={sceneNumber}
-              shotNumber={shotNumber}
-              isFramesLoading={simulation.frames === "loading"}
-              isVideoLoading={simulation.video === "loading"}
-              onUpdatePrompt={(v) => onUpdate("startFramePrompt", v)}
-              onRegenerateFrames={onGenerateFrames}
-              onGenerateVideo={onGenerateVideo}
+              onMoveToVideo={() => onStepChange("video")}
             />
           </motion.div>
         )}

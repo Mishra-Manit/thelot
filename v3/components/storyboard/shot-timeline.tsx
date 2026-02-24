@@ -255,13 +255,10 @@ export function ShotTimeline({
     [effectiveDuration, onSeek, timelineViewportWidth, zoom]
   )
 
-  // Pill click handler
+  // Pill click handler — seek is driven by onSelectShot
   const handlePillClick = useCallback(
-    (shotId: string, startSec: number) => {
-      onSelectShot(shotId)
-      onSeek(startSec)
-    },
-    [onSelectShot, onSeek]
+    (shotId: string) => onSelectShot(shotId),
+    [onSelectShot]
   )
 
   // Track content width for positioning
@@ -563,7 +560,7 @@ export function ShotTimeline({
                       onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.opacity = "0.9" }}
                       onClick={(e) => {
                         e.stopPropagation()
-                        handlePillClick(layout.shot.id, layout.startSec)
+                        handlePillClick(layout.shot.id)
                       }}
                     >
                       {/* Metadata - compact */}
@@ -609,7 +606,7 @@ export function ShotTimeline({
                       onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.opacity = "0.9" }}
                       onClick={(e) => {
                         e.stopPropagation()
-                        handlePillClick(layout.shot.id, layout.startSec)
+                        handlePillClick(layout.shot.id)
                       }}
                     />
                   )
