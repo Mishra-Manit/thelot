@@ -5,21 +5,23 @@ import { WorkflowStepper } from "./workflow-stepper"
 import { StepScript } from "./step-script"
 import { StepVideo } from "./step-video"
 import { StepPolish } from "./step-polish"
+import type { FramePreviewHandle } from "./frame-preview"
 import { deriveShotStatus } from "@/lib/storyboard-utils"
 import type { StoryboardShot, StoryboardShotUpdateInput, ShotSimulationState, WorkflowStep } from "@/lib/storyboard-types"
 
 interface ProductionPanelProps {
   shot: StoryboardShot
-  sceneNumber: number
-  shotNumber: number
   simulation: ShotSimulationState
   currentStep: WorkflowStep
   startFrameImageUrl: string
   widthPct?: number
+  videoPlayerRef: React.RefObject<FramePreviewHandle | null>
+  onTimeUpdate: (time: number, duration: number) => void
+  onPlayStateChange: (playing: boolean) => void
   onStepChange: (step: WorkflowStep) => void
   onUpdate: (field: keyof StoryboardShotUpdateInput, value: string | number) => void
-  onGenerateFrames: () => void
-  onGenerateVideo: () => void
+  onGenerateFrames: (originStep?: WorkflowStep) => void
+  onGenerateVideo: (originStep?: WorkflowStep) => void
   onApproveShot: () => void
   onRegenerateVideo: () => void
   onGenerateVoice: () => void
@@ -28,12 +30,13 @@ interface ProductionPanelProps {
 
 export function ProductionPanel({
   shot,
-  sceneNumber,
-  shotNumber,
   simulation,
   currentStep,
   startFrameImageUrl,
   widthPct = 50,
+  videoPlayerRef,
+  onTimeUpdate,
+  onPlayStateChange,
   onStepChange,
   onUpdate,
   onGenerateFrames,
@@ -80,10 +83,10 @@ export function ProductionPanel({
               isFramesReady={simulation.frames === "ready"}
               startFrameImageUrl={startFrameImageUrl}
               onUpdatePrompt={(v) => onUpdate("startFramePrompt", v)}
-              onGenerateFrames={onGenerateFrames}
+              onGenerateFrames={() => onGenerateFrames("script")}
               onMoveToVideo={() => {
                 onStepChange("video")
-                onGenerateVideo()
+                onGenerateVideo("video")
               }}
             />
           </motion.div>
@@ -102,6 +105,9 @@ export function ProductionPanel({
               videoUrl={shot.videoUrl}
               isVideoLoading={simulation.video === "loading"}
               isApproved={simulation.approved}
+              videoPlayerRef={videoPlayerRef}
+              onTimeUpdate={onTimeUpdate}
+              onPlayStateChange={onPlayStateChange}
               onRegenerateVideo={onRegenerateVideo}
               onApproveShot={onApproveShot}
             />

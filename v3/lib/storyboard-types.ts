@@ -79,6 +79,7 @@ export interface RenderingShot {
   shotId: string
   shotNumber: number
   type: "frames" | "video"
+  originStep: WorkflowStep
   startedAt: number   // Date.now() when generation began
   durationMs: number  // total expected duration in ms
 }

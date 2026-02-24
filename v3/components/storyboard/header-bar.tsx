@@ -8,9 +8,10 @@ import type { RenderingShot } from "@/lib/storyboard-types"
 interface HeaderBarProps {
   onRewindSimulation: () => void
   renderingShots: RenderingShot[]
+  onRenderingShotClick: (renderingShot: RenderingShot) => void
 }
 
-export function HeaderBar({ onRewindSimulation, renderingShots }: HeaderBarProps) {
+export function HeaderBar({ onRewindSimulation, renderingShots, onRenderingShotClick }: HeaderBarProps) {
   return (
     <header
       className="flex items-center h-[48px] w-full shrink-0"
@@ -53,6 +54,7 @@ export function HeaderBar({ onRewindSimulation, renderingShots }: HeaderBarProps
                 type={r.type}
                 startedAt={r.startedAt}
                 durationMs={r.durationMs}
+                onClick={() => onRenderingShotClick(r)}
               />
             ))}
           </AnimatePresence>

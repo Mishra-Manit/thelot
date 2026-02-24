@@ -60,6 +60,16 @@ export function MovieOverview({ scenes, simulationByShot, onSceneSelect, widthPc
         </div>
       </div>
 
+      {/* Status legend */}
+      <div
+        className="px-4 py-4 flex items-center justify-center gap-6 flex-wrap"
+        style={{ borderBottom: "1px solid #232323" }}
+      >
+        <LegendItem status="draft" label="No frames" size="md" />
+        <LegendItem status="frames_ready" label="Frames ready" size="md" />
+        <LegendItem status="video_ready" label="Video complete" size="md" />
+      </div>
+
       {/* Scene Breakdown */}
       <div className="flex flex-col px-4 pt-4 pb-3 gap-2">
         <span
@@ -101,16 +111,22 @@ export function MovieOverview({ scenes, simulationByShot, onSceneSelect, widthPc
       </div>
 
       {/* How It Works */}
-      <div className="px-4 pb-4 pt-3" style={{ borderTop: "1px solid #232323" }}>
+      <div 
+        className="mx-4 mb-4 mt-2 rounded-xl p-4 transition-colors group/card" 
+        style={{ background: "#111111", border: "1px solid #232323" }}
+        onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#464646")}
+        onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#232323")}
+      >
         <button
-          className="flex items-center justify-between w-full mb-3"
+          className="flex items-center justify-between w-full group"
           onClick={() => setHowItWorksOpen((o) => !o)}
         >
           <span
+            className="transition-colors"
             style={{
-              fontSize: "10px",
+              fontSize: "11px",
               fontWeight: 600,
-              color: "#696969",
+              color: "#D9D9D9",
               letterSpacing: "0.05em",
               textTransform: "uppercase",
             }}
@@ -118,33 +134,35 @@ export function MovieOverview({ scenes, simulationByShot, onSceneSelect, widthPc
             How It Works
           </span>
           {howItWorksOpen ? (
-            <ChevronDown size={12} style={{ color: "#696969" }} />
+            <ChevronDown size={14} className="text-[#D9D9D9] group-hover:text-white group-hover/card:text-white transition-colors" />
           ) : (
-            <ChevronRight size={12} style={{ color: "#696969" }} />
+            <ChevronRight size={14} className="text-[#D9D9D9] group-hover:text-white group-hover/card:text-white transition-colors" />
           )}
         </button>
 
         {howItWorksOpen && (
-          <div className="flex flex-col gap-3 pl-1">
+          <div className="flex flex-col gap-4 mt-4">
             {STEPS.map((step) => (
               <div key={step.number} className="flex items-start gap-3">
-                <span
+                <div 
+                  className="flex items-center justify-center rounded-full"
                   style={{
+                    width: "20px",
+                    height: "20px",
+                    background: "#232323",
+                    color: "#ffffff",
                     fontSize: "11px",
-                    fontWeight: 700,
-                    color: "#7A7A7A",
-                    width: "16px",
+                    fontWeight: 600,
                     flexShrink: 0,
-                    paddingTop: "1px",
                   }}
                 >
                   {step.number}
-                </span>
-                <div className="flex flex-col gap-0.5">
-                  <span style={{ fontSize: "12px", color: "#D9D9D9", fontWeight: 500 }}>
+                </div>
+                <div className="flex flex-col gap-0.5 pt-0.5">
+                  <span style={{ fontSize: "13px", color: "#ffffff", fontWeight: 500 }}>
                     {step.title}
                   </span>
-                  <span style={{ fontSize: "11px", color: "#696969", lineHeight: 1.4 }}>
+                  <span style={{ fontSize: "12px", color: "#D9D9D9", lineHeight: 1.4 }}>
                     {step.description}
                   </span>
                 </div>
@@ -179,3 +197,20 @@ const STEPS = [
     description: "Add voiceover and lip sync",
   },
 ]
+
+function LegendItem({
+  status,
+  label,
+  size,
+}: {
+  status: "draft" | "frames_ready" | "video_ready"
+  label: string
+  size: "sm" | "md"
+}) {
+  return (
+    <div className="flex items-center justify-center gap-2 text-center">
+      <ShotStatusDot status={status} size={size} />
+      <span style={{ fontSize: "12px", color: "#D9D9D9", fontWeight: 500 }}>{label}</span>
+    </div>
+  )
+}

@@ -3,15 +3,23 @@
 import { motion } from "framer-motion"
 import type { RenderingShot } from "@/lib/storyboard-types"
 
-type RenderPillProps = Omit<RenderingShot, "shotId">
+interface RenderPillProps {
+  shotNumber: number
+  type: RenderingShot["type"]
+  startedAt: number
+  durationMs: number
+  onClick: () => void
+}
 
-export function RenderPill({ shotNumber, type, startedAt, durationMs }: RenderPillProps) {
+export function RenderPill({ shotNumber, type, startedAt, durationMs, onClick }: RenderPillProps) {
   // Negative animation-delay starts the progress bar at the correct mid-stream position
   const elapsed = Date.now() - startedAt
   const label = `S${shotNumber} ${type === "frames" ? "Frames" : "Video"}`
 
   return (
-    <motion.div
+    <motion.button
+      type="button"
+      onClick={onClick}
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.9 }}
@@ -26,6 +34,14 @@ export function RenderPill({ shotNumber, type, startedAt, durationMs }: RenderPi
         gap: "4px",
         overflow: "hidden",
         minWidth: "96px",
+        textAlign: "left",
+        cursor: "pointer",
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.borderColor = "#696969"
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.borderColor = "#464646"
       }}
     >
       <span
@@ -54,6 +70,6 @@ export function RenderPill({ shotNumber, type, startedAt, durationMs }: RenderPi
           }}
         />
       </div>
-    </motion.div>
+    </motion.button>
   )
 }

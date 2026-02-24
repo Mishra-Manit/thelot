@@ -35,11 +35,12 @@ const MAX_MOVIE_LEFT_PCT = 50
 const MIN_TIMELINE_PCT = 16
 const MAX_TIMELINE_PCT = 42
 const FRAMES_GENERATION_MS = 20_000
-const VIDEO_GENERATION_MS = 180_000
+const VIDEO_GENERATION_MS = 90_000
 const TIMELINE_UI_UPDATE_INTERVAL_MS = 1000 / 24
 const SIMULATION_SEED_PCT = 0.37
 
 type SimulationTimerKey = "frames" | "video" | "voice" | "lipsync"
+type RenderJobMetadata = { startedAt: number; originStep: WorkflowStep }
 
 const DEFAULT_SIMULATION_STATE: ShotSimulationState = {
   frames: "idle",
@@ -83,10 +84,10 @@ function buildSimulationFromShots(scenes: StoryboardScene[]): Record<string, Sho
   )
 }
 
-function createShotImagePath(sceneNumber: number, shotNumber: number, kind: "start" | "end") {
+function createStartFrameImagePath(sceneNumber: number, shotNumber: number) {
   return `/storyboard/shots/scene-${String(sceneNumber).padStart(2, "0")}-shot-${String(
     shotNumber
-  ).padStart(2, "0")}-${kind}.png`
+  ).padStart(2, "0")}-start.png`
 }
 
 interface StoryboardEditorProps {
@@ -103,7 +104,7 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
   const [frameVersionByShot, setFrameVersionByShot] = useState<Record<string, number>>({})
   const [activeStepByShot, setActiveStepByShot] = useState<Record<string, WorkflowStep>>({})
   const [renderStartTimes, setRenderStartTimes] = useState<
-    Record<string, { frames?: number; video?: number }>
+    Record<string, { frames?: RenderJobMetadata; video?: RenderJobMetadata }>
   >({})
 
   // Navigation state
@@ -147,27 +148,49 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
     : DEFAULT_SIMULATION_STATE
   const activeStep: WorkflowStep = (selectedShot ? activeStepByShot[selectedShot] : undefined) ?? "script"
   const activeFrameVersion = activeShot ? frameVersionByShot[activeShot.id] : undefined
+  const allShots = useMemo(() => scenes.flatMap((scene) => scene.shots), [scenes])
+  const shotById = useMemo(() => {
+    const map = new Map<string, (typeof allShots)[number]>()
+    allShots.forEach((shot) => {
+      map.set(shot.id, shot)
+    })
+    return map
+  }, [allShots])
 
   // Shots currently being generated, used to populate nav bar render queue pills
   const renderingShots = useMemo<RenderingShot[]>(() => {
     const result: RenderingShot[] = []
     for (const [shotId, sim] of Object.entries(simulationByShot)) {
-      const shot = scenes.flatMap((s) => s.shots).find((s) => s.id === shotId)
+      const shot = shotById.get(shotId)
       if (!shot) continue
       const times = renderStartTimes[shotId]
-      if (sim.frames === "loading" && times?.frames !== undefined) {
-        result.push({ shotId, shotNumber: shot.number, type: "frames", startedAt: times.frames, durationMs: FRAMES_GENERATION_MS })
+      if (sim.frames === "loading" && times?.frames) {
+        result.push({
+          shotId,
+          shotNumber: shot.number,
+          type: "frames",
+          originStep: times.frames.originStep,
+          startedAt: times.frames.startedAt,
+          durationMs: FRAMES_GENERATION_MS,
+        })
       }
-      if (sim.video === "loading" && times?.video !== undefined) {
-        result.push({ shotId, shotNumber: shot.number, type: "video", startedAt: times.video, durationMs: VIDEO_GENERATION_MS })
+      if (sim.video === "loading" && times?.video) {
+        result.push({
+          shotId,
+          shotNumber: shot.number,
+          type: "video",
+          originStep: times.video.originStep,
+          startedAt: times.video.startedAt,
+          durationMs: VIDEO_GENERATION_MS,
+        })
       }
     }
     return result
-  }, [simulationByShot, renderStartTimes, scenes])
+  }, [simulationByShot, renderStartTimes, shotById])
 
   const startFrameImageUrl =
     activeScene && activeShot
-      ? `${createShotImagePath(activeScene.number, activeShot.number, "start")}${activeFrameVersion ? `?v=${activeFrameVersion}` : ""}`
+      ? `${createStartFrameImagePath(activeScene.number, activeShot.number)}${activeFrameVersion ? `?v=${activeFrameVersion}` : ""}`
       : ""
 
   /* ── Navigation handlers ─── */
@@ -250,29 +273,9 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
     return () => clearAllSimulationTimers()
   }, [clearAllSimulationTimers])
 
-  useEffect(() => {
-    setSimulationByShot(buildSimulationFromShots(scenes))
-  }, [scenes])
 
   const applySimulationSeed = useCallback((seed: Record<string, ShotSimulationState>) => {
     setSimulationByShot(seed)
-    setScenes((prev) =>
-      prev.map((scene) => ({
-        ...scene,
-        shots: scene.shots.map((shot) => {
-          const sim = seed[shot.id]
-          if (!sim) return shot
-          return {
-            ...shot,
-            framesStatus: sim.frames,
-            videoStatus: sim.video,
-            voiceStatus: sim.voice,
-            lipsyncStatus: sim.lipsync,
-            approved: sim.approved,
-          }
-        }),
-      }))
-    )
   }, [])
 
   const updateSimulationState = useCallback(
@@ -284,23 +287,6 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
           ...patch,
         },
       }))
-
-      setScenes((prev) =>
-        prev.map((scene) => ({
-          ...scene,
-          shots: scene.shots.map((shot) => {
-            if (shot.id !== shotId) return shot
-            return {
-              ...shot,
-              framesStatus: patch.frames ?? shot.framesStatus,
-              videoStatus: patch.video ?? shot.videoStatus,
-              voiceStatus: patch.voice ?? shot.voiceStatus,
-              lipsyncStatus: patch.lipsync ?? shot.lipsyncStatus,
-              approved: patch.approved ?? shot.approved,
-            }
-          }),
-        }))
-      )
 
       const dataPatch: StoryboardShotUpdateInput = {}
       if (patch.frames !== undefined) dataPatch.framesStatus = patch.frames
@@ -322,14 +308,18 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
   )
 
   const handleGenerateFrames = useCallback(
-    (shotId?: string) => {
+    (shotId?: string, originStep?: WorkflowStep) => {
       const targetShotId = shotId ?? selectedShot
       if (!targetShotId) return
 
       const now = Date.now()
+      const targetOriginStep = originStep ?? activeStepByShot[targetShotId] ?? "script"
       setRenderStartTimes((prev) => ({
         ...prev,
-        [targetShotId]: { ...prev[targetShotId], frames: now },
+        [targetShotId]: {
+          ...prev[targetShotId],
+          frames: { startedAt: now, originStep: targetOriginStep },
+        },
       }))
 
       setFrameVersionByShot((prev) => ({ ...prev, [targetShotId]: now }))
@@ -356,20 +346,24 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
         toast("Generating frames...")
       }
     },
-    [clearSimulationTimer, selectedShot, updateSimulationState, scenes]
+    [activeStepByShot, clearSimulationTimer, selectedShot, updateSimulationState, scenes]
   )
 
   const handleGenerateVideo = useCallback(
-    (shotId?: string) => {
+    (shotId?: string, originStep?: WorkflowStep) => {
       const targetShotId = shotId ?? selectedShot
       if (!targetShotId) return
       const shotSimulation = simulationByShot[targetShotId] ?? DEFAULT_SIMULATION_STATE
       if (shotSimulation.frames !== "ready") return
 
       const now = Date.now()
+      const targetOriginStep = originStep ?? activeStepByShot[targetShotId] ?? "video"
       setRenderStartTimes((prev) => ({
         ...prev,
-        [targetShotId]: { ...prev[targetShotId], video: now },
+        [targetShotId]: {
+          ...prev[targetShotId],
+          video: { startedAt: now, originStep: targetOriginStep },
+        },
       }))
 
       clearSimulationTimer(targetShotId, "video")
@@ -388,12 +382,27 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
       // Show toast guiding the user to the next shot while video generates
       const nextShot = findNextShot(scenes, targetShotId)
       if (nextShot) {
-        setGeneratingToastShot({ id: nextShot.id, number: nextShot.number, message: "Your video is generating, estimated 3 minutes." })
+        setGeneratingToastShot({
+          id: nextShot.id,
+          number: nextShot.number,
+          message: "Your video is generating, estimated 1 minute 30 seconds.",
+        })
       } else {
         toast("Generating video...")
       }
     },
-    [clearSimulationTimer, selectedShot, simulationByShot, updateSimulationState, scenes]
+    [activeStepByShot, clearSimulationTimer, selectedShot, simulationByShot, updateSimulationState, scenes]
+  )
+
+  const handleRenderingShotNavigate = useCallback(
+    (renderingShot: RenderingShot) => {
+      handleShotSelect(renderingShot.shotId, false)
+      setActiveStepByShot((prev) => ({
+        ...prev,
+        [renderingShot.shotId]: renderingShot.originStep,
+      }))
+    },
+    [handleShotSelect]
   )
 
   const handleApproveShot = useCallback(() => {
@@ -651,12 +660,11 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
     setVideoTotalDuration((prev) => (prev !== duration ? duration : prev))
   }, [])
 
-  const allShots = useMemo(() => scenes.flatMap((scene) => scene.shots), [scenes])
-
   const timelineShots = useMemo(() => {
     if (editingLevel === "movie") return allShots
+    if (editingLevel === "shot" && activeShot) return [activeShot]
     return scenes.find((s) => s.id === selectedScene)?.shots ?? []
-  }, [editingLevel, selectedScene, allShots, scenes])
+  }, [editingLevel, selectedScene, allShots, scenes, activeShot])
 
   const allShotInputs = useMemo(
     (): ShotInput[] =>
@@ -741,15 +749,21 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
 
   // Auto-advance to polish step when video generation completes
   useEffect(() => {
-    Object.entries(simulationByShot).forEach(([shotId, sim]) => {
-      if (sim.video === "ready") {
-        setActiveStepByShot((prev) => {
-          if (!prev[shotId] || prev[shotId] === "video") {
-            return { ...prev, [shotId]: "polish" }
-          }
-          return prev
-        })
-      }
+    setActiveStepByShot((prev) => {
+      let next = prev
+
+      Object.entries(simulationByShot).forEach(([shotId, sim]) => {
+        const currentStep = prev[shotId]
+        const shouldAutoAdvance = sim.video === "ready" && (!currentStep || currentStep === "video")
+        if (!shouldAutoAdvance) return
+
+        if (next === prev) {
+          next = { ...prev }
+        }
+        next[shotId] = "polish"
+      })
+
+      return next
     })
   }, [simulationByShot])
 
@@ -766,6 +780,7 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
       <HeaderBar
         onRewindSimulation={handleRewindAll}
         renderingShots={renderingShots}
+        onRenderingShotClick={handleRenderingShotNavigate}
       />
 
       {/* Body: panels row above, full-width timeline below */}
@@ -973,16 +988,17 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
 
                 <ProductionPanel
                   shot={activeShot}
-                  sceneNumber={activeScene.number}
-                  shotNumber={activeShot.number}
                   simulation={activeSimulation}
                   currentStep={activeStep}
                   startFrameImageUrl={startFrameImageUrl}
                   widthPct={100 - leftPct}
+                  videoPlayerRef={framePreviewRef}
+                  onTimeUpdate={handlePlayerTimeUpdate}
+                  onPlayStateChange={setIsVideoPlaying}
                   onStepChange={handleStepChange}
                   onUpdate={handleUpdateShot}
-                  onGenerateFrames={() => handleGenerateFrames(activeShot.id)}
-                  onGenerateVideo={() => handleGenerateVideo(activeShot.id)}
+                  onGenerateFrames={(originStep) => handleGenerateFrames(activeShot.id, originStep)}
+                  onGenerateVideo={(originStep) => handleGenerateVideo(activeShot.id, originStep)}
                   onApproveShot={handleApproveShot}
                   onRegenerateVideo={handleRegenerateVideo}
                   onGenerateVoice={handleGenerateVoice}

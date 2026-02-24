@@ -366,7 +366,7 @@ function ShotList({
   backLabel?: string
 }) {
   return (
-    <>
+    <div className="flex flex-col h-full">
       <div className="px-3 pt-3 pb-2 flex flex-col gap-1">
         <div className="flex items-center justify-between">
           <button
@@ -383,10 +383,20 @@ function ShotList({
         <span style={{ color: "#ffffff", fontSize: "12px" }}>
           {scene.number}. {scene.title}
         </span>
-        <div style={{ borderTop: "1px solid #111111" }} />
+        <div style={{ borderTop: "1px solid #111111", marginTop: "4px" }} />
       </div>
 
-      <div className="flex-1 overflow-y-auto px-3 flex flex-col gap-1.5 pb-2">
+      {/* Status legend */}
+      <div
+        className="px-2 py-3 flex items-center justify-center gap-2.5"
+        style={{ borderBottom: "1px solid #111111" }}
+      >
+        <LegendItem status="draft" label="No frames" size="sm" />
+        <LegendItem status="frames_ready" label="Frames ready" size="sm" />
+        <LegendItem status="video_ready" label="Video complete" size="sm" />
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-3 flex flex-col gap-1.5 py-3">
         {scene.shots.map((shot) => {
           const isSelected = selectedShotId === shot.id
           const sim = simulationByShot[shot.id] ?? { frames: "idle", video: "idle", approved: false, voice: "idle", lipsync: "idle" }
@@ -424,7 +434,24 @@ function ShotList({
           )
         })}
       </div>
-    </>
+    </div>
+  )
+}
+
+function LegendItem({
+  status,
+  label,
+  size,
+}: {
+  status: "draft" | "frames_ready" | "video_ready"
+  label: string
+  size: "sm" | "md"
+}) {
+  return (
+    <div className="flex items-center justify-center gap-1.5 text-center whitespace-nowrap">
+      <ShotStatusDot status={status} size={size} />
+      <span style={{ fontSize: "10px", color: "#D9D9D9", fontWeight: 500 }}>{label}</span>
+    </div>
   )
 }
 

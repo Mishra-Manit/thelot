@@ -1,12 +1,17 @@
 "use client"
 
+import { useCallback, useEffect, useImperativeHandle, useRef } from "react"
 import { Film, RefreshCw, Check } from "lucide-react"
 import { SpongebobLoading } from "./loading/spongebob-loading"
+import type { FramePreviewHandle } from "./frame-preview"
 
 interface StepVideoProps {
   videoUrl: string
   isVideoLoading: boolean
   isApproved: boolean
+  videoPlayerRef: React.RefObject<FramePreviewHandle | null>
+  onTimeUpdate: (time: number, duration: number) => void
+  onPlayStateChange: (playing: boolean) => void
   onRegenerateVideo: () => void
   onApproveShot: () => void
 }
@@ -15,10 +20,65 @@ export function StepVideo({
   videoUrl,
   isVideoLoading,
   isApproved,
+  videoPlayerRef,
+  onTimeUpdate,
+  onPlayStateChange,
   onRegenerateVideo,
   onApproveShot,
 }: StepVideoProps) {
   const isDisabled = isVideoLoading
+  const videoRef = useRef<HTMLVideoElement>(null)
+
+  const emitVideoTime = useCallback(() => {
+    const video = videoRef.current
+    if (!video) return
+    const duration = Number.isFinite(video.duration) ? video.duration : 0
+    onTimeUpdate(video.currentTime, duration)
+  }, [onTimeUpdate])
+
+  useImperativeHandle(
+    videoPlayerRef,
+    () => ({
+      play: () => {
+        const video = videoRef.current
+        if (!video) return
+        video.play().catch(() => undefined)
+      },
+      pause: () => {
+        const video = videoRef.current
+        if (!video) return
+        video.pause()
+        onPlayStateChange(false)
+      },
+      seek: (seconds: number) => {
+        const video = videoRef.current
+        if (!video) return
+        const duration = Number.isFinite(video.duration) ? video.duration : 0
+        const nextTime = duration > 0 ? Math.max(0, Math.min(seconds, duration)) : Math.max(0, seconds)
+        video.currentTime = nextTime
+        onTimeUpdate(nextTime, duration)
+      },
+    }),
+    [videoPlayerRef, onPlayStateChange, onTimeUpdate]
+  )
+
+  useEffect(() => {
+    if (isVideoLoading || !videoUrl) {
+      onPlayStateChange(false)
+      onTimeUpdate(0, 0)
+      return
+    }
+
+    const video = videoRef.current
+    if (!video) return
+    const duration = Number.isFinite(video.duration) ? video.duration : 0
+    onPlayStateChange(!video.paused && !video.ended)
+    onTimeUpdate(video.currentTime, duration)
+  }, [isVideoLoading, onPlayStateChange, onTimeUpdate, videoUrl])
+
+  useEffect(() => {
+    return () => onPlayStateChange(false)
+  }, [onPlayStateChange])
 
   return (
     <div className="flex flex-col flex-1 min-h-0" style={{ padding: "16px" }}>
@@ -40,10 +100,16 @@ export function StepVideo({
           <SpongebobLoading compact />
         ) : videoUrl ? (
           <video
+            ref={videoRef}
             src={videoUrl}
-            controls
-            loop
+            preload="metadata"
+            playsInline
             style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }}
+            onLoadedMetadata={emitVideoTime}
+            onTimeUpdate={emitVideoTime}
+            onPlay={() => onPlayStateChange(true)}
+            onPause={() => onPlayStateChange(false)}
+            onEnded={() => onPlayStateChange(false)}
           />
         ) : (
           <div className="flex flex-col items-center gap-3">
