@@ -112,8 +112,8 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
   const [selectedShot, setSelectedShot] = useState<string | null>(null)
   const [panelCollapsed, setPanelCollapsed] = useState(false)
 
-  // Generating toast: tracks next shot to navigate to after frame generation kicks off
-  const [generatingToastShot, setGeneratingToastShot] = useState<{ id: string; number: number } | null>(null)
+  // Generating toast: tracks next shot to navigate to after generation kicks off
+  const [generatingToastShot, setGeneratingToastShot] = useState<{ id: string; number: number; message: string } | null>(null)
 
   /* ── Resizable split ─── */
   const [leftPct, setLeftPct] = useState(50)
@@ -351,7 +351,7 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
       // Show toast guiding the user to the next shot while this frame generates
       const nextShot = findNextShot(scenes, targetShotId)
       if (nextShot) {
-        setGeneratingToastShot({ id: nextShot.id, number: nextShot.number })
+        setGeneratingToastShot({ id: nextShot.id, number: nextShot.number, message: "Your start frame is generating, estimated 20 seconds." })
       } else {
         toast("Generating frames...")
       }
@@ -385,9 +385,15 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
         video: timerId,
       }
 
-      toast("Video generation started — this takes a few minutes.", { duration: 4000 })
+      // Show toast guiding the user to the next shot while video generates
+      const nextShot = findNextShot(scenes, targetShotId)
+      if (nextShot) {
+        setGeneratingToastShot({ id: nextShot.id, number: nextShot.number, message: "Your video is generating, estimated 3 minutes." })
+      } else {
+        toast("Generating video...")
+      }
     },
-    [clearSimulationTimer, selectedShot, simulationByShot, updateSimulationState]
+    [clearSimulationTimer, selectedShot, simulationByShot, updateSimulationState, scenes]
   )
 
   const handleApproveShot = useCallback(() => {
@@ -753,6 +759,7 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
     <div className="flex flex-col h-screen w-screen overflow-hidden" style={{ background: "#000000" }}>
       <GeneratingToast
         nextShotNumber={generatingToastShot?.number ?? null}
+        message={generatingToastShot?.message ?? ""}
         onNavigate={handleGeneratingToastNavigate}
         onDismiss={handleGeneratingToastDismiss}
       />

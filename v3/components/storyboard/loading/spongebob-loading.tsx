@@ -18,8 +18,11 @@ function VideoPlane({ cellSize, resolution }: { cellSize: number; resolution: Ve
 
   const { viewport } = useThree()
 
+  // Guard against unloaded video metadata producing NaN aspect ratio
+  const rawVideoAspect = texture.image.videoWidth / texture.image.videoHeight
+  const videoAspect = Number.isFinite(rawVideoAspect) && rawVideoAspect > 0 ? rawVideoAspect : 16 / 9
+
   // Calculate dimensions to maintain aspect ratio (contain)
-  const videoAspect = texture.image.videoWidth / texture.image.videoHeight
   const viewportAspect = viewport.width / viewport.height
 
   let planeWidth = viewport.width
@@ -64,17 +67,21 @@ export interface SpongebobLoadingProps {
 
 export function SpongebobLoading({ label, compact = false }: SpongebobLoadingProps) {
   const containerRef = useRef<HTMLDivElement>(null)
-  const [resolution, setResolution] = useState(new Vector2(400, 300))
+  // Start as null so the Canvas only renders once we have real container dimensions,
+  // preventing the 400×300 → actual-size jump that caused the initial glitch.
+  const [resolution, setResolution] = useState<Vector2 | null>(null)
 
   useEffect(() => {
     const container = containerRef.current
     if (!container) return
-    const observe = () => {
+    const update = () => {
       const { width, height } = container.getBoundingClientRect()
-      setResolution(new Vector2(width, height))
+      if (width > 0 && height > 0) {
+        setResolution(new Vector2(width, height))
+      }
     }
-    observe()
-    const ro = new ResizeObserver(observe)
+    update()
+    const ro = new ResizeObserver(update)
     ro.observe(container)
     return () => ro.disconnect()
   }, [])
@@ -84,18 +91,20 @@ export function SpongebobLoading({ label, compact = false }: SpongebobLoadingPro
 
   return (
     <div ref={containerRef} className="absolute inset-0" style={{ background: "#000" }}>
-      <Canvas
-        orthographic
-        camera={{ zoom: 1, position: [0, 0, 100] }}
-        gl={{ antialias: false, powerPreference: "low-power" }}
-        dpr={1}
-        style={{ width: "100%", height: "100%" }}
-      >
-        <color attach="background" args={["#000000"]} />
-        <Suspense fallback={null}>
-          <VideoPlane cellSize={cellSize} resolution={resolution} />
-        </Suspense>
-      </Canvas>
+      {resolution && (
+        <Canvas
+          orthographic
+          camera={{ zoom: 1, position: [0, 0, 100] }}
+          gl={{ antialias: false, powerPreference: "low-power" }}
+          dpr={1}
+          style={{ width: "100%", height: "100%" }}
+        >
+          <color attach="background" args={["#000000"]} />
+          <Suspense fallback={null}>
+            <VideoPlane cellSize={cellSize} resolution={resolution} />
+          </Suspense>
+        </Canvas>
+      )}
 
       {label && (
         <span

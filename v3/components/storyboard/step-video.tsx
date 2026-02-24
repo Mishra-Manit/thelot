@@ -12,6 +12,7 @@ interface StepVideoProps {
 }
 
 export function StepVideo({
+  videoUrl,
   isVideoLoading,
   isApproved,
   onRegenerateVideo,
@@ -22,20 +23,28 @@ export function StepVideo({
   return (
     <div className="flex flex-col flex-1 min-h-0" style={{ padding: "16px" }}>
 
-      {/* Video preview area — position: relative so SpongebobLoading's absolute inset-0 stays contained */}
+      {/* Video preview area */}
       <div
-        className="flex items-center justify-center rounded-lg"
+        className="flex items-center justify-center rounded-lg overflow-hidden"
         style={{
           position: "relative",
+          flex: 1,
+          minHeight: 0,
           background: "#111111",
           border: `1px solid ${isApproved ? "#696969" : "#232323"}`,
           borderRadius: "8px",
           marginBottom: "12px",
-          height: "220px",
         }}
       >
         {isVideoLoading ? (
           <SpongebobLoading compact />
+        ) : videoUrl ? (
+          <video
+            src={videoUrl}
+            controls
+            loop
+            style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }}
+          />
         ) : (
           <div className="flex flex-col items-center gap-3">
             <div
@@ -44,18 +53,14 @@ export function StepVideo({
                 width: "48px",
                 height: "48px",
                 background: "rgba(105,105,105,0.12)",
-                border: `1px solid ${isApproved ? "#696969" : "#575757"}`,
+                border: `1px solid #575757`,
                 borderRadius: "10px",
               }}
             >
-              {isApproved ? (
-                <Check size={22} color="#D9D9D9" />
-              ) : (
-                <Film size={22} color="#696969" />
-              )}
+              <Film size={22} color="#696969" />
             </div>
-            <span style={{ fontSize: "13px", color: isApproved ? "#D9D9D9" : "#696969", fontWeight: 500 }}>
-              {isApproved ? "Shot approved" : "Video ready"}
+            <span style={{ fontSize: "13px", color: "#696969", fontWeight: 500 }}>
+              No video yet
             </span>
           </div>
         )}

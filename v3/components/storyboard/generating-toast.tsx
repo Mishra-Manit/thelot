@@ -4,10 +4,11 @@ import { useEffect } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import { ArrowRight } from "lucide-react"
 
-const DISMISS_AFTER_MS = 6000
+const DISMISS_AFTER_MS = 8000
 
 interface GeneratingToastProps {
   nextShotNumber: number | null
+  message: string
   onNavigate: () => void
   onDismiss: () => void
 }
@@ -15,7 +16,7 @@ interface GeneratingToastProps {
 // Large Framer Motion toast that slides in from the top-right.
 // Clicking anywhere on it navigates to the next shot.
 // Auto-dismisses after DISMISS_AFTER_MS.
-export function GeneratingToast({ nextShotNumber, onNavigate, onDismiss }: GeneratingToastProps) {
+export function GeneratingToast({ nextShotNumber, message, onNavigate, onDismiss }: GeneratingToastProps) {
   const visible = nextShotNumber !== null
 
   useEffect(() => {
@@ -82,7 +83,7 @@ export function GeneratingToast({ nextShotNumber, onNavigate, onDismiss }: Gener
           </div>
 
           <p style={{ fontSize: "13px", color: "#D9D9D9", lineHeight: 1.55, margin: "0 0 10px 0" }}>
-            Your start frame is generating, estimated 20 seconds.
+            {message}
           </p>
 
           <div
