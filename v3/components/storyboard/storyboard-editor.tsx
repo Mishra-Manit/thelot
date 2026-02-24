@@ -131,7 +131,6 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
   const framePreviewRef = useRef<FramePreviewHandle>(null)
 
   const [videoCurrentTime, setVideoCurrentTime] = useState(0)
-  const [videoTotalDuration, setVideoTotalDuration] = useState(0)
   const [isVideoPlaying, setIsVideoPlaying] = useState(false)
   const lastTimelineUiUpdateMsRef = useRef(0)
   const simulationTimersRef = useRef<Record<string, Partial<Record<SimulationTimerKey, number>>>>(
@@ -156,6 +155,17 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
     })
     return map
   }, [allShots])
+  const shotTimelineById = useMemo(() => {
+    const map = new Map<string, { startSec: number; duration: number }>()
+    scenes.forEach((scene) => {
+      let cursor = 0
+      scene.shots.forEach((shot) => {
+        map.set(shot.id, { startSec: cursor, duration: shot.duration })
+        cursor += shot.duration
+      })
+    })
+    return map
+  }, [scenes])
 
   // Shots currently being generated, used to populate nav bar render queue pills
   const renderingShots = useMemo<RenderingShot[]>(() => {
@@ -209,7 +219,11 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
         setSelectedScene(owningScene.id)
         const shotIndex = owningScene.shots.findIndex((sh) => sh.id === shotId)
         const startSec = owningScene.shots.slice(0, shotIndex).reduce((sum, sh) => sum + sh.duration, 0)
-        framePreviewRef.current?.seek(startSec)
+        framePreviewRef.current?.pause()
+        if (editingLevel !== "shot") {
+          framePreviewRef.current?.seek(startSec)
+        }
+        setIsVideoPlaying(false)
         setVideoCurrentTime(startSec)
       }
       setSelectedShot(shotId)
@@ -220,7 +234,7 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
         setPanelCollapsed(false)
       }
     },
-    [scenes]
+    [editingLevel, scenes]
   )
 
   const handleBackToMovie = useCallback(() => {
@@ -312,6 +326,17 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
       const targetShotId = shotId ?? selectedShot
       if (!targetShotId) return
 
+      const nextShot = findNextShot(scenes, targetShotId)
+      if (nextShot) {
+        setGeneratingToastShot({
+          id: nextShot.id,
+          number: nextShot.number,
+          message: "Your start frame is generating, estimated 20 seconds.",
+        })
+      } else {
+        toast("Generating frames...")
+      }
+
       const now = Date.now()
       const targetOriginStep = originStep ?? activeStepByShot[targetShotId] ?? "script"
       setRenderStartTimes((prev) => ({
@@ -337,14 +362,6 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
         ...(simulationTimersRef.current[targetShotId] ?? {}),
         frames: timerId,
       }
-
-      // Show toast guiding the user to the next shot while this frame generates
-      const nextShot = findNextShot(scenes, targetShotId)
-      if (nextShot) {
-        setGeneratingToastShot({ id: nextShot.id, number: nextShot.number, message: "Your start frame is generating, estimated 20 seconds." })
-      } else {
-        toast("Generating frames...")
-      }
     },
     [activeStepByShot, clearSimulationTimer, selectedShot, updateSimulationState, scenes]
   )
@@ -355,6 +372,17 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
       if (!targetShotId) return
       const shotSimulation = simulationByShot[targetShotId] ?? DEFAULT_SIMULATION_STATE
       if (shotSimulation.frames !== "ready") return
+
+      const nextShot = findNextShot(scenes, targetShotId)
+      if (nextShot) {
+        setGeneratingToastShot({
+          id: nextShot.id,
+          number: nextShot.number,
+          message: "Your video is generating, estimated 1 minute 30 seconds.",
+        })
+      } else {
+        toast("Generating video...")
+      }
 
       const now = Date.now()
       const targetOriginStep = originStep ?? activeStepByShot[targetShotId] ?? "video"
@@ -369,6 +397,13 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
       clearSimulationTimer(targetShotId, "video")
       updateSimulationState(targetShotId, { video: "loading" })
 
+      const timelinePosition = shotTimelineById.get(targetShotId)
+      if (targetShotId === selectedShot && timelinePosition) {
+        framePreviewRef.current?.seek(0)
+        setIsVideoPlaying(false)
+        setVideoCurrentTime(timelinePosition.startSec)
+      }
+
       const timerId = window.setTimeout(() => {
         updateSimulationState(targetShotId, { video: "ready" })
         delete simulationTimersRef.current[targetShotId]?.video
@@ -378,20 +413,8 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
         ...(simulationTimersRef.current[targetShotId] ?? {}),
         video: timerId,
       }
-
-      // Show toast guiding the user to the next shot while video generates
-      const nextShot = findNextShot(scenes, targetShotId)
-      if (nextShot) {
-        setGeneratingToastShot({
-          id: nextShot.id,
-          number: nextShot.number,
-          message: "Your video is generating, estimated 1 minute 30 seconds.",
-        })
-      } else {
-        toast("Generating video...")
-      }
     },
-    [activeStepByShot, clearSimulationTimer, selectedShot, simulationByShot, updateSimulationState, scenes]
+    [activeStepByShot, clearSimulationTimer, selectedShot, simulationByShot, updateSimulationState, scenes, shotTimelineById]
   )
 
   const handleRenderingShotNavigate = useCallback(
@@ -646,25 +669,58 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
     }
   }, [isVideoPlaying])
 
-  const handleTimelineSeek = useCallback((seconds: number) => {
-    framePreviewRef.current?.seek(seconds)
-    setVideoCurrentTime(seconds)
-  }, [])
+  const handleTimelineSeek = useCallback(
+    (seconds: number) => {
+      const normalizedSeconds = Math.max(0, seconds)
 
-  const handlePlayerTimeUpdate = useCallback((time: number, duration: number) => {
-    const now = performance.now()
-    if (now - lastTimelineUiUpdateMsRef.current < TIMELINE_UI_UPDATE_INTERVAL_MS) return
-    lastTimelineUiUpdateMsRef.current = now
+      if (editingLevel === "shot" && activeStep === "video" && selectedShot) {
+        const timelinePosition = shotTimelineById.get(selectedShot)
+        if (timelinePosition) {
+          const shotStart = timelinePosition.startSec
+          const shotEnd = shotStart + timelinePosition.duration
+          const clampedTimelineTime = Math.max(shotStart, Math.min(normalizedSeconds, shotEnd))
+          framePreviewRef.current?.seek(clampedTimelineTime - shotStart)
+          setVideoCurrentTime(clampedTimelineTime)
+          return
+        }
+      }
 
-    setVideoCurrentTime((prev) => (Math.abs(prev - time) >= 0.04 ? time : prev))
-    setVideoTotalDuration((prev) => (prev !== duration ? duration : prev))
-  }, [])
+      framePreviewRef.current?.seek(normalizedSeconds)
+      setVideoCurrentTime(normalizedSeconds)
+    },
+    [activeStep, editingLevel, selectedShot, shotTimelineById]
+  )
+
+  const handlePlayerTimeUpdate = useCallback(
+    (time: number, _duration: number) => {
+      const now = performance.now()
+      if (now - lastTimelineUiUpdateMsRef.current < TIMELINE_UI_UPDATE_INTERVAL_MS) return
+      lastTimelineUiUpdateMsRef.current = now
+
+      let timelineTime = Math.max(0, time)
+
+      if (editingLevel === "shot" && activeStep === "video" && selectedShot) {
+        const timelinePosition = shotTimelineById.get(selectedShot)
+        if (timelinePosition) {
+          const clampedShotTime = Math.max(0, Math.min(time, timelinePosition.duration))
+          timelineTime = timelinePosition.startSec + clampedShotTime
+        }
+      }
+
+      setVideoCurrentTime((prev) => (Math.abs(prev - timelineTime) >= 0.04 ? timelineTime : prev))
+    },
+    [activeStep, editingLevel, selectedShot, shotTimelineById]
+  )
 
   const timelineShots = useMemo(() => {
     if (editingLevel === "movie") return allShots
-    if (editingLevel === "shot" && activeShot) return [activeShot]
-    return scenes.find((s) => s.id === selectedScene)?.shots ?? []
-  }, [editingLevel, selectedScene, allShots, scenes, activeShot])
+    return activeScene?.shots ?? []
+  }, [editingLevel, allShots, activeScene])
+
+  const timelineDuration = useMemo(
+    () => timelineShots.reduce((sum, shot) => sum + shot.duration, 0),
+    [timelineShots]
+  )
 
   const allShotInputs = useMemo(
     (): ShotInput[] =>
@@ -1083,7 +1139,7 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
                 durationByShot={Object.fromEntries(timelineShots.map((shot) => [shot.id, shot.duration]))}
                 onSelectShot={handleShotSelect}
                 currentTime={videoCurrentTime}
-                totalDuration={videoTotalDuration}
+                totalDuration={timelineDuration}
                 isPlaying={isVideoPlaying}
                 onPlayPause={handleTimelinePlayPause}
                 onSeek={handleTimelineSeek}

@@ -59,10 +59,9 @@ function VideoPlane({ cellSize, resolution }: { cellSize: number; resolution: Ve
 
 export interface SimpsonLoadingProps {
   label?: string
-  compact?: boolean
 }
 
-export function SimpsonLoading({ label, compact = false }: SimpsonLoadingProps) {
+export function SimpsonLoading({ label }: SimpsonLoadingProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [resolution, setResolution] = useState(new Vector2(400, 300))
 

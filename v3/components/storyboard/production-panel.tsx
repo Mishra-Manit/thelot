@@ -67,7 +67,7 @@ export function ProductionPanel({
         />
       </div>
 
-      <AnimatePresence mode="wait">
+      <AnimatePresence initial={false} mode="sync">
         {currentStep === "script" && (
           <motion.div
             key="step-script"

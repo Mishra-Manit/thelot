@@ -59,10 +59,9 @@ function VideoPlane({ cellSize, resolution }: { cellSize: number; resolution: Ve
 
 export interface PrincessLoadingProps {
   label?: string
-  compact?: boolean
 }
 
-export function PrincessLoading({ label, compact = false }: PrincessLoadingProps) {
+export function PrincessLoading({ label }: PrincessLoadingProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [resolution, setResolution] = useState(new Vector2(400, 300))
 

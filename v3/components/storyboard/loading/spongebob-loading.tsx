@@ -66,6 +66,38 @@ export interface SpongebobLoadingProps {
 }
 
 export function SpongebobLoading({ label, compact = false }: SpongebobLoadingProps) {
+  if (compact) {
+    return (
+      <div
+        className="absolute inset-0 flex flex-col items-center justify-center gap-3"
+        style={{ background: "#000000" }}
+      >
+        <div
+          className="animate-spin rounded-full"
+          style={{
+            width: "28px",
+            height: "28px",
+            border: "2px solid #575757",
+            borderTopColor: "#D9D9D9",
+          }}
+        />
+        {label && (
+          <span
+            style={{
+              fontSize: "10px",
+              color: "#D9D9D9",
+              letterSpacing: "0.02em",
+              pointerEvents: "none",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {label}
+          </span>
+        )}
+      </div>
+    )
+  }
+
   const containerRef = useRef<HTMLDivElement>(null)
   // Start as null so the Canvas only renders once we have real container dimensions,
   // preventing the 400×300 → actual-size jump that caused the initial glitch.
