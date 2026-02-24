@@ -1,20 +1,5 @@
 # The Lot — Spec
 
-## Color Palette
-
-| Swatch | Hex       |
-|--------|-----------|
-| ![#0D0E14](https://via.placeholder.com/12/0D0E14/0D0E14.png) Dark Black    | `#0D0E14` |
-| ![#252933](https://via.placeholder.com/12/252933/252933.png) Dark Navy     | `#252933` |
-| ![#404556](https://via.placeholder.com/12/404556/404556.png) Slate Gray    | `#404556` |
-| ![#60515C](https://via.placeholder.com/12/60515C/60515C.png) Muted Mauve   | `#60515C` |
-| ![#777076](https://via.placeholder.com/12/777076/777076.png) Warm Gray     | `#777076` |
-| ![#597D7C](https://via.placeholder.com/12/597D7C/597D7C.png) Sage Green    | `#597D7C` |
-| ![#386775](https://via.placeholder.com/12/386775/386775.png) Teal          | `#386775` |
-| ![#20504E](https://via.placeholder.com/12/20504E/20504E.png) Deep Teal     | `#20504E` |
-| ![#193D31](https://via.placeholder.com/12/193D31/193D31.png) Forest Green  | `#193D31` |
-| ![#17292B](https://via.placeholder.com/12/17292B/17292B.png) Dark Teal     | `#17292B` |
-
 ## Typography
 
 **Fonts:** [Outfit](https://fonts.google.com/specimen/Outfit) (headings & buttons) + [Inter](https://fonts.google.com/specimen/Inter) (body text)
