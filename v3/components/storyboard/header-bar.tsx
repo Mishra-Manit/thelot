@@ -1,17 +1,16 @@
 "use client"
 
 import { AnimatePresence } from "framer-motion"
-import { ArrowLeft, Coins, Download, FileText, Rewind, Settings, Share2 } from "lucide-react"
+import { ArrowLeft, Coins, Download, FileText, Settings, Share2 } from "lucide-react"
 import { RenderPill } from "./render-pill"
 import type { RenderingShot } from "@/lib/storyboard-types"
 
 interface HeaderBarProps {
-  onRewindSimulation: () => void
   renderingShots: RenderingShot[]
   onRenderingShotClick: (renderingShot: RenderingShot) => void
 }
 
-export function HeaderBar({ onRewindSimulation, renderingShots, onRenderingShotClick }: HeaderBarProps) {
+export function HeaderBar({ renderingShots, onRenderingShotClick }: HeaderBarProps) {
   return (
     <header
       className="flex items-center h-[48px] w-full shrink-0"
@@ -95,28 +94,6 @@ export function HeaderBar({ onRewindSimulation, renderingShots, onRenderingShotC
             <Icon size={16} />
           </button>
         ))}
-
-        <button
-          className="flex items-center justify-center rounded-lg transition-colors duration-150"
-          style={{
-            width: "32px",
-            height: "32px",
-            color: "#D9D9D9",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = "#232323"
-            e.currentTarget.style.color = "#ffffff"
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = "transparent"
-            e.currentTarget.style.color = "#D9D9D9"
-          }}
-          onClick={onRewindSimulation}
-          aria-label="Rewind simulation"
-          title="Rewind simulation"
-        >
-          <Rewind size={16} />
-        </button>
 
         {/* Share button */}
         <button

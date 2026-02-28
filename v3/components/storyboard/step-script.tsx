@@ -1,8 +1,8 @@
 "use client"
 
-import { useRef, useEffect, useCallback } from "react"
 import { Sparkles, ArrowRight } from "lucide-react"
 import { SimpsonLoading } from "./loading/simpson-loading"
+import { AutoTextarea } from "./auto-textarea"
 
 interface StepScriptProps {
   startFramePrompt: string
@@ -12,41 +12,6 @@ interface StepScriptProps {
   onUpdatePrompt: (value: string) => void
   onGenerateFrames: () => void
   onMoveToVideo: () => void
-}
-
-function PromptTextarea({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  const ref = useRef<HTMLTextAreaElement>(null)
-  const resize = useCallback(() => {
-    const el = ref.current
-    if (el) { el.style.height = "0"; el.style.height = el.scrollHeight + "px" }
-  }, [])
-  useEffect(() => { resize() }, [value, resize])
-
-  return (
-    <textarea
-      ref={ref}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      onInput={resize}
-      rows={3}
-      placeholder="Describe the opening frame of this shot..."
-      style={{
-        resize: "none",
-        overflow: "hidden",
-        width: "100%",
-        background: "#111111",
-        border: "1px solid #232323",
-        borderRadius: "8px",
-        padding: "10px 12px",
-        fontSize: "13px",
-        lineHeight: 1.6,
-        color: "#D9D9D9",
-        outline: "none",
-        fontFamily: "var(--font-inter)",
-        minHeight: "80px",
-      }}
-    />
-  )
 }
 
 export function StepScript({ 
@@ -108,7 +73,23 @@ export function StepScript({
         <span style={{ fontSize: "11px", color: "#696969", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 600, display: "block", marginBottom: "6px" }}>
           Start Frame Prompt
         </span>
-        <PromptTextarea value={startFramePrompt} onChange={onUpdatePrompt} />
+        <AutoTextarea
+          value={startFramePrompt}
+          onChange={onUpdatePrompt}
+          rows={3}
+          placeholder="Describe the opening frame of this shot..."
+          style={{
+            background: "#111111",
+            border: "1px solid #232323",
+            borderRadius: "8px",
+            padding: "10px 12px",
+            fontSize: "13px",
+            lineHeight: 1.6,
+            color: "#D9D9D9",
+            fontFamily: "var(--font-inter)",
+            minHeight: "80px",
+          }}
+        />
       </div>
 
       <div className="flex flex-col gap-2 pt-2" style={{ flexShrink: 0 }}>

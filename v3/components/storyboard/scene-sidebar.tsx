@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "framer-motion"
 import type { StoryboardScene, EditingLevel, ShotSimulationState } from "@/lib/storyboard-types"
 import { deriveShotStatus, deriveSceneStatus } from "@/lib/storyboard-utils"
 import { ShotStatusDot } from "./shot-status-dot"
+import { LegendItem } from "./legend-item"
 
 interface SceneSidebarProps {
   scenes: StoryboardScene[]
@@ -434,23 +435,6 @@ function ShotList({
           )
         })}
       </div>
-    </div>
-  )
-}
-
-function LegendItem({
-  status,
-  label,
-  size,
-}: {
-  status: "draft" | "frames_ready" | "video_ready"
-  label: string
-  size: "sm" | "md"
-}) {
-  return (
-    <div className="flex items-center justify-center gap-1.5 text-center whitespace-nowrap">
-      <ShotStatusDot status={status} size={size} />
-      <span style={{ fontSize: "10px", color: "#D9D9D9", fontWeight: 500 }}>{label}</span>
     </div>
   )
 }

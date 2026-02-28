@@ -38,7 +38,6 @@ const FRAMES_GENERATION_MS = 20_000
 const VIDEO_GENERATION_MS = 22_500
 const RENDER_PILL_COMPLETE_HOLD_MS = 450
 const TIMELINE_UI_UPDATE_INTERVAL_MS = 1000 / 24
-const SIMULATION_SEED_PCT = 0.37
 
 type SimulationTimerKey = "frames" | "video" | "voice" | "lipsync"
 type RenderJobMetadata = { startedAt: number; originStep: WorkflowStep }
@@ -49,24 +48,6 @@ const DEFAULT_SIMULATION_STATE: ShotSimulationState = {
   approved: false,
   voice: "idle",
   lipsync: "idle",
-}
-
-// Marks the first targetPct of shots (in natural order) as video_ready.
-// Used to seed the demo so the UI shows some clips already generated.
-function buildSeedSimulation(
-  scenes: StoryboardScene[],
-  targetPct: number
-): Record<string, ShotSimulationState> {
-  const allShots = scenes.flatMap((s) => s.shots)
-  const numReady = Math.floor(allShots.length * targetPct)
-  return Object.fromEntries(
-    allShots.map((shot, i) => [
-      shot.id,
-      i < numReady
-        ? { frames: "ready" as const, video: "ready" as const, approved: false, voice: "idle" as const, lipsync: "idle" as const }
-        : { ...DEFAULT_SIMULATION_STATE },
-    ])
-  )
 }
 
 function buildSimulationFromShots(scenes: StoryboardScene[]): Record<string, ShotSimulationState> {
@@ -554,35 +535,6 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
     setGeneratingToastShot(null)
   }, [])
 
-  // Rewinds the entire project simulation back to the 37% seed state.
-  // This is the only way to reset overall progress.
-  const handleRewindAll = useCallback(() => {
-    clearAllSimulationTimers()
-    const seed = buildSeedSimulation(scenes, SIMULATION_SEED_PCT)
-    setActiveStepByShot({})
-    setFrameVersionByShot({})
-    applySimulationSeed(seed)
-
-    startTransition(async () => {
-      try {
-        await Promise.all(
-          Object.entries(seed).map(([shotId, sim]) =>
-            updateShotAction({
-              shotId,
-              framesStatus: sim.frames,
-              videoStatus: sim.video,
-              voiceStatus: sim.voice,
-              lipsyncStatus: sim.lipsync,
-              approved: sim.approved,
-            })
-          )
-        )
-      } catch (error) {
-        console.error("Failed to persist rewind:", error)
-      }
-    })
-  }, [clearAllSimulationTimers, scenes, applySimulationSeed, startTransition])
-
   /* ── Drag to resize (horizontal split) ─── */
   const handleResizeStart = useCallback(
     (e: React.MouseEvent) => {
@@ -878,7 +830,6 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
         onDismiss={handleGeneratingToastDismiss}
       />
       <HeaderBar
-        onRewindSimulation={handleRewindAll}
         renderingShots={renderingShots}
         onRenderingShotClick={handleRenderingShotNavigate}
       />
@@ -1179,7 +1130,6 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
               <ShotTimeline
                 shots={timelineShots}
                 selectedShot={selectedShot}
-                sceneNumber={activeScene?.number ?? 0}
                 durationByShot={Object.fromEntries(timelineShots.map((shot) => [shot.id, shot.duration]))}
                 onSelectShot={handleShotSelect}
                 currentTime={videoCurrentTime}

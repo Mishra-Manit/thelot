@@ -82,7 +82,6 @@ async function extractThumbnail(videoUrl: string, duration: number): Promise<str
 interface ShotTimelineProps {
   shots: StoryboardShot[]
   selectedShot: string | null
-  sceneNumber: number
   durationByShot: Record<string, number>
   onSelectShot: (shotId: string) => void
   currentTime: number

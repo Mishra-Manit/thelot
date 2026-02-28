@@ -3,6 +3,7 @@
 import type { StoryboardScene, ShotSimulationState } from "@/lib/storyboard-types"
 import { deriveShotStatus } from "@/lib/storyboard-utils"
 import { ShotStatusDot } from "./shot-status-dot"
+import { LegendItem } from "./legend-item"
 
 interface SceneOverviewProps {
   scene: StoryboardScene
@@ -127,19 +128,3 @@ export function SceneOverview({
   )
 }
 
-function LegendItem({
-  status,
-  label,
-  size,
-}: {
-  status: "draft" | "frames_ready" | "video_ready"
-  label: string
-  size: "sm" | "md"
-}) {
-  return (
-    <div className="flex items-center justify-center gap-2 text-center">
-      <ShotStatusDot status={status} size={size} />
-      <span style={{ fontSize: "12px", color: "#D9D9D9", fontWeight: 500 }}>{label}</span>
-    </div>
-  )
-}

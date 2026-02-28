@@ -1,8 +1,8 @@
 "use client"
 
-import { useRef, useEffect, useCallback } from "react"
 import { Minus, Plus } from "lucide-react"
 import type { StoryboardShot, StoryboardShotUpdateInput } from "@/lib/storyboard-types"
+import { AutoTextarea } from "./auto-textarea"
 
 const MIN_DURATION_SECONDS = 1
 const MAX_DURATION_SECONDS = 30
@@ -16,52 +16,6 @@ interface ScriptPanelProps {
   widthPct?: number
   onUpdate: (field: keyof StoryboardShotUpdateInput, value: string | number) => void
   onDurationDisplayChange: (nextValue: number) => void
-}
-
-function AutoTextarea({
-  value,
-  onChange,
-  style,
-  className,
-}: {
-  value: string
-  onChange: (v: string) => void
-  style?: React.CSSProperties
-  className?: string
-}) {
-  const ref = useRef<HTMLTextAreaElement>(null)
-
-  const resize = useCallback(() => {
-    const el = ref.current
-    if (el) {
-      el.style.height = "0"
-      el.style.height = el.scrollHeight + "px"
-    }
-  }, [])
-
-  useEffect(() => { resize() }, [value, resize])
-
-  return (
-    <textarea
-      ref={ref}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      onInput={resize}
-      rows={1}
-      className={className}
-      style={{
-        resize: "none",
-        overflow: "hidden",
-        border: "none",
-        background: "transparent",
-        outline: "none",
-        width: "100%",
-        padding: 0,
-        margin: 0,
-        ...style,
-      }}
-    />
-  )
 }
 
 function EditorBlock({ children, marginBottom = 12, marginTop = 0 }: {
