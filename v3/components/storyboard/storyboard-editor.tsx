@@ -353,6 +353,18 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
     [timelineShots]
   )
 
+  // Scene boundaries for timeline markers (only relevant at movie level)
+  const sceneBoundaries = useMemo(() => {
+    if (editingLevel !== "movie") return []
+    let cursor = 0
+    return scenes.map((scene) => {
+      const startSec = cursor
+      const duration = scene.shots.reduce((sum, s) => sum + s.duration, 0)
+      cursor += duration
+      return { sceneId: scene.id, label: `Sc ${scene.number}`, startSec, duration }
+    })
+  }, [editingLevel, scenes])
+
   const allShotInputs = useMemo(
     (): ShotInput[] => allShots.map((s) => ({ id: s.id, videoUrl: s.videoUrl, duration: s.duration })),
     [allShots]
@@ -437,8 +449,13 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
         onDismiss={simulation.dismissGeneratingToast}
       />
       <HeaderBar
+        editingLevel={editingLevel}
+        activeScene={activeScene}
+        activeShot={activeShot}
         renderingShots={renderingShots}
         onRenderingShotClick={handleRenderingShotNavigate}
+        onBackToMovie={handleBackToMovie}
+        onBackToScene={handleBackToScene}
       />
 
       {/* Body: panels row above, full-width timeline below */}
@@ -629,6 +646,7 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
               shots={timelineShots}
               selectedShot={selectedShot}
               durationByShot={Object.fromEntries(timelineShots.map((shot) => [shot.id, shot.duration]))}
+              sceneBoundaries={sceneBoundaries}
               onSelectShot={handleShotSelect}
               currentTime={videoCurrentTime}
               totalDuration={timelineDuration}
