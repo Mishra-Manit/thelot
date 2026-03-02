@@ -79,10 +79,19 @@ async function extractThumbnail(videoUrl: string, duration: number): Promise<str
   }
 }
 
+// Scene boundary info for timeline markers
+interface SceneBoundary {
+  sceneId: string
+  label: string
+  startSec: number
+  duration: number
+}
+
 interface ShotTimelineProps {
   shots: StoryboardShot[]
   selectedShot: string | null
   durationByShot: Record<string, number>
+  sceneBoundaries?: SceneBoundary[]
   onSelectShot: (shotId: string) => void
   currentTime: number
   totalDuration: number
@@ -95,6 +104,7 @@ export function ShotTimeline({
   shots,
   selectedShot,
   durationByShot,
+  sceneBoundaries = [],
   onSelectShot,
   currentTime,
   totalDuration,
@@ -611,6 +621,45 @@ export function ShotTimeline({
                   )
                 })}
               </div>
+
+              {/* Scene boundary markers (movie level only) */}
+              {sceneBoundaries.length > 0 && effectiveDuration > 0 && sceneBoundaries.map((boundary, i) => {
+                const leftPct = (boundary.startSec / effectiveDuration) * 100
+                // Skip the first boundary (starts at 0, no divider needed there)
+                const showDivider = i > 0
+                return (
+                  <div key={boundary.sceneId} className="absolute pointer-events-none" style={{ left: `${leftPct}%`, top: 0, bottom: 0, zIndex: 10 }}>
+                    {/* Vertical dashed line at scene boundary */}
+                    {showDivider && (
+                      <div
+                        style={{
+                          position: "absolute",
+                          top: `${RULER_HEIGHT}px`,
+                          left: 0,
+                          width: "1px",
+                          height: `calc(100% - ${RULER_HEIGHT}px)`,
+                          borderLeft: "1px dashed #464646",
+                        }}
+                      />
+                    )}
+                    {/* Scene label above the ruler */}
+                    <div
+                      style={{
+                        position: "absolute",
+                        top: "-1px",
+                        left: showDivider ? "4px" : "0px",
+                        fontSize: "9px",
+                        fontWeight: 600,
+                        color: "#575757",
+                        letterSpacing: "0.02em",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {boundary.label}
+                    </div>
+                  </div>
+                )
+              })}
 
               {/* Unified Playhead */}
               <div
