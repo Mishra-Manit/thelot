@@ -441,7 +441,7 @@ function ShotList({
 
 /* ── Shared collapse button ─────────────── */
 
-function CollapseButton({ onCollapse }: { onCollapse: () => void }) {
+export function CollapseButton({ onCollapse }: { onCollapse: () => void }) {
   return (
     <button
       onClick={onCollapse}

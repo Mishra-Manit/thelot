@@ -61,6 +61,7 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
   const [selectedScene, setSelectedScene] = useState<string | null>(null)
   const [selectedShot, setSelectedShot] = useState<string | null>(null)
   const [panelCollapsed, setPanelCollapsed] = useState(false)
+  const [scenePanelCollapsed, setScenePanelCollapsed] = useState(false)
   const [activeStepByShot, setActiveStepByShot] = useState<Record<string, WorkflowStep>>({})
 
   // Playback state
@@ -170,6 +171,7 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
     setSelectedShot(null)
     setEditingLevel("scene")
     setPanelCollapsed(false)
+    setScenePanelCollapsed(false)
   }, [])
 
   const handleShotSelect = useCallback(
@@ -201,12 +203,14 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
     setSelectedShot(null)
     setEditingLevel("movie")
     setPanelCollapsed(false)
+    setScenePanelCollapsed(false)
   }, [])
 
   const handleBackToScene = useCallback(() => {
     setSelectedShot(null)
     setEditingLevel("scene")
     setPanelCollapsed(false)
+    setScenePanelCollapsed(false)
   }, [])
 
   const handleTimelineSceneSelect = useCallback(
@@ -588,6 +592,8 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
                   durationByShot={Object.fromEntries(activeScene.shots.map((shot) => [shot.id, shot.duration]))}
                   onShotSelect={handleShotSelect}
                   onBackToMovie={handleBackToMovie}
+                  isCollapsed={scenePanelCollapsed}
+                  onCollapsedChange={setScenePanelCollapsed}
                 />
                 <SceneRightPanel
                   shots={sceneShotInputs}

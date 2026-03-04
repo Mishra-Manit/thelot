@@ -1,9 +1,12 @@
 "use client"
 
+import { AnimatePresence, motion } from "framer-motion"
+import { ChevronRight } from "lucide-react"
 import type { StoryboardScene, ShotSimulationState } from "@/lib/storyboard-types"
 import { deriveShotStatus } from "@/lib/storyboard-utils"
 import { ShotStatusDot } from "./shot-status-dot"
 import { LegendItem } from "./legend-item"
+import { CollapseButton } from "./scene-sidebar"
 
 interface SceneOverviewProps {
   scene: StoryboardScene
@@ -11,6 +14,8 @@ interface SceneOverviewProps {
   durationByShot: Record<string, number>
   onShotSelect: (shotId: string) => void
   onBackToMovie: () => void
+  isCollapsed: boolean
+  onCollapsedChange: (collapsed: boolean) => void
 }
 
 export function SceneOverview({
@@ -19,6 +24,8 @@ export function SceneOverview({
   durationByShot,
   onShotSelect,
   onBackToMovie,
+  isCollapsed,
+  onCollapsedChange,
 }: SceneOverviewProps) {
   const totalDuration = scene.shots.reduce(
     (sum, s) => sum + (durationByShot[s.id] ?? s.duration),
@@ -26,26 +33,148 @@ export function SceneOverview({
   )
 
   return (
-    <div
-      className="flex flex-col h-full overflow-y-auto font-sans"
-      style={{
-        background: "#000000",
-        borderRight: "1px solid #232323",
-        width: "420px",
-        flexShrink: 0,
-      }}
+    <motion.aside
+      role="navigation"
+      className="flex flex-col shrink-0 overflow-hidden font-sans"
+      style={{ background: "#000000", borderRight: "1px solid #232323" }}
+      initial={false}
+      animate={{ width: isCollapsed ? 44 : 420 }}
+      transition={{ type: "spring", stiffness: 360, damping: 34, mass: 0.7 }}
+      aria-label={isCollapsed ? "Scene panel (collapsed)" : "Scene panel"}
+    >
+      <AnimatePresence mode="wait" initial={false}>
+        {isCollapsed ? (
+          <CollapsedScenePanel
+            scene={scene}
+            onExpand={() => onCollapsedChange(false)}
+            onShotSelect={onShotSelect}
+          />
+        ) : (
+          <ExpandedScenePanel
+            scene={scene}
+            simulationByShot={simulationByShot}
+            durationByShot={durationByShot}
+            totalDuration={totalDuration}
+            onShotSelect={onShotSelect}
+            onBackToMovie={onBackToMovie}
+            onCollapse={() => onCollapsedChange(true)}
+          />
+        )}
+      </AnimatePresence>
+    </motion.aside>
+  )
+}
+
+/* ── Collapsed ──────────────────────────── */
+
+function CollapsedScenePanel({
+  scene,
+  onExpand,
+  onShotSelect,
+}: {
+  scene: StoryboardScene
+  onExpand: () => void
+  onShotSelect: (shotId: string) => void
+}) {
+  return (
+    <motion.div
+      key="collapsed-scene-panel"
+      className="flex flex-col h-full items-center"
+      initial={{ opacity: 0, x: -8 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -6 }}
+      transition={{ duration: 0.16, ease: "easeOut" }}
+    >
+      <button
+        onClick={onExpand}
+        className="flex items-center justify-center transition-colors duration-150"
+        style={{ width: "44px", height: "40px", color: "#696969" }}
+        onMouseEnter={(e) => (e.currentTarget.style.color = "#ffffff")}
+        onMouseLeave={(e) => (e.currentTarget.style.color = "#696969")}
+        aria-label="Expand scene panel"
+      >
+        <ChevronRight size={16} />
+      </button>
+
+      <div style={{ width: "20px", height: "1px", background: "#232323", marginBottom: "8px" }} />
+
+      <div className="flex flex-col items-center gap-2 overflow-y-auto flex-1 py-1">
+        {scene.shots.map((shot) => (
+          <button
+            key={shot.id}
+            onClick={() => onShotSelect(shot.id)}
+            className="flex items-center justify-center rounded shrink-0 transition-all duration-150"
+            style={{
+              width: "30px",
+              height: "26px",
+              fontSize: "9px",
+              fontWeight: 600,
+              background: "transparent",
+              color: "#696969",
+              border: "1px solid transparent",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "#11111188"
+              e.currentTarget.style.color = "#D9D9D9"
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "transparent"
+              e.currentTarget.style.color = "#696969"
+            }}
+            aria-label={`Shot ${shot.number}: ${shot.title}`}
+            title={`Shot ${shot.number}: ${shot.title}`}
+          >
+            {shot.number}
+          </button>
+        ))}
+      </div>
+    </motion.div>
+  )
+}
+
+/* ── Expanded ───────────────────────────── */
+
+function ExpandedScenePanel({
+  scene,
+  simulationByShot,
+  durationByShot,
+  totalDuration,
+  onShotSelect,
+  onBackToMovie,
+  onCollapse,
+}: {
+  scene: StoryboardScene
+  simulationByShot: Record<string, ShotSimulationState>
+  durationByShot: Record<string, number>
+  totalDuration: number
+  onShotSelect: (shotId: string) => void
+  onBackToMovie: () => void
+  onCollapse: () => void
+}) {
+  return (
+    <motion.div
+      key="expanded-scene-panel"
+      className="flex flex-col h-full overflow-y-auto"
+      initial={{ opacity: 0, x: -10 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -6 }}
+      transition={{ duration: 0.18, ease: "easeOut" }}
     >
       {/* Back + title */}
       <div className="px-5 pt-4 pb-3" style={{ borderBottom: "1px solid #232323" }}>
-        <button
-          className="transition-colors duration-150 mb-2"
-          style={{ fontSize: "11px", color: "#696969", display: "block" }}
-          onMouseEnter={(e) => (e.currentTarget.style.color = "#ffffff")}
-          onMouseLeave={(e) => (e.currentTarget.style.color = "#696969")}
-          onClick={onBackToMovie}
-        >
-          ← All Scenes
-        </button>
+        <div className="flex items-center justify-between mb-2">
+          <button
+            aria-label="Back to all scenes"
+            className="transition-colors duration-150"
+            style={{ fontSize: "11px", color: "#696969" }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = "#ffffff")}
+            onMouseLeave={(e) => (e.currentTarget.style.color = "#696969")}
+            onClick={onBackToMovie}
+          >
+            ← All Scenes
+          </button>
+          <CollapseButton onCollapse={onCollapse} />
+        </div>
         <h2 style={{ fontSize: "14px", fontWeight: 600, color: "#ffffff", marginBottom: "4px" }}>
           {scene.number}. {scene.title}
         </h2>
@@ -124,7 +253,6 @@ export function SceneOverview({
           )
         })}
       </div>
-    </div>
+    </motion.div>
   )
 }
-
