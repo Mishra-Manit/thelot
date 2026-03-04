@@ -26,6 +26,7 @@ import type {
   EditingLevel,
   ShotInput,
   RenderingShot,
+  ShotWithContext,
 } from "@/lib/storyboard-types"
 
 const MIN_DURATION_SECONDS = 1
@@ -115,15 +116,40 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
 
   const shotTimelineById = useMemo(() => {
     const map = new Map<string, { startSec: number; duration: number }>()
+    let sceneStart = 0
     scenes.forEach((scene) => {
-      let cursor = 0
+      let shotStart = sceneStart
       scene.shots.forEach((shot) => {
-        map.set(shot.id, { startSec: cursor, duration: shot.duration })
-        cursor += shot.duration
+        map.set(shot.id, { startSec: shotStart, duration: shot.duration })
+        shotStart += shot.duration
       })
+      sceneStart = shotStart
     })
     return map
   }, [scenes])
+
+  // All shots tagged with their scene — always includes full movie
+  const shotsWithContext = useMemo<ShotWithContext[]>(
+    () => scenes.flatMap((s) => s.shots.map((shot) => ({ ...shot, sceneId: s.id }))),
+    [scenes]
+  )
+
+  // Absolute start second of each scene within the full movie
+  const sceneStartSecById = useMemo(() => {
+    const map = new Map<string, number>()
+    let cursor = 0
+    scenes.forEach((scene) => {
+      map.set(scene.id, cursor)
+      cursor += scene.shots.reduce((sum, s) => sum + s.duration, 0)
+    })
+    return map
+  }, [scenes])
+
+  // Full movie duration (always, not filtered by level)
+  const movieDuration = useMemo(
+    () => allShots.reduce((sum, s) => sum + s.duration, 0),
+    [allShots]
+  )
 
   // -- Render queue (header bar pills) --
   const { renderingShots } = useRenderQueue({
@@ -152,19 +178,22 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
       if (owningScene) {
         setSelectedScene(owningScene.id)
         const shotIndex = owningScene.shots.findIndex((sh) => sh.id === shotId)
-        const startSec = owningScene.shots.slice(0, shotIndex).reduce((sum, sh) => sum + sh.duration, 0)
+        const sceneRelativeStart = owningScene.shots
+          .slice(0, shotIndex)
+          .reduce((sum, sh) => sum + sh.duration, 0)
+        const absoluteStart = (sceneStartSecById.get(owningScene.id) ?? 0) + sceneRelativeStart
         framePreviewRef.current?.pause()
         if (editingLevel !== "shot") {
-          framePreviewRef.current?.seek(startSec)
+          framePreviewRef.current?.seek(sceneRelativeStart) // video player needs scene-relative
         }
         setIsVideoPlaying(false)
-        setVideoCurrentTime(startSec)
+        setVideoCurrentTime(absoluteStart) // timeline needs absolute
       }
       setSelectedShot(shotId)
       setEditingLevel("shot")
       setPanelCollapsed(autoCollapse)
     },
-    [editingLevel, scenes]
+    [editingLevel, scenes, sceneStartSecById]
   )
 
   const handleBackToMovie = useCallback(() => {
@@ -179,6 +208,14 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
     setEditingLevel("scene")
     setPanelCollapsed(false)
   }, [])
+
+  const handleTimelineSceneSelect = useCallback(
+    (sceneId: string) => {
+      setSelectedScene(sceneId)
+      if (editingLevel === "shot") setEditingLevel("scene")
+    },
+    [editingLevel]
+  )
 
   const handleStepChange = useCallback((step: WorkflowStep) => {
     if (!selectedShot) return
@@ -312,10 +349,20 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
         }
       }
 
+      // At scene level, clamp seek to active scene's range and convert to scene-relative
+      if (editingLevel === "scene" && selectedScene && activeScene) {
+        const sceneStart = sceneStartSecById.get(selectedScene) ?? 0
+        const sceneDuration = activeScene.shots.reduce((sum, s) => sum + s.duration, 0)
+        const clamped = Math.max(sceneStart, Math.min(normalizedSeconds, sceneStart + sceneDuration))
+        framePreviewRef.current?.seek(clamped - sceneStart)
+        setVideoCurrentTime(clamped)
+        return
+      }
+
       framePreviewRef.current?.seek(normalizedSeconds)
       setVideoCurrentTime(normalizedSeconds)
     },
-    [activeStep, editingLevel, selectedShot, shotTimelineById]
+    [activeStep, editingLevel, selectedShot, selectedScene, activeScene, shotTimelineById, sceneStartSecById]
   )
 
   const handlePlayerTimeUpdate = useCallback(
@@ -327,35 +374,25 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
 
       let timelineTime = Math.max(0, time)
 
-      // At shot-level video step, offset time by the shot's position in the scene
+      // At shot-level video step, offset time by the shot's absolute position in the movie
       if (editingLevel === "shot" && activeStep === "video" && selectedShot) {
         const timelinePosition = shotTimelineById.get(selectedShot)
         if (timelinePosition) {
           const clampedShotTime = Math.max(0, Math.min(time, timelinePosition.duration))
           timelineTime = timelinePosition.startSec + clampedShotTime
         }
+      } else if (editingLevel === "scene" && selectedScene) {
+        const sceneStart = sceneStartSecById.get(selectedScene) ?? 0
+        timelineTime = sceneStart + time
       }
 
       setVideoCurrentTime((prev) => (Math.abs(prev - timelineTime) >= 0.04 ? timelineTime : prev))
     },
-    [activeStep, editingLevel, selectedShot, shotTimelineById]
+    [activeStep, editingLevel, selectedShot, selectedScene, shotTimelineById, sceneStartSecById]
   )
 
-  // -- Memoized shot projections --
-
-  const timelineShots = useMemo(() => {
-    if (editingLevel === "movie") return allShots
-    return activeScene?.shots ?? []
-  }, [editingLevel, allShots, activeScene])
-
-  const timelineDuration = useMemo(
-    () => timelineShots.reduce((sum, shot) => sum + shot.duration, 0),
-    [timelineShots]
-  )
-
-  // Scene boundaries for timeline markers (only relevant at movie level)
+  // Scene boundaries — always computed for full movie (shown at all levels)
   const sceneBoundaries = useMemo(() => {
-    if (editingLevel !== "movie") return []
     let cursor = 0
     return scenes.map((scene) => {
       const startSec = cursor
@@ -363,7 +400,7 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
       cursor += duration
       return { sceneId: scene.id, label: `Sc ${scene.number}`, startSec, duration }
     })
-  }, [editingLevel, scenes])
+  }, [scenes])
 
   const allShotInputs = useMemo(
     (): ShotInput[] => allShots.map((s) => ({ id: s.id, videoUrl: s.videoUrl, duration: s.duration })),
@@ -437,7 +474,7 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
 
   // -- Render --
 
-  const showTimeline = timelineShots.length > 0
+  const showTimeline = allShots.length > 0
   const isAnyHorizontalDrag = shotSplit.isDragging || movieSplit.isDragging
 
   return (
@@ -643,13 +680,15 @@ export function StoryboardEditor({ initialScenes }: StoryboardEditorProps) {
             style={{ flex: `0 0 ${timelineSplit.pct}%`, padding: "0" }}
           >
             <ShotTimeline
-              shots={timelineShots}
+              shots={shotsWithContext}
               selectedShot={selectedShot}
-              durationByShot={Object.fromEntries(timelineShots.map((shot) => [shot.id, shot.duration]))}
+              selectedSceneId={selectedScene}
+              durationByShot={Object.fromEntries(allShots.map((s) => [s.id, s.duration]))}
               sceneBoundaries={sceneBoundaries}
               onSelectShot={handleShotSelect}
+              onSceneSelect={handleTimelineSceneSelect}
               currentTime={videoCurrentTime}
-              totalDuration={timelineDuration}
+              totalDuration={movieDuration}
               isPlaying={isVideoPlaying}
               onPlayPause={handleTimelinePlayPause}
               onSeek={handleTimelineSeek}

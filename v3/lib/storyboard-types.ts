@@ -38,6 +38,9 @@ export interface StoryboardShot {
   lipsyncVideoUrl: string
 }
 
+// Shot tagged with its parent scene (used when timeline renders full movie)
+export type ShotWithContext = StoryboardShot & { sceneId: string }
+
 export interface StoryboardScene {
   id: string
   number: number
@@ -87,7 +90,7 @@ export interface RenderingShot {
 
 // Layout info for timeline pill positioning
 export interface ShotLayout {
-  shot: StoryboardShot
+  shot: ShotWithContext
   duration: number
   startSec: number
   leftPct: number

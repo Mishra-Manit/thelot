@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect, useMemo } from "react"
 import { Plus, Play, Pause, Minus, Maximize2 } from "lucide-react"
-import type { StoryboardShot, ShotLayout } from "@/lib/storyboard-types"
+import type { ShotWithContext, ShotLayout } from "@/lib/storyboard-types"
 import type { VideoSource as VideoSourceType } from "@diffusionstudio/core"
 
 // Sidebar width constant
@@ -23,7 +23,7 @@ function formatTime(seconds: number): string {
 }
 
 // Compute layout positions for all shots
-function computeLayout(shots: StoryboardShot[], totalDuration: number): ShotLayout[] {
+function computeLayout(shots: ShotWithContext[], totalDuration: number): ShotLayout[] {
   let cursor = 0
   return shots.map((shot) => {
     const duration = Math.max(1, Math.round(shot.duration))
@@ -88,11 +88,13 @@ interface SceneBoundary {
 }
 
 interface ShotTimelineProps {
-  shots: StoryboardShot[]
+  shots: ShotWithContext[]
   selectedShot: string | null
+  selectedSceneId: string | null
   durationByShot: Record<string, number>
   sceneBoundaries?: SceneBoundary[]
   onSelectShot: (shotId: string) => void
+  onSceneSelect: (sceneId: string) => void
   currentTime: number
   totalDuration: number
   isPlaying: boolean
@@ -103,16 +105,18 @@ interface ShotTimelineProps {
 export function ShotTimeline({
   shots,
   selectedShot,
+  selectedSceneId,
   durationByShot,
   sceneBoundaries = [],
   onSelectShot,
+  onSceneSelect,
   currentTime,
   totalDuration,
   isPlaying,
   onPlayPause,
   onSeek,
 }: ShotTimelineProps) {
-  const shotsWithDuration = useMemo(
+  const shotsWithDuration = useMemo<ShotWithContext[]>(
     () =>
       shots.map((shot) => ({
         ...shot,
@@ -211,6 +215,20 @@ export function ShotTimeline({
     return () => { cancelled = true }
   }, [shotsWithDuration, layouts])
 
+  // Auto-pan to keep active scene visible at ~15% from left edge
+  useEffect(() => {
+    if (!scrollRef.current || effectiveDuration <= 0) return
+    const targetShotId = selectedShot ?? layouts.find((l) => l.shot.sceneId === selectedSceneId)?.shot.id
+    if (!targetShotId) return
+    const layout = layouts.find((l) => l.shot.id === targetShotId)
+    if (!layout) return
+    const viewportWidth = scrollRef.current.clientWidth
+    const totalWidth = viewportWidth * zoom
+    const shotPixel = (layout.startSec / effectiveDuration) * totalWidth
+    const scrollTarget = Math.max(0, shotPixel - viewportWidth * 0.15)
+    scrollRef.current.scrollTo({ left: scrollTarget, behavior: "smooth" })
+  }, [selectedSceneId, selectedShot, layouts, effectiveDuration, zoom])
+
   // Playhead drag handler
   const handlePlayheadDrag = useCallback(
     (e: React.MouseEvent) => {
@@ -264,10 +282,16 @@ export function ShotTimeline({
     [effectiveDuration, onSeek, timelineViewportWidth, zoom]
   )
 
-  // Pill click handler — seek is driven by onSelectShot
+  // Pill click handler — route dimmed shots to scene select, active scene shots to shot select
   const handlePillClick = useCallback(
-    (shotId: string) => onSelectShot(shotId),
-    [onSelectShot]
+    (shot: ShotWithContext) => {
+      if (selectedSceneId && shot.sceneId !== selectedSceneId) {
+        onSceneSelect(shot.sceneId)
+      } else {
+        onSelectShot(shot.id)
+      }
+    },
+    [selectedSceneId, onSceneSelect, onSelectShot]
   )
 
   // Track content width for positioning
@@ -424,7 +448,7 @@ export function ShotTimeline({
       {/* Timeline Area */}
       {shots.length === 0 ? (
         <div className="flex-1 flex items-center justify-center" style={{ color: "#404040", fontSize: "12px" }}>
-          No shots in this scene
+          No shots
         </div>
       ) : (
         <div className="flex-1 min-h-0 flex overflow-hidden">
@@ -534,11 +558,12 @@ export function ShotTimeline({
               </div>
 
               {/* Video Track */}
-              <div 
+              <div
                 className="relative"
                 style={{ height: "40px", background: "#000000" }}
               >
                 {layouts.map((layout) => {
+                  const isInActiveScene = !selectedSceneId || layout.shot.sceneId === selectedSceneId
                   const isSelected = selectedShot === layout.shot.id
                   return (
                     <button
@@ -561,15 +586,21 @@ export function ShotTimeline({
                         backgroundRepeat: "no-repeat",
                         backgroundClip: "border-box",
                         backgroundColor: "#1a1a1a",
-                        border: isSelected ? "2px solid #666" : "1px solid transparent",
-                        opacity: isSelected ? 1 : 0.9,
+                        border: isSelected ? "2px solid #FFFFFF" : "1px solid transparent",
+                        opacity: isInActiveScene ? (isSelected ? 1 : 0.9) : 0.25,
+                        filter: isInActiveScene ? "none" : "grayscale(100%)",
+                        zIndex: isSelected ? 61 : undefined,
                         overflow: "hidden",
                       }}
-                      onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.opacity = "1" }}
-                      onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.opacity = "0.9" }}
+                      onMouseEnter={(e) => {
+                        if (!isSelected && isInActiveScene) e.currentTarget.style.opacity = "1"
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isSelected) e.currentTarget.style.opacity = isInActiveScene ? "0.9" : "0.25"
+                      }}
                       onClick={(e) => {
                         e.stopPropagation()
-                        handlePillClick(layout.shot.id)
+                        handlePillClick(layout.shot)
                       }}
                     >
                       {/* Metadata - compact */}
@@ -590,11 +621,12 @@ export function ShotTimeline({
               </div>
 
               {/* Audio Track */}
-              <div 
+              <div
                 className="relative"
                 style={{ height: "28px", background: "#000000" }}
               >
                 {layouts.map((layout) => {
+                  const isInActiveScene = !selectedSceneId || layout.shot.sceneId === selectedSceneId
                   const isSelected = selectedShot === layout.shot.id
                   return (
                     <button
@@ -608,14 +640,19 @@ export function ShotTimeline({
                         minWidth: "40px",
                         borderRadius: "4px",
                         backgroundColor: "#3A3A3A",
-                        border: isSelected ? "2px solid #666" : "1px solid transparent",
-                        opacity: isSelected ? 1 : 0.95,
+                        border: isSelected ? "2px solid #FFFFFF" : "1px solid transparent",
+                        opacity: isInActiveScene ? (isSelected ? 1 : 0.95) : 0.25,
+                        filter: isInActiveScene ? "none" : "grayscale(100%)",
                       }}
-                      onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.opacity = "1" }}
-                      onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.opacity = "0.9" }}
+                      onMouseEnter={(e) => {
+                        if (!isSelected && isInActiveScene) e.currentTarget.style.opacity = "1"
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isSelected) e.currentTarget.style.opacity = isInActiveScene ? "0.9" : "0.25"
+                      }}
                       onClick={(e) => {
                         e.stopPropagation()
-                        handlePillClick(layout.shot.id)
+                        handlePillClick(layout.shot)
                       }}
                     />
                   )
@@ -638,25 +675,10 @@ export function ShotTimeline({
                           left: 0,
                           width: "1px",
                           height: `calc(100% - ${RULER_HEIGHT}px)`,
-                          borderLeft: "1px dashed #464646",
+                          borderLeft: "1px dashed #A3A3A3",
                         }}
                       />
                     )}
-                    {/* Scene label above the ruler */}
-                    <div
-                      style={{
-                        position: "absolute",
-                        top: "-1px",
-                        left: showDivider ? "4px" : "0px",
-                        fontSize: "9px",
-                        fontWeight: 600,
-                        color: "#575757",
-                        letterSpacing: "0.02em",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {boundary.label}
-                    </div>
                   </div>
                 )
               })}
